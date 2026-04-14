@@ -1,0 +1,32 @@
+## .NET
+bin/
+obj/
+*.user
+*.suo
+*.cache
+*.log
+*.vs/
+.vs/
+
+## Test results
+TestResults/
+*.trx
+coverage.cobertura.xml
+coveragereport/
+
+## IDE
+.idea/
+*.swp
+*~
+
+## NuGet
+*.nupkg
+*.snupkg
+packages/
+
+## OS
+Thumbs.db
+.DS_Store
+
+## Husky
+.husky/_

@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>$(NetAppVersion)</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <IsAspireHost>true</IsAspireHost>
+    <AspireHostingSdkVersion>9.2.0</AspireHostingSdkVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Aspire.Hosting.AppHost" />
+    <PackageReference Include="Aspire.Hosting.PostgreSQL" />
+    <PackageReference Include="Aspire.Hosting.RabbitMQ" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\DotNetModulith.Api\DotNetModulith.Api.csproj" />
+    <ProjectReference Include="..\DotNetModulith.MigrationService\DotNetModulith.MigrationService.csproj" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,29 @@
+<Solution>
+  <Folder Name="/build/">
+    <File Path="Directory.Build.props" />
+    <File Path="Directory.Packages.props" />
+    <File Path="global.json" />
+    <File Path="NuGet.Config" />
+  </Folder>
+  <Folder Name="/src/Core/">
+    <Project Path="src/DotNetModulith.Abstractions/DotNetModulith.Abstractions.csproj" />
+    <Project Path="src/DotNetModulith.ModulithCore/DotNetModulith.ModulithCore.csproj" />
+    <Project Path="src/DotNetModulith.ServiceDefaults/DotNetModulith.ServiceDefaults.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/">
+    <Project Path="src/DotNetModulith.Modules.Orders/DotNetModulith.Modules.Orders.csproj" />
+    <Project Path="src/DotNetModulith.Modules.Inventory/DotNetModulith.Modules.Inventory.csproj" />
+    <Project Path="src/DotNetModulith.Modules.Payments/DotNetModulith.Modules.Payments.csproj" />
+    <Project Path="src/DotNetModulith.Modules.Notifications/DotNetModulith.Modules.Notifications.csproj" />
+  </Folder>
+  <Folder Name="/src/Host/">
+    <Project Path="src/DotNetModulith.Api/DotNetModulith.Api.csproj" />
+    <Project Path="src/DotNetModulith.AppHost/DotNetModulith.AppHost.csproj" />
+    <Project Path="src/DotNetModulith.MigrationService/DotNetModulith.MigrationService.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/DotNetModulith.ArchitectureTests/DotNetModulith.ArchitectureTests.csproj" />
+    <Project Path="tests/DotNetModulith.Modules.Orders.Tests/DotNetModulith.Modules.Orders.Tests.csproj" />
+    <Project Path="tests/DotNetModulith.IntegrationTests/DotNetModulith.IntegrationTests.csproj" />
+  </Folder>
+</Solution>

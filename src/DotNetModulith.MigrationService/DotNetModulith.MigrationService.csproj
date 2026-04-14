@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>$(NetAppVersion)</TargetFramework>
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\DotNetModulith.ServiceDefaults\DotNetModulith.ServiceDefaults.csproj" />
+    <ProjectReference Include="..\DotNetModulith.Modules.Orders\DotNetModulith.Modules.Orders.csproj" />
+    <ProjectReference Include="..\DotNetModulith.Modules.Inventory\DotNetModulith.Modules.Inventory.csproj" />
+    <ProjectReference Include="..\DotNetModulith.Modules.Payments\DotNetModulith.Modules.Payments.csproj" />
+  </ItemGroup>
+</Project>

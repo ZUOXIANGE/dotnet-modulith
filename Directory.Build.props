@@ -1,0 +1,45 @@
+<Project>
+  <PropertyGroup>
+    <Authors>DotNetModulith</Authors>
+    <Copyright>Copyright © 2025-$([System.DateTime]::Now.Year) DotNetModulith</Copyright>
+    <Product>DotNetModulith</Product>
+    <PackageProjectUrl>https://github.com/example/dotnet-modulith</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/example/dotnet-modulith</RepositoryUrl>
+    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <NoWarn>$(NoWarn);CS1591;NU1903</NoWarn>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <VersionPrefix>1.0.0</VersionPrefix>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <NetAppVersion>net10.0</NetAppVersion>
+    <NetTestVersion>net10.0</NetTestVersion>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="DotNetModulith.ArchitectureTests" />
+    <InternalsVisibleTo Include="DotNetModulith.IntegrationTests" />
+    <InternalsVisibleTo Include="DotNetModulith.Modules.Orders.Tests" />
+    <InternalsVisibleTo Include="DotNetModulith.MigrationService" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.SourceLink.GitHub" PrivateAssets="All" />
+  </ItemGroup>
+</Project>

@@ -81,7 +81,7 @@ public sealed class Order : AggregateRoot, IEntity<OrderId>
             order._lines.Add(orderLine);
         }
 
-        var domainEvent = new OrderCreatedDomainEvent(order.Id, order.CustomerId, order.TotalAmount);
+        var domainEvent = new OrderCreatedDomainEvent(order.Id, order.CustomerId, order.TotalAmount, lines);
         order.AddDomainEvent(domainEvent);
 
         activity?.SetTag("modulith.order_id", order.Id.ToString());

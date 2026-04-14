@@ -7,7 +7,7 @@ namespace Projects;
 [global::System.Diagnostics.DebuggerDisplay("Type = {GetType().Name,nq}, ProjectPath = {ProjectPath}")]
 public class DotNetModulith_MigrationService : IProjectMetadata
 {
-    public string ProjectPath => """d:\Code\dotnet-modulith\src\DotNetModulith.MigrationService\DotNetModulith.MigrationService.csproj""";
+    public string ProjectPath => Path.Combine("..", "DotNetModulith.MigrationService", "DotNetModulith.MigrationService.csproj");
 }
 
 [global::System.CodeDom.Compiler.GeneratedCode("Manual", "1.0")]
@@ -15,5 +15,5 @@ public class DotNetModulith_MigrationService : IProjectMetadata
 [global::System.Diagnostics.DebuggerDisplay("Type = {GetType().Name,nq}, ProjectPath = {ProjectPath}")]
 public class DotNetModulith_Api : IProjectMetadata
 {
-    public string ProjectPath => """d:\Code\dotnet-modulith\src\DotNetModulith.Api\DotNetModulith.Api.csproj""";
+    public string ProjectPath => Path.Combine("..", "DotNetModulith.Api", "DotNetModulith.Api.csproj");
 }

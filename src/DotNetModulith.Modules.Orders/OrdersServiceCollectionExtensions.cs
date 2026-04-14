@@ -1,8 +1,9 @@
 using System.Diagnostics;
-using DotNetCore.CAP;
+using DotNetModulith.Abstractions.Events;
 using DotNetModulith.Modules.Orders.Application.Events;
 using DotNetModulith.Modules.Orders.Application.Subscribers;
 using DotNetModulith.Modules.Orders.Domain;
+using DotNetModulith.Modules.Orders.Domain.Events;
 using DotNetModulith.Modules.Orders.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -38,11 +39,13 @@ internal static class OrdersServiceCollectionExtensions
     }
 
     /// <summary>
-    /// 注册订单模块的应用层服务（事件发布器和事件订阅者）
+    /// 注册订单模块的应用层服务（领域事件处理器和事件订阅者）
     /// </summary>
     public static IServiceCollection AddOrdersApplication(this IServiceCollection services)
     {
-        services.AddScoped<DomainEventToIntegrationEventPublisher>();
+        services.AddTransient<IDomainEventHandler<OrderCreatedDomainEvent>, OrderCreatedDomainEventHandler>();
+        services.AddTransient<IDomainEventHandler<OrderPaidDomainEvent>, OrderPaidDomainEventHandler>();
+        services.AddTransient<IDomainEventHandler<OrderCancelledDomainEvent>, OrderCancelledDomainEventHandler>();
         services.AddTransient<InventoryEventSubscriber>();
         services.AddTransient<PaymentEventSubscriber>();
 

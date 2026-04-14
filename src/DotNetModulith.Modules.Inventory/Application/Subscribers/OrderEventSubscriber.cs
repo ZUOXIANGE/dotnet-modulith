@@ -48,6 +48,8 @@ public sealed class OrderEventSubscriber : ICapSubscribe
 
         EventsConsumed.Add(1, new KeyValuePair<string, object?>("modulith.event_type", "OrderCreatedIntegrationEvent"));
 
+        var reservedLines = new List<StockReservedLine>();
+
         foreach (var line in @event.Lines)
         {
             var stock = await _stockRepository.GetByProductIdAsync(line.ProductId, ct);
@@ -56,6 +58,16 @@ public sealed class OrderEventSubscriber : ICapSubscribe
             {
                 _logger.LogWarning("Insufficient stock for product {ProductId} in order {OrderId}",
                     line.ProductId, @event.OrderId);
+
+                foreach (var reserved in reservedLines)
+                {
+                    var reservedStock = await _stockRepository.GetByProductIdAsync(reserved.ProductId, ct);
+                    if (reservedStock is not null)
+                    {
+                        reservedStock.Release(reserved.Quantity);
+                        await _stockRepository.UpdateAsync(reservedStock, ct);
+                    }
+                }
 
                 var insufficientEvent = new StockInsufficientIntegrationEvent(
                     @event.OrderId, line.ProductId, line.Quantity, stock?.AvailableQuantity ?? 0);
@@ -69,9 +81,10 @@ public sealed class OrderEventSubscriber : ICapSubscribe
             }
 
             await _stockRepository.UpdateAsync(stock, ct);
+            reservedLines.Add(new StockReservedLine(line.ProductId, line.Quantity));
         }
 
-        var reservedEvent = new StockReservedIntegrationEvent(@event.OrderId, @event.Lines.First().ProductId, @event.Lines.Sum(l => l.Quantity));
+        var reservedEvent = new StockReservedIntegrationEvent(@event.OrderId, reservedLines);
         await _capPublisher.PublishAsync(
             "modulith.inventory.StockReservedIntegrationEvent",
             reservedEvent, cancellationToken: ct);

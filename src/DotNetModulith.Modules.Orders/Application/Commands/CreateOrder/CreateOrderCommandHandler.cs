@@ -1,7 +1,7 @@
 using System.Diagnostics;
 using System.Diagnostics.Metrics;
+using DotNetModulith.Abstractions.Events;
 using DotNetModulith.Abstractions.Results;
-using DotNetModulith.Modules.Orders.Application.Events;
 using DotNetModulith.Modules.Orders.Domain;
 using Mediator;
 using Microsoft.Extensions.Logging;
@@ -21,16 +21,16 @@ public sealed class CreateOrderCommandHandler : ICommandHandler<CreateOrderComma
         description: "Duration of order creation");
 
     private readonly IOrderRepository _orderRepository;
-    private readonly DomainEventToIntegrationEventPublisher _eventPublisher;
+    private readonly IDomainEventDispatcher _domainEventDispatcher;
     private readonly ILogger<CreateOrderCommandHandler> _logger;
 
     public CreateOrderCommandHandler(
         IOrderRepository orderRepository,
-        DomainEventToIntegrationEventPublisher eventPublisher,
+        IDomainEventDispatcher domainEventDispatcher,
         ILogger<CreateOrderCommandHandler> logger)
     {
         _orderRepository = orderRepository;
-        _eventPublisher = eventPublisher;
+        _domainEventDispatcher = domainEventDispatcher;
         _logger = logger;
     }
 
@@ -47,9 +47,7 @@ public sealed class CreateOrderCommandHandler : ICommandHandler<CreateOrderComma
             var order = Order.Create(command.CustomerId, command.Lines);
 
             await _orderRepository.AddAsync(order, cancellationToken);
-            await _eventPublisher.PublishAsync(order, cancellationToken);
-
-            order.ClearDomainEvents();
+            await _domainEventDispatcher.DispatchAsync(order, cancellationToken);
 
             _logger.LogInformation("Order {OrderId} created for customer {CustomerId} with total {TotalAmount}",
                 order.Id, order.CustomerId, order.TotalAmount);

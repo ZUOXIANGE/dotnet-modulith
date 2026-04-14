@@ -1,6 +1,6 @@
 using System.Diagnostics;
+using DotNetModulith.Abstractions.Events;
 using DotNetModulith.Abstractions.Results;
-using DotNetModulith.Modules.Orders.Application.Events;
 using DotNetModulith.Modules.Orders.Domain;
 using Mediator;
 using Microsoft.Extensions.Logging;
@@ -15,16 +15,16 @@ public sealed class ConfirmOrderCommandHandler : ICommandHandler<ConfirmOrderCom
     private static readonly ActivitySource ActivitySource = new("DotNetModulith.Modules.Orders");
 
     private readonly IOrderRepository _orderRepository;
-    private readonly DomainEventToIntegrationEventPublisher _eventPublisher;
+    private readonly IDomainEventDispatcher _domainEventDispatcher;
     private readonly ILogger<ConfirmOrderCommandHandler> _logger;
 
     public ConfirmOrderCommandHandler(
         IOrderRepository orderRepository,
-        DomainEventToIntegrationEventPublisher eventPublisher,
+        IDomainEventDispatcher domainEventDispatcher,
         ILogger<ConfirmOrderCommandHandler> logger)
     {
         _orderRepository = orderRepository;
-        _eventPublisher = eventPublisher;
+        _domainEventDispatcher = domainEventDispatcher;
         _logger = logger;
     }
 
@@ -45,8 +45,7 @@ public sealed class ConfirmOrderCommandHandler : ICommandHandler<ConfirmOrderCom
         {
             order.Confirm();
             await _orderRepository.UpdateAsync(order, cancellationToken);
-            await _eventPublisher.PublishAsync(order, cancellationToken);
-            order.ClearDomainEvents();
+            await _domainEventDispatcher.DispatchAsync(order, cancellationToken);
 
             _logger.LogInformation("Order {OrderId} confirmed", order.Id);
             activity?.SetStatus(ActivityStatusCode.Ok);

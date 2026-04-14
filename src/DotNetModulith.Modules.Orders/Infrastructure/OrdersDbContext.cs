@@ -18,16 +18,6 @@ public sealed class OrdersDbContext : DbContext
     {
     }
 
-    public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
-    {
-        foreach (var entry in ChangeTracker.Entries())
-        {
-            if (entry.State == EntityState.Detached)
-                continue;
-        }
-        return base.SaveChangesAsync(cancellationToken);
-    }
-
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
         optionsBuilder.UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking);

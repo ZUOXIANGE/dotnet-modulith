@@ -8,10 +8,12 @@ namespace DotNetModulith.Modules.Orders.Domain.Events;
 /// <param name="OrderId">订单ID</param>
 /// <param name="CustomerId">客户ID</param>
 /// <param name="TotalAmount">订单总金额</param>
+/// <param name="Lines">订单行项目列表</param>
 public sealed record OrderCreatedDomainEvent(
     OrderId OrderId,
     string CustomerId,
-    decimal TotalAmount) : DomainEvent;
+    decimal TotalAmount,
+    IReadOnlyList<OrderLineData> Lines) : DomainEvent;
 
 /// <summary>
 /// 订单已支付领域事件

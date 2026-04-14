@@ -30,6 +30,11 @@ public class OrderTests
         order.Lines.Should().HaveCount(2);
         order.TotalAmount.Should().Be(45.00m);
         order.DomainEvents.Should().ContainSingle(e => e is OrderCreatedDomainEvent);
+
+        var createdEvent = order.DomainEvents.OfType<OrderCreatedDomainEvent>().First();
+        createdEvent.Lines.Should().HaveCount(2);
+        createdEvent.Lines[0].ProductId.Should().Be("PROD-001");
+        createdEvent.Lines[1].ProductId.Should().Be("PROD-002");
     }
 
     /// <summary>

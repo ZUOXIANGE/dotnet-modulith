@@ -37,14 +37,14 @@ public static partial class OrderMapper
     private static string MapStatusToString(OrderStatus status) => status.ToString();
 
     /// <summary>
-    /// 将订单行项目映射为订单行契约
+    /// 将订单行项目数据映射为订单行契约
     /// </summary>
-    public static partial OrderLineContract ToContract(this OrderLine line);
+    public static partial OrderLineContract ToContract(this OrderLineData line);
 
     /// <summary>
-    /// 将订单行项目列表映射为订单行契约列表
+    /// 将订单行项目数据列表映射为订单行契约列表
     /// </summary>
-    public static partial IReadOnlyList<OrderLineContract> ToContractList(this IReadOnlyList<OrderLine> lines);
+    public static partial IReadOnlyList<OrderLineContract> ToContractList(this IReadOnlyList<OrderLineData> lines);
 
     /// <summary>
     /// 将创建订单请求映射为创建订单命令
@@ -57,23 +57,23 @@ public static partial class OrderMapper
     private static partial OrderLineData MapToOrderLineData(CreateOrderLineRequest request);
 
     /// <summary>
-    /// 将订单创建领域事件和订单聚合根映射为订单创建集成事件
+    /// 将订单创建领域事件映射为订单创建集成事件
     /// </summary>
     public static OrderCreatedIntegrationEvent ToIntegrationEvent(
-        this OrderCreatedDomainEvent domainEvent, Order order) => new(
-        order.Id.ToString(),
-        order.CustomerId,
-        order.TotalAmount,
-        order.Lines.ToContractList());
+        this OrderCreatedDomainEvent domainEvent) => new(
+        domainEvent.OrderId.ToString(),
+        domainEvent.CustomerId,
+        domainEvent.TotalAmount,
+        domainEvent.Lines.ToContractList());
 
     /// <summary>
-    /// 将订单支付领域事件和订单聚合根映射为订单支付集成事件
+    /// 将订单支付领域事件映射为订单支付集成事件
     /// </summary>
     public static OrderPaidIntegrationEvent ToIntegrationEvent(
-        this OrderPaidDomainEvent domainEvent, Order order) => new(
-        order.Id.ToString(),
-        order.CustomerId,
-        order.TotalAmount);
+        this OrderPaidDomainEvent domainEvent) => new(
+        domainEvent.OrderId.ToString(),
+        domainEvent.CustomerId,
+        domainEvent.TotalAmount);
 
     /// <summary>
     /// 将订单取消领域事件映射为订单取消集成事件

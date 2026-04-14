@@ -1,3 +1,4 @@
+using DotNetModulith.Abstractions.Events;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -9,7 +10,7 @@ namespace DotNetModulith.ModulithCore;
 public static class ModuleServiceCollectionExtensions
 {
     /// <summary>
-    /// 注册模块化核心服务，包括模块注册表和边界验证器
+    /// 注册模块化核心服务，包括模块注册表、边界验证器和领域事件派发器
     /// </summary>
     /// <param name="services">服务集合</param>
     /// <returns>注册了核心服务的服务集合</returns>
@@ -17,6 +18,7 @@ public static class ModuleServiceCollectionExtensions
     {
         services.AddSingleton<ModuleRegistry>();
         services.AddSingleton<ModuleBoundaryVerifier>();
+        services.AddScoped<IDomainEventDispatcher, DomainEventDispatcher>();
         return services;
     }
 

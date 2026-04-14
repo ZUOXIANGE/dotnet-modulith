@@ -15,6 +15,13 @@
          "command": "dotnet",
          "args": [ "build", "--no-restore", "--verbosity", "quiet" ],
          "output": "always"
+      },
+      {
+         "name": "commit-message-lint",
+         "group": "commit-msg",
+         "command": "dotnet",
+         "args": [ "husky", "exec", ".husky/csx/commit-lint.csx", "--args", "${args}" ],
+         "output": "always"
       }
    ]
 }

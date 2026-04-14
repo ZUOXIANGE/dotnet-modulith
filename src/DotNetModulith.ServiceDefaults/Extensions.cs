@@ -1,10 +1,14 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Logging;
 using OpenTelemetry;
+using OpenTelemetry.Exporter;
+using OpenTelemetry.Logs;
 using OpenTelemetry.Metrics;
+using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 
 namespace Microsoft.Extensions.Hosting;
@@ -43,25 +47,54 @@ public static class Extensions
     public static TBuilder ConfigureOpenTelemetry<TBuilder>(this TBuilder builder)
         where TBuilder : IHostApplicationBuilder
     {
+        var openObserveConfig = builder.Configuration.GetSection("OpenObserve");
+        var openObserveEnabled = openObserveConfig.GetValue<bool?>("Enabled") ?? true;
+
+        var resourceBuilder = ResourceBuilder.CreateDefault()
+            .AddService(
+                serviceName: builder.Environment.ApplicationName,
+                serviceVersion: typeof(Extensions).Assembly.GetName().Version?.ToString() ?? "1.0.0")
+            .AddAttributes(new Dictionary<string, object>
+            {
+                ["deployment.environment"] = builder.Environment.EnvironmentName
+            });
+
         builder.Logging.AddOpenTelemetry(logging =>
         {
             logging.IncludeFormattedMessage = true;
             logging.IncludeScopes = true;
+            logging.SetResourceBuilder(resourceBuilder);
+
+            if (openObserveEnabled)
+            {
+                logging.AddOtlpExporter(ConfigureOtlpForOpenObserve(
+                    openObserveConfig, "logs", builder));
+            }
         });
 
         builder.Services.AddOpenTelemetry()
             .WithMetrics(metrics =>
             {
                 metrics
+                    .SetResourceBuilder(resourceBuilder)
                     .AddAspNetCoreInstrumentation()
                     .AddHttpClientInstrumentation()
                     .AddRuntimeInstrumentation()
                     .AddMeter("DotNetModulith")
                     .AddMeter("DotNetCore.CAP");
+
+                if (openObserveEnabled)
+                {
+                    metrics.AddOtlpExporter(ConfigureOtlpForOpenObserve(
+                        openObserveConfig, "metrics", builder));
+                }
+
+                metrics.AddPrometheusExporter();
             })
             .WithTracing(tracing =>
             {
                 tracing
+                    .SetResourceBuilder(resourceBuilder)
                     .AddSource(builder.Environment.ApplicationName)
                     .AddSource("DotNetCore.CAP")
                     .AddAspNetCoreInstrumentation(options =>
@@ -75,34 +108,43 @@ public static class Extensions
                     .AddSource("DotNetModulith.Modules.Inventory")
                     .AddSource("DotNetModulith.Modules.Payments")
                     .AddSource("DotNetModulith.Modules.Notifications");
-            });
 
-        builder.AddOpenTelemetryExporters();
+                if (openObserveEnabled)
+                {
+                    tracing.AddOtlpExporter(ConfigureOtlpForOpenObserve(
+                        openObserveConfig, "traces", builder));
+                }
+            });
 
         return builder;
     }
 
     /// <summary>
-    /// 配置OpenTelemetry导出器（OTLP和Prometheus）
+    /// 配置OpenObserve OTLP导出器选项
     /// </summary>
-    private static TBuilder AddOpenTelemetryExporters<TBuilder>(this TBuilder builder)
-        where TBuilder : IHostApplicationBuilder
+    private static Action<OtlpExporterOptions> ConfigureOtlpForOpenObserve(
+        IConfigurationSection config, string signal, IHostApplicationBuilder builder)
     {
-        var useOtlp = !string.IsNullOrWhiteSpace(
-            builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"]);
-
-        if (useOtlp)
+        return options =>
         {
-            builder.Services.AddOpenTelemetry().UseOtlpExporter();
-        }
+            var endpoint = config.GetValue<string>("Endpoint")
+                ?? builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"]
+                ?? "http://localhost:5080";
 
-        builder.Services.AddOpenTelemetry()
-            .WithMetrics(metrics =>
-            {
-                metrics.AddPrometheusExporter();
-            });
+            var organization = config.GetValue<string>("Organization") ?? "default";
+            var streamName = config.GetValue<string>("StreamName")
+                ?? builder.Environment.ApplicationName.ToLowerInvariant();
 
-        return builder;
+            options.Endpoint = new Uri($"{endpoint}/api/{organization}/v1/{signal}");
+            options.Protocol = OtlpExportProtocol.HttpProtobuf;
+
+            var email = config.GetValue<string>("UserEmail") ?? "admin@modulith.local";
+            var password = config.GetValue<string>("UserPassword") ?? "Modulith@2026";
+            var credentials = Convert.ToBase64String(
+                System.Text.Encoding.UTF8.GetBytes($"{email}:{password}"));
+
+            options.Headers = $"Authorization=Basic {credentials},stream-name={streamName}";
+        };
     }
 
     /// <summary>

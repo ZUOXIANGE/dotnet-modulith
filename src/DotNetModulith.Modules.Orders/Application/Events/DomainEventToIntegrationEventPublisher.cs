@@ -5,6 +5,7 @@ using DotNetModulith.Abstractions.Contracts.Inventory;
 using DotNetModulith.Abstractions.Contracts.Orders;
 using DotNetModulith.Abstractions.Contracts.Payments;
 using DotNetModulith.Abstractions.Events;
+using DotNetModulith.Modules.Orders.Application.Mappings;
 using DotNetModulith.Modules.Orders.Domain;
 using DotNetModulith.Modules.Orders.Domain.Events;
 using Microsoft.Extensions.Logging;
@@ -69,7 +70,7 @@ public sealed class DomainEventToIntegrationEventPublisher
     }
 
     /// <summary>
-    /// 将领域事件映射为对应的集成事件
+    /// 将领域事件映射为对应的集成事件（使用Mapperly生成的映射代码）
     /// </summary>
     /// <param name="domainEvent">领域事件</param>
     /// <param name="order">订单聚合根</param>
@@ -77,23 +78,9 @@ public sealed class DomainEventToIntegrationEventPublisher
     private static IIntegrationEvent? MapToIntegrationEvent(IDomainEvent domainEvent, Order order) =>
         domainEvent switch
         {
-            OrderCreatedDomainEvent => new OrderContracts.OrderCreatedIntegrationEvent(
-                order.Id.ToString(),
-                order.CustomerId,
-                order.TotalAmount,
-                order.Lines.Select(l => new OrderContracts.OrderLineContract(
-                    l.ProductId, l.ProductName, l.Quantity, l.UnitPrice)).ToList()),
-
-            OrderPaidDomainEvent => new OrderContracts.OrderPaidIntegrationEvent(
-                order.Id.ToString(),
-                order.CustomerId,
-                order.TotalAmount),
-
-            OrderCancelledDomainEvent cancelled => new OrderContracts.OrderCancelledIntegrationEvent(
-                order.Id.ToString(),
-                order.CustomerId,
-                cancelled.Reason),
-
+            OrderCreatedDomainEvent created => created.ToIntegrationEvent(order),
+            OrderPaidDomainEvent paid => paid.ToIntegrationEvent(order),
+            OrderCancelledDomainEvent cancelled => cancelled.ToIntegrationEvent(),
             _ => null
         };
 

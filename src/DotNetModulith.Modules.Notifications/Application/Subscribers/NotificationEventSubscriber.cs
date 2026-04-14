@@ -10,7 +10,7 @@ namespace DotNetModulith.Modules.Notifications.Application.Subscribers;
 /// <summary>
 /// 通知事件订阅者，监听订单和支付事件以发送通知
 /// </summary>
-internal sealed class NotificationEventSubscriber
+public sealed class NotificationEventSubscriber : ICapSubscribe
 {
     private static readonly ActivitySource ActivitySource = new("DotNetModulith.Modules.Notifications");
     private static readonly Meter Meter = new("DotNetModulith.Modules.Notifications", "1.0.0");

@@ -8,7 +8,7 @@ namespace DotNetModulith.Modules.Orders.Application.Subscribers;
 /// <summary>
 /// 支付事件订阅者，监听支付模块发布的集成事件
 /// </summary>
-internal sealed class PaymentEventSubscriber
+public sealed class PaymentEventSubscriber : ICapSubscribe
 {
     private static readonly ActivitySource ActivitySource = new("DotNetModulith.Modules.Orders");
 

@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using DotNetModulith.Modules.Inventory.Application.Commands.ReserveStock;
+using DotNetModulith.Modules.Inventory.Application.Mappings;
 using DotNetModulith.Modules.Inventory.Domain;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
@@ -22,7 +23,7 @@ public static class InventoryEndpoints
         {
             var stock = await repository.GetByProductIdAsync(productId, ct);
             return stock is not null
-                ? Microsoft.AspNetCore.Http.Results.Ok(new { stock.ProductId, stock.ProductName, stock.AvailableQuantity, stock.ReservedQuantity })
+                ? Microsoft.AspNetCore.Http.Results.Ok(stock.ToDetail())
                 : Microsoft.AspNetCore.Http.Results.NotFound();
         })
         .WithName("GetStock")

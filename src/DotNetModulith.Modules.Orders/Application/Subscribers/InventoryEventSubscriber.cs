@@ -10,7 +10,7 @@ namespace DotNetModulith.Modules.Orders.Application.Subscribers;
 /// <summary>
 /// 库存事件订阅者，监听库存模块发布的集成事件
 /// </summary>
-internal sealed class InventoryEventSubscriber
+public sealed class InventoryEventSubscriber : ICapSubscribe
 {
     private static readonly ActivitySource ActivitySource = new("DotNetModulith.Modules.Orders");
     private static readonly Meter Meter = new("DotNetModulith.Modules.Orders", "1.0.0");

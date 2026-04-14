@@ -11,7 +11,7 @@ namespace DotNetModulith.Modules.Inventory.Application.Subscribers;
 /// <summary>
 /// 订单事件订阅者，监听订单创建事件以预留库存
 /// </summary>
-internal sealed class OrderEventSubscriber
+public sealed class OrderEventSubscriber : ICapSubscribe
 {
     private static readonly ActivitySource ActivitySource = new("DotNetModulith.Modules.Inventory");
     private static readonly Meter Meter = new("DotNetModulith.Modules.Inventory", "1.0.0");

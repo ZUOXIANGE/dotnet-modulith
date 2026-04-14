@@ -9,7 +9,7 @@
 - **事件驱动架构** — 基于 [DotNetCore.CAP](https://github.com/dotnetcore/CAP) 实现可靠的跨模块事件发布/订阅，支持 Outbox 模式
 - **模块边界验证** — 编译时和运行时双重检测模块间的违规依赖
 - **CQRS** — 基于 [Mediator](https://github.com/martinothamar/Mediator) 源生成器实现命令/查询分离
-- **OpenTelemetry** — 完整的分布式追踪、指标和日志可观测性，支持 OTLP 和 Prometheus
+- **OpenTelemetry** — 完整的分布式追踪、指标和日志可观测性，通过 OTLP 导出到 [OpenObserve](https://openobserve.ai/)
 - **API 文档** — 集成 [Scalar](https://github.com/scalar/scalar) 生成交互式 API 文档
 - **.NET Aspire** — 开发环境编排，自动管理 PostgreSQL、RabbitMQ 和数据库迁移
 - **弹性处理** — 集成 Microsoft.Extensions.Http.Resilience 提供 HTTP 重试和熔断
@@ -24,7 +24,8 @@
 | 消息代理 | RabbitMQ                                     |
 | 事件总线 | DotNetCore.CAP 8.3                           |
 | Mediator | Mediator 3.0 (源生成)                        |
-| 可观测性 | OpenTelemetry + Prometheus + OTLP            |
+| 对象映射 | Riok.Mapperly 4.3 (源生成)                   |
+| 可观测性 | OpenTelemetry + OpenObserve + Prometheus      |
 | API 文档 | Scalar.AspNetCore 2.x                        |
 | 编排     | .NET Aspire 9.2                              |
 | 测试     | xUnit v3 + FluentAssertions + Testcontainers |
@@ -56,7 +57,7 @@ DotNetModulith/
 │   │   └── Program.cs                        #   CAP、Mediator、模块注册、端点映射
 │   │
 │   ├── DotNetModulith.AppHost/               # Aspire 编排主机
-│   │   └── Program.cs                        #   PostgreSQL、RabbitMQ、迁移服务
+│   │   └── Program.cs                        #   PostgreSQL、RabbitMQ、OpenObserve、迁移服务
 │   │
 │   ├── DotNetModulith.MigrationService/      # 数据库迁移后台服务
 │   │
@@ -124,7 +125,7 @@ dotnet run --project src/DotNetModulith.AppHost
 ```
 
 Aspire 将自动：
-1. 启动 PostgreSQL 和 RabbitMQ 容器
+1. 启动 PostgreSQL、RabbitMQ 和 OpenObserve 容器
 2. 运行数据库迁移服务
 3. 启动 API 主机
 
@@ -132,6 +133,7 @@ Aspire 将自动：
 - **API**：`https://localhost:7001`（端口以 Aspire 输出为准）
 - **Scalar API 文档**：`https://localhost:7001/scalar/v1`
 - **CAP Dashboard**：`https://localhost:7001/cap-dashboard`
+- **OpenObserve**：`http://localhost:5080`（账号：`admin@modulith.local`，密码：`Modulith@2026`）
 - **Aspire Dashboard**：`http://localhost:15000`
 - **Prometheus 指标**：`https://localhost:7001/metrics`
 
@@ -140,8 +142,43 @@ Aspire 将自动：
 如果已有本地 PostgreSQL 和 RabbitMQ 实例：
 
 ```bash
-# 修改 appsettings.json 中的连接字符串后
+# 1. 启动基础设施容器
+docker run -d --name modulith-postgres -p 5432:5432 \
+  -e POSTGRES_PASSWORD=postgres \
+  -e POSTGRES_DB=modulith_orders \
+  postgres:17
+
+docker run -d --name modulith-rabbitmq -p 5672:5672 -p 15672:15672 \
+  rabbitmq:4-management
+
+docker run -d --name modulith-openobserve -p 5080:5080 -p 5081:5081 \
+  -e ZO_ROOT_USER_EMAIL=admin@modulith.local \
+  -e ZO_ROOT_USER_PASSWORD=Modulith@2026 \
+  -e ZO_DATA_DIR=/data \
+  -v modulith-openobserve-data:/data \
+  public.ecr.aws/zinclabs/openobserve
+
+# 2. 创建数据库
+docker exec modulith-postgres psql -U postgres -c "CREATE DATABASE modulith_inventory;"
+docker exec modulith-postgres psql -U postgres -c "CREATE DATABASE modulith_payments;"
+docker exec modulith-postgres psql -U postgres -c "CREATE DATABASE modulith_cap;"
+
+# 3. 运行迁移
+dotnet ef database update --project src/DotNetModulith.Modules.Orders \
+  --startup-project src/DotNetModulith.Api \
+  --context OrdersDbContext
+dotnet ef database update --project src/DotNetModulith.Modules.Inventory \
+  --startup-project src/DotNetModulith.Api \
+  --context InventoryDbContext
+dotnet ef database update --project src/DotNetModulith.Modules.Payments \
+  --startup-project src/DotNetModulith.Api \
+  --context PaymentsDbContext
+
+# 4. 启动 API
 dotnet run --project src/DotNetModulith.Api
+
+# 5. 运行测试脚本验证
+pwsh -ExecutionPolicy Bypass -File test-api.ps1
 ```
 
 ## API 端点
@@ -182,6 +219,117 @@ dotnet run --project src/DotNetModulith.Api
 5. Payments.OrderEventSubscriber → 处理支付 → PaymentCompletedIntegrationEvent
 6. Orders.PaymentEventSubscriber → 标记订单已支付
 7. Notifications.NotificationEventSubscriber → 发送通知
+```
+
+## 分布式链路追踪
+
+项目集成了 OpenTelemetry + OpenObserve，可观测完整的跨模块事件流链路。
+
+### 链路追踪架构
+
+```
+API 请求 → ASP.NET Core Instrumentation
+         → Mediator Command/Query Handler (自定义 Span)
+         → 领域事件发布 (自定义 Span)
+         → CAP Outbox → RabbitMQ → CAP Consumer
+         → 事件订阅者处理 (自定义 Span, ActivityKind.Consumer)
+         → OTLP Export → OpenObserve
+```
+
+### 运行测试脚本
+
+项目提供了 `test-api.ps1` 脚本，可一键验证完整的业务流程和链路追踪：
+
+```powershell
+# 确保 Docker 容器已启动
+docker run -d --name modulith-postgres -p 5432:5432 -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=modulith_orders postgres:17
+docker run -d --name modulith-rabbitmq -p 5672:5672 -p 15672:15672 rabbitmq:4-management
+docker run -d --name modulith-openobserve -p 5080:5080 -p 5081:5081 \
+  -e ZO_ROOT_USER_EMAIL=admin@modulith.local \
+  -e ZO_ROOT_USER_PASSWORD=Modulith@2026 \
+  public.ecr.aws/zinclabs/openobserve
+
+# 启动 API
+dotnet run --project src/DotNetModulith.Api
+
+# 在另一个终端运行测试脚本
+pwsh -ExecutionPolicy Bypass -File test-api.ps1
+```
+
+### 测试脚本输出示例
+
+```
+=== Step 1: Create Stock Records ===
+[POST] Create PROD-001 stock (qty: 100)          → ✅ 201
+[POST] Create PROD-002 stock (qty: 200)          → ✅ 201
+
+=== Step 2: Query Stocks ===
+[GET] Query PROD-001 stock                        → ✅ { availableQuantity: 100, reservedQuantity: 0 }
+
+=== Step 3: Create Order (Triggers Full Event Flow) ===
+[POST] Create order: CUST-2026-001               → ✅ { orderId: "d1e984e2-..." }
+
+=== Step 4: Wait for async event processing ===
+Waiting 8 seconds for CAP/RabbitMQ event processing...
+
+=== Step 5: Verify Stock Reserved ===
+[GET] PROD-001 stock (expected: available=98)     → ✅ { availableQuantity: 98, reservedQuantity: 2 }
+[GET] PROD-002 stock (expected: available=197)    → ✅ { availableQuantity: 197, reservedQuantity: 3 }
+```
+
+### 在 OpenObserve 中查看链路追踪
+
+1. 访问 [http://localhost:5080](http://localhost:5080)
+2. 使用 `admin@modulith.local` / `Modulith@2026` 登录
+3. 进入 **Traces** 页面，选择 `default` 组织和 `dotnet_modulith` stream
+4. 可查看以下关键 Span：
+
+| Span 名称                                    | 类型       | 说明                           |
+| -------------------------------------------- | ---------- | ------------------------------ |
+| `POST /api/orders/`                          | Server     | HTTP 入口 Span                 |
+| `CreateOrder`                                | Internal   | Mediator 命令处理              |
+| `Order.Create`                               | Internal   | 聚合根创建 & 领域事件生成      |
+| `PublishIntegrationEvent.OrderCreatedDomainEvent` | Internal | CAP Outbox 写入 & RabbitMQ 发布 |
+| `HandleOrderCreated`                         | Consumer   | 库存模块消费事件               |
+| `ReserveStock`                               | Internal   | 库存预留业务逻辑               |
+| `HandleOrderCreated_ProcessPayment`          | Consumer   | 支付模块消费事件               |
+| `HandlePaymentCompleted`                     | Consumer   | 订单模块消费支付完成事件       |
+| `SendOrderCreatedNotification`               | Consumer   | 通知模块发送订单确认通知       |
+| `SendPaymentCompletedNotification`           | Consumer   | 通知模块发送支付回执通知       |
+
+### 链路追踪数据示例
+
+通过 OpenObserve API 查询到的实际 trace spans：
+
+```
+DotNetModulith.Api | POST /api/orders/                    | dur: 913278ns
+DotNetModulith.Api | CreateOrder                         | dur: 886524ns
+DotNetModulith.Api | Order.Create                        | dur: 4730ns
+DotNetModulith.Api | PublishIntegrationEvent...           | dur: 421055ns
+DotNetModulith.Api | GET /api/inventory/stocks/{productId} | dur: 35357ns
+```
+
+### 自定义 Span
+
+各模块通过 `ActivitySource` 创建自定义 Span，携带业务标签：
+
+```csharp
+using var activity = ActivitySource.StartActivity("HandleOrderCreated", ActivityKind.Consumer);
+activity?.SetTag("modulith.event_type", "OrderCreatedIntegrationEvent");
+activity?.SetTag("modulith.order_id", @event.OrderId);
+```
+
+### 自定义指标
+
+各模块通过 `Meter` 和 `Counter` 记录业务指标：
+
+```csharp
+private static readonly Counter<long> EventsConsumed = Meter.CreateCounter<long>(
+    "modulith.inventory.events.consumed",
+    unit: "{event}",
+    description: "Number of events consumed by the Inventory module");
+
+EventsConsumed.Add(1, new KeyValuePair<string, object?>("modulith.event_type", "OrderCreatedIntegrationEvent"));
 ```
 
 ## 测试
@@ -233,9 +381,11 @@ Husky.Net 在 `pre-commit` 阶段自动执行：
 | -------- | ---------------------- | ------------------------------------------------ |
 | API 风格 | Minimal API            | 与模块化架构天然契合，零继承负担，AOT 兼容       |
 | Mediator | martinothamar/Mediator | 源生成器零反射，编译时安全，性能优于 MediatR     |
+| 对象映射 | Riok.Mapperly          | 源生成器零反射，编译时类型安全，性能最优         |
 | 事件总线 | DotNetCore.CAP         | 内置 Outbox 模式，确保消息可靠性，支持 Dashboard |
 | API 文档 | Scalar                 | 现代化 UI，比 Swagger 更好的开发者体验           |
 | 数据库   | 每模块独立 DbContext   | 模块数据隔离，便于未来拆分                       |
+| 可观测性 | OpenObserve            | 存储成本仅为 Elasticsearch 的 1/140，原生 OTLP 支持，集成日志/追踪/指标 |
 
 ## 许可证
 

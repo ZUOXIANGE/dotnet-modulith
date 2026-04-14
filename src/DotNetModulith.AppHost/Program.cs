@@ -15,6 +15,13 @@ var rabbitmq = builder.AddRabbitMQ("rabbitmq")
     .WithDataVolume("modulith-rabbitmq-data")
     .WithManagementPlugin();
 
+var openobserve = builder.AddContainer("openobserve", "public.ecr.aws/zinclabs/openobserve")
+    .WithHttpEndpoint(targetPort: 5080, name: "http")
+    .WithEnvironment("ZO_ROOT_USER_EMAIL", "admin@modulith.local")
+    .WithEnvironment("ZO_ROOT_USER_PASSWORD", "Modulith@2026")
+    .WithEnvironment("ZO_DATA_DIR", "/data")
+    .WithVolume("modulith-openobserve-data", "/data");
+
 var migrations = builder.AddProject<DotNetModulith_MigrationService>("migrations")
     .WithReference(ordersDb)
     .WithReference(inventoryDb)
@@ -31,7 +38,9 @@ var api = builder.AddProject<DotNetModulith_Api>("api")
     .WithReference(paymentsDb)
     .WithReference(capDb)
     .WithReference(rabbitmq)
+    .WithEnvironment("OpenObserve__Endpoint", openobserve.GetEndpoint("http"))
     .WaitForCompletion(migrations)
-    .WaitFor(rabbitmq);
+    .WaitFor(rabbitmq)
+    .WaitFor(openobserve);
 
 builder.Build().Run();

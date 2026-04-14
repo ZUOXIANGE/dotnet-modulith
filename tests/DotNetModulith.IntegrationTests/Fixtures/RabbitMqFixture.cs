@@ -8,8 +8,7 @@ namespace DotNetModulith.IntegrationTests.Fixtures;
 /// </summary>
 public sealed class RabbitMqFixture : IAsyncLifetime
 {
-    private readonly RabbitMqContainer _container = new RabbitMqBuilder()
-        .WithImage("rabbitmq:3-management-alpine")
+    private readonly RabbitMqContainer _container = new RabbitMqBuilder("rabbitmq:3-management-alpine")
         .WithUsername("guest")
         .WithPassword("guest")
         .WithCleanUp(true)

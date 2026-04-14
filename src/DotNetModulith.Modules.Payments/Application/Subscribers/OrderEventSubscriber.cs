@@ -3,6 +3,7 @@ using System.Diagnostics.Metrics;
 using DotNetCore.CAP;
 using DotNetModulith.Abstractions.Contracts.Orders;
 using DotNetModulith.Abstractions.Contracts.Payments;
+using DotNetModulith.Modules.Payments.Application.Mappings;
 using DotNetModulith.Modules.Payments.Domain;
 using Microsoft.Extensions.Logging;
 
@@ -11,7 +12,7 @@ namespace DotNetModulith.Modules.Payments.Application.Subscribers;
 /// <summary>
 /// 订单事件订阅者，监听订单创建事件以发起支付处理
 /// </summary>
-internal sealed class OrderEventSubscriber
+public sealed class OrderEventSubscriber : ICapSubscribe
 {
     private static readonly ActivitySource ActivitySource = new("DotNetModulith.Modules.Payments");
     private static readonly Meter Meter = new("DotNetModulith.Modules.Payments", "1.0.0");
@@ -52,8 +53,10 @@ internal sealed class OrderEventSubscriber
         {
             payment.Complete($"TXN-{Guid.NewGuid():N}"[..20]);
 
-            var completedEvent = new PaymentCompletedIntegrationEvent(
-                @event.OrderId, payment.Id.ToString(), @event.TotalAmount);
+            var completedEvent = payment.DomainEvents
+                .OfType<DotNetModulith.Modules.Payments.Domain.Events.PaymentCompletedDomainEvent>()
+                .First()
+                .ToIntegrationEvent();
 
             await _capPublisher.PublishAsync(
                 "modulith.payments.PaymentCompletedIntegrationEvent",
@@ -66,8 +69,10 @@ internal sealed class OrderEventSubscriber
         {
             payment.Fail("Payment gateway timeout");
 
-            var failedEvent = new PaymentFailedIntegrationEvent(
-                @event.OrderId, payment.Id.ToString(), "Payment gateway timeout");
+            var failedEvent = payment.DomainEvents
+                .OfType<DotNetModulith.Modules.Payments.Domain.Events.PaymentFailedDomainEvent>()
+                .First()
+                .ToIntegrationEvent();
 
             await _capPublisher.PublishAsync(
                 "modulith.payments.PaymentFailedIntegrationEvent",

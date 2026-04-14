@@ -1,0 +1,12 @@
+{
+  "profiles": {
+    "DotNetModulith.Api": {
+      "commandName": "Project",
+      "launchBrowser": true,
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      },
+      "applicationUrl": "https://localhost:4601;http://localhost:4602"
+    }
+  }
+}

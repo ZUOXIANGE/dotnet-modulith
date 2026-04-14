@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using DotNetModulith.Modules.Orders.Application.Mappings;
 using DotNetModulith.Modules.Orders.Domain;
 using Mediator;
 
@@ -28,14 +29,6 @@ public sealed class GetOrderQueryHandler : IQueryHandler<GetOrderQuery, OrderDet
         if (order is null)
             return null;
 
-        return new OrderDetail(
-            order.Id.ToString(),
-            order.CustomerId,
-            order.Status.ToString(),
-            order.TotalAmount,
-            order.Lines.Select(l => new OrderLineDetail(
-                l.ProductId, l.ProductName, l.Quantity, l.UnitPrice, l.LineTotal)).ToList(),
-            order.CreatedAt,
-            order.UpdatedAt);
+        return order.ToDetail();
     }
 }

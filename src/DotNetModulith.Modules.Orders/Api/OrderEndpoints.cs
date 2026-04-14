@@ -2,6 +2,7 @@ using System.Diagnostics;
 using DotNetModulith.Abstractions.Results;
 using DotNetModulith.Modules.Orders.Application.Commands.ConfirmOrder;
 using DotNetModulith.Modules.Orders.Application.Commands.CreateOrder;
+using DotNetModulith.Modules.Orders.Application.Mappings;
 using DotNetModulith.Modules.Orders.Application.Queries.GetOrder;
 using DotNetModulith.Modules.Orders.Domain;
 using Mediator;
@@ -24,9 +25,7 @@ public static class OrderEndpoints
             IMediator mediator,
             CancellationToken ct) =>
         {
-            var command = new CreateOrderCommand(
-                request.CustomerId,
-                request.Lines.Select(l => new OrderLineData(l.ProductId, l.ProductName, l.Quantity, l.UnitPrice)).ToList());
+            var command = request.ToCommand();
 
             var orderId = await mediator.Send(command, ct);
             return Microsoft.AspNetCore.Http.Results.Created($"/api/orders/{orderId}", new { orderId = orderId.ToString() });

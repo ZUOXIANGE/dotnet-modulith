@@ -8,7 +8,7 @@ namespace DotNetModulith.Modules.Orders.Domain;
 public interface IOrderRepository
 {
     /// <summary>
-    /// 根据订单ID获取订单
+    /// 根据订单ID获取订单（用于写操作，需要跟踪）
     /// </summary>
     /// <param name="id">订单ID</param>
     /// <param name="ct">取消令牌</param>
@@ -19,16 +19,18 @@ public interface IOrderRepository
     /// 根据客户ID获取订单列表
     /// </summary>
     /// <param name="customerId">客户ID</param>
+    /// <param name="limit">返回行数上限</param>
     /// <param name="ct">取消令牌</param>
     /// <returns>该客户的订单列表</returns>
-    Task<IReadOnlyList<Order>> GetByCustomerIdAsync(string customerId, CancellationToken ct = default);
+    Task<IReadOnlyList<Order>> GetByCustomerIdAsync(string customerId, int limit, CancellationToken ct = default);
 
     /// <summary>
     /// 获取所有待确认的订单
     /// </summary>
+    /// <param name="limit">返回行数上限</param>
     /// <param name="ct">取消令牌</param>
     /// <returns>待确认订单列表</returns>
-    Task<IReadOnlyList<Order>> GetPendingOrdersAsync(CancellationToken ct = default);
+    Task<IReadOnlyList<Order>> GetPendingOrdersAsync(int limit, CancellationToken ct = default);
 
     /// <summary>
     /// 添加新订单

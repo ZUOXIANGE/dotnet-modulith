@@ -29,11 +29,12 @@ internal sealed class StockRepository : IStockRepository
             .FirstOrDefaultAsync(s => s.ProductId == productId, ct);
     }
 
-    public async Task<IReadOnlyList<Stock>> GetLowStockAsync(int threshold, CancellationToken ct = default)
+    public async Task<IReadOnlyList<Stock>> GetLowStockAsync(int threshold, int limit, CancellationToken ct = default)
     {
         return await _context.Stocks
             .Where(s => s.AvailableQuantity <= threshold)
             .OrderBy(s => s.AvailableQuantity)
+            .Take(limit)
             .ToListAsync(ct);
     }
 

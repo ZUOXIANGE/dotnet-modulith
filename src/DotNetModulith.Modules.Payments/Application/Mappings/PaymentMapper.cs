@@ -35,6 +35,7 @@ public static partial class PaymentMapper
         this PaymentCompletedDomainEvent domainEvent) => new(
         domainEvent.OrderId,
         domainEvent.PaymentId.ToString(),
+        domainEvent.CustomerId,
         domainEvent.Amount);
 
     /// <summary>
@@ -44,6 +45,7 @@ public static partial class PaymentMapper
         this PaymentFailedDomainEvent domainEvent) => new(
         domainEvent.OrderId,
         domainEvent.PaymentId.ToString(),
+        domainEvent.CustomerId,
         domainEvent.Reason);
 }
 

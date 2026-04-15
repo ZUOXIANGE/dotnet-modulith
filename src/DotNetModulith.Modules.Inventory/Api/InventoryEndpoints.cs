@@ -1,7 +1,11 @@
 using System.Diagnostics;
+using DotNetModulith.Modules.Inventory.Application.Commands.CreateStock;
+using DotNetModulith.Modules.Inventory.Application.Commands.ReplenishStock;
 using DotNetModulith.Modules.Inventory.Application.Commands.ReserveStock;
 using DotNetModulith.Modules.Inventory.Application.Mappings;
+using DotNetModulith.Modules.Inventory.Application.Queries.GetStock;
 using DotNetModulith.Modules.Inventory.Domain;
+using Mediator;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -18,12 +22,14 @@ public static class InventoryEndpoints
 
         group.MapGet("/stocks/{productId}", async (
             string productId,
-            IStockRepository repository,
+            IMediator mediator,
             CancellationToken ct) =>
         {
-            var stock = await repository.GetByProductIdAsync(productId, ct);
+            var query = new GetStockByProductIdQuery(productId);
+            var stock = await mediator.Send(query, ct);
+
             return stock is not null
-                ? Microsoft.AspNetCore.Http.Results.Ok(stock.ToDetail())
+                ? Microsoft.AspNetCore.Http.Results.Ok(stock)
                 : Microsoft.AspNetCore.Http.Results.NotFound();
         })
         .WithName("GetStock")
@@ -33,12 +39,12 @@ public static class InventoryEndpoints
 
         group.MapPost("/stocks", async (
             CreateStockRequest request,
-            IStockRepository repository,
+            IMediator mediator,
             CancellationToken ct) =>
         {
-            var stock = Stock.Create(request.ProductId, request.ProductName, request.InitialQuantity);
-            await repository.AddAsync(stock, ct);
-            return Microsoft.AspNetCore.Http.Results.Created($"/api/inventory/stocks/{stock.ProductId}", new { stock.Id, stock.ProductId });
+            var command = new CreateStockCommand(request.ProductId, request.ProductName, request.InitialQuantity);
+            var stockId = await mediator.Send(command, ct);
+            return Microsoft.AspNetCore.Http.Results.Created($"/api/inventory/stocks/{request.ProductId}", new { StockId = stockId.ToString() });
         })
         .WithName("CreateStock")
         .WithSummary("创建库存记录")
@@ -48,16 +54,15 @@ public static class InventoryEndpoints
         group.MapPost("/stocks/{productId}/replenish", async (
             string productId,
             ReplenishStockRequest request,
-            IStockRepository repository,
+            IMediator mediator,
             CancellationToken ct) =>
         {
-            var stock = await repository.GetByProductIdAsync(productId, ct);
-            if (stock is null)
-                return Microsoft.AspNetCore.Http.Results.NotFound();
+            var command = new ReplenishStockCommand(productId, request.Quantity);
+            var result = await mediator.Send(command, ct);
 
-            stock.Replenish(request.Quantity);
-            await repository.UpdateAsync(stock, ct);
-            return Microsoft.AspNetCore.Http.Results.NoContent();
+            return result.IsSuccess
+                ? Microsoft.AspNetCore.Http.Results.NoContent()
+                : Microsoft.AspNetCore.Http.Results.BadRequest(new { error = result.Error, code = result.ErrorCode });
         })
         .WithName("ReplenishStock")
         .WithSummary("补充库存")

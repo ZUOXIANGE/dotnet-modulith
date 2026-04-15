@@ -23,21 +23,23 @@ internal sealed class OrderRepository : IOrderRepository
             .FirstOrDefaultAsync(o => o.Id == id, ct);
     }
 
-    public async Task<IReadOnlyList<Order>> GetByCustomerIdAsync(string customerId, CancellationToken ct = default)
+    public async Task<IReadOnlyList<Order>> GetByCustomerIdAsync(string customerId, int limit, CancellationToken ct = default)
     {
         return await _context.Orders
             .Include("_lines")
             .Where(o => o.CustomerId == customerId)
             .OrderByDescending(o => o.CreatedAt)
+            .Take(limit)
             .ToListAsync(ct);
     }
 
-    public async Task<IReadOnlyList<Order>> GetPendingOrdersAsync(CancellationToken ct = default)
+    public async Task<IReadOnlyList<Order>> GetPendingOrdersAsync(int limit, CancellationToken ct = default)
     {
         return await _context.Orders
             .Include("_lines")
             .Where(o => o.Status == OrderStatus.Pending)
             .OrderBy(o => o.CreatedAt)
+            .Take(limit)
             .ToListAsync(ct);
     }
 

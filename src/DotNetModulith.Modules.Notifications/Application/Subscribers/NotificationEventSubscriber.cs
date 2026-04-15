@@ -30,7 +30,7 @@ public sealed class NotificationEventSubscriber : ICapSubscribe
     /// 处理订单创建事件，发送订单确认通知
     /// </summary>
     [CapSubscribe("modulith.orders.OrderCreatedIntegrationEvent")]
-    public async Task HandleOrderCreatedAsync(OrderCreatedIntegrationEvent @event, CancellationToken ct = default)
+    public Task HandleOrderCreatedAsync(OrderCreatedIntegrationEvent @event, CancellationToken ct = default)
     {
         using var activity = ActivitySource.StartActivity("SendOrderCreatedNotification", ActivityKind.Consumer);
         activity?.SetTag("modulith.event_type", "OrderCreatedIntegrationEvent");
@@ -44,14 +44,14 @@ public sealed class NotificationEventSubscriber : ICapSubscribe
             new KeyValuePair<string, object?>("modulith.notification_type", "order_created"),
             new KeyValuePair<string, object?>("modulith.channel", "email"));
 
-        await Task.CompletedTask;
+        return Task.CompletedTask;
     }
 
     /// <summary>
     /// 处理支付完成事件，发送支付回执通知
     /// </summary>
     [CapSubscribe("modulith.payments.PaymentCompletedIntegrationEvent")]
-    public async Task HandlePaymentCompletedAsync(PaymentCompletedIntegrationEvent @event, CancellationToken ct = default)
+    public Task HandlePaymentCompletedAsync(PaymentCompletedIntegrationEvent @event, CancellationToken ct = default)
     {
         using var activity = ActivitySource.StartActivity("SendPaymentCompletedNotification", ActivityKind.Consumer);
         activity?.SetTag("modulith.event_type", "PaymentCompletedIntegrationEvent");
@@ -65,14 +65,14 @@ public sealed class NotificationEventSubscriber : ICapSubscribe
             new KeyValuePair<string, object?>("modulith.notification_type", "payment_completed"),
             new KeyValuePair<string, object?>("modulith.channel", "email"));
 
-        await Task.CompletedTask;
+        return Task.CompletedTask;
     }
 
     /// <summary>
     /// 处理订单取消事件，发送订单取消通知
     /// </summary>
     [CapSubscribe("modulith.orders.OrderCancelledIntegrationEvent")]
-    public async Task HandleOrderCancelledAsync(OrderCancelledIntegrationEvent @event, CancellationToken ct = default)
+    public Task HandleOrderCancelledAsync(OrderCancelledIntegrationEvent @event, CancellationToken ct = default)
     {
         using var activity = ActivitySource.StartActivity("SendOrderCancelledNotification", ActivityKind.Consumer);
         activity?.SetTag("modulith.event_type", "OrderCancelledIntegrationEvent");
@@ -86,6 +86,6 @@ public sealed class NotificationEventSubscriber : ICapSubscribe
             new KeyValuePair<string, object?>("modulith.notification_type", "order_cancelled"),
             new KeyValuePair<string, object?>("modulith.channel", "email"));
 
-        await Task.CompletedTask;
+        return Task.CompletedTask;
     }
 }

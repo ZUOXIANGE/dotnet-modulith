@@ -21,8 +21,10 @@ public sealed record PaymentCompletedDomainEvent(
 /// </summary>
 /// <param name="PaymentId">支付ID</param>
 /// <param name="OrderId">关联的订单ID</param>
+/// <param name="CustomerId">客户ID</param>
 /// <param name="Reason">失败原因</param>
 public sealed record PaymentFailedDomainEvent(
     PaymentId PaymentId,
     string OrderId,
+    string CustomerId,
     string Reason) : DomainEvent;

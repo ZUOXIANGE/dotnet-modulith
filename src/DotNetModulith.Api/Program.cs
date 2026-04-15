@@ -36,39 +36,44 @@ builder.Services.AddMediator(options =>
     options.Namespace = "DotNetModulith.Mediator";
 });
 
-builder.Services.AddCap(capOptions =>
+var isTesting = builder.Environment.IsEnvironment("Testing");
+
+if (!isTesting)
 {
-    capOptions.DefaultGroupName = "modulith";
-    capOptions.Version = "v1";
-    capOptions.FailedRetryCount = 5;
-    capOptions.FailedRetryInterval = 60;
-    capOptions.FailedThresholdCallback = failed =>
+    builder.Services.AddCap(capOptions =>
     {
-        var logger = failed.ServiceProvider.GetRequiredService<ILogger<Program>>();
-        logger.LogError("CAP message failed after retries: {MessageType}",
-            failed.MessageType);
-    };
+        capOptions.DefaultGroupName = "modulith";
+        capOptions.Version = "v1";
+        capOptions.FailedRetryCount = 5;
+        capOptions.FailedRetryInterval = 60;
+        capOptions.FailedThresholdCallback = failed =>
+        {
+            var logger = failed.ServiceProvider.GetRequiredService<ILogger<Program>>();
+            logger.LogError("CAP message failed after retries: {MessageType}",
+                failed.MessageType);
+        };
 
-    var capDbConnection = builder.Configuration.GetConnectionString("capdb")
-        ?? builder.Configuration.GetConnectionString("ordersdb")
-        ?? throw new InvalidOperationException("CAP database connection string not found.");
+        var capDbConnection = builder.Configuration.GetConnectionString("capdb")
+            ?? builder.Configuration.GetConnectionString("ordersdb")
+            ?? throw new InvalidOperationException("CAP database connection string not found.");
 
-    capOptions.UsePostgreSql(capDbConnection);
+        capOptions.UsePostgreSql(capDbConnection);
 
-    capOptions.UseRabbitMQ(rabbitOptions =>
-    {
-        rabbitOptions.HostName = builder.Configuration["RabbitMQ:HostName"] ?? "localhost";
-        rabbitOptions.UserName = builder.Configuration["RabbitMQ:UserName"] ?? "guest";
-        rabbitOptions.Password = builder.Configuration["RabbitMQ:Password"] ?? "guest";
-        rabbitOptions.VirtualHost = builder.Configuration["RabbitMQ:VirtualHost"] ?? "/";
-        rabbitOptions.ExchangeName = "modulith.events";
+        capOptions.UseRabbitMQ(rabbitOptions =>
+        {
+            rabbitOptions.HostName = builder.Configuration["RabbitMQ:HostName"] ?? "localhost";
+            rabbitOptions.UserName = builder.Configuration["RabbitMQ:UserName"] ?? "guest";
+            rabbitOptions.Password = builder.Configuration["RabbitMQ:Password"] ?? "guest";
+            rabbitOptions.VirtualHost = builder.Configuration["RabbitMQ:VirtualHost"] ?? "/";
+            rabbitOptions.ExchangeName = "modulith.events";
+        });
+
+        capOptions.UseDashboard(dashboardOptions =>
+        {
+            dashboardOptions.PathMatch = "/cap-dashboard";
+        });
     });
-
-    capOptions.UseDashboard(dashboardOptions =>
-    {
-        dashboardOptions.PathMatch = "/cap-dashboard";
-    });
-});
+}
 
 builder.Services.RegisterModule<InventoryModule>(builder.Configuration);
 builder.Services.RegisterModule<OrdersModule>(builder.Configuration);
@@ -91,9 +96,9 @@ if (app.Environment.IsDevelopment())
     app.MapScalarApiReference(options =>
     {
         options
-            .WithTitle("DotNetModulith API")
-            .WithOpenApiRoutePattern("/openapi/{documentName}.json")
-            .WithDefaultHttpClient(ScalarTarget.CSharp, ScalarClient.HttpClient);
+        .WithTitle("DotNetModulith API")
+        .WithOpenApiRoutePattern("/openapi/{documentName}.json")
+        .WithDefaultHttpClient(ScalarTarget.CSharp, ScalarClient.HttpClient);
     });
 }
 

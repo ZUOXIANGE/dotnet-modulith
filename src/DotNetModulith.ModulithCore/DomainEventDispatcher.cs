@@ -50,7 +50,8 @@ public sealed class DomainEventDispatcher : IDomainEventDispatcher
         foreach (var handler in handlers)
         {
             var handleMethod = handlerType.GetMethod("HandleAsync");
-            if (handleMethod is null) continue;
+            if (handleMethod is null)
+                continue;
 
             try
             {

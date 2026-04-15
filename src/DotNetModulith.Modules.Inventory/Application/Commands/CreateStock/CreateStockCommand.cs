@@ -1,0 +1,51 @@
+using System.Diagnostics;
+using DotNetModulith.Abstractions.Events;
+using DotNetModulith.Modules.Inventory.Domain;
+using Mediator;
+
+namespace DotNetModulith.Modules.Inventory.Application.Commands.CreateStock;
+
+/// <summary>
+/// 创建库存记录命令
+/// </summary>
+/// <param name="ProductId">产品ID</param>
+/// <param name="ProductName">产品名称</param>
+/// <param name="InitialQuantity">初始库存数量</param>
+public sealed record CreateStockCommand(
+    string ProductId,
+    string ProductName,
+    int InitialQuantity) : ICommand<StockId>;
+
+/// <summary>
+/// 创建库存记录命令处理器
+/// </summary>
+public sealed class CreateStockCommandHandler : ICommandHandler<CreateStockCommand, StockId>
+{
+    private static readonly ActivitySource ActivitySource = new("DotNetModulith.Modules.Inventory");
+
+    private readonly IStockRepository _stockRepository;
+    private readonly IDomainEventDispatcher _domainEventDispatcher;
+
+    public CreateStockCommandHandler(
+        IStockRepository stockRepository,
+        IDomainEventDispatcher domainEventDispatcher)
+    {
+        _stockRepository = stockRepository;
+        _domainEventDispatcher = domainEventDispatcher;
+    }
+
+    public async ValueTask<StockId> Handle(CreateStockCommand command, CancellationToken cancellationToken)
+    {
+        using var activity = ActivitySource.StartActivity("CreateStock", ActivityKind.Internal);
+        activity?.SetTag("modulith.product_id", command.ProductId);
+
+        var stock = Stock.Create(command.ProductId, command.ProductName, command.InitialQuantity);
+
+        await _stockRepository.AddAsync(stock, cancellationToken);
+        await _domainEventDispatcher.DispatchAsync(stock, cancellationToken);
+
+        activity?.SetStatus(ActivityStatusCode.Ok);
+
+        return stock.Id;
+    }
+}

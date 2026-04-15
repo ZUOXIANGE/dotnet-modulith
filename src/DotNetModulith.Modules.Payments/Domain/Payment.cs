@@ -153,6 +153,6 @@ public sealed class Payment : AggregateRoot, IEntity<PaymentId>
         Status = PaymentStatus.Failed;
         CompletedAt = DateTimeOffset.UtcNow;
 
-        AddDomainEvent(new PaymentFailedDomainEvent(Id, OrderId, reason));
+        AddDomainEvent(new PaymentFailedDomainEvent(Id, OrderId, CustomerId, reason));
     }
 }

@@ -3,8 +3,10 @@ using System.Diagnostics.Metrics;
 using DotNetCore.CAP;
 using DotNetModulith.Abstractions.Contracts.Orders;
 using DotNetModulith.Abstractions.Contracts.Payments;
+using DotNetModulith.Abstractions.Events;
 using DotNetModulith.Modules.Payments.Application.Mappings;
 using DotNetModulith.Modules.Payments.Domain;
+using DotNetModulith.Modules.Payments.Domain.Events;
 using Microsoft.Extensions.Logging;
 
 namespace DotNetModulith.Modules.Payments.Application.Subscribers;
@@ -21,12 +23,17 @@ public sealed class OrderEventSubscriber : ICapSubscribe
         unit: "{event}",
         description: "Number of events consumed by the Payments module");
 
-    private readonly ICapPublisher _capPublisher;
+    private readonly IPaymentRepository _paymentRepository;
+    private readonly IDomainEventDispatcher _domainEventDispatcher;
     private readonly ILogger<OrderEventSubscriber> _logger;
 
-    public OrderEventSubscriber(ICapPublisher capPublisher, ILogger<OrderEventSubscriber> logger)
+    public OrderEventSubscriber(
+        IPaymentRepository paymentRepository,
+        IDomainEventDispatcher domainEventDispatcher,
+        ILogger<OrderEventSubscriber> logger)
     {
-        _capPublisher = capPublisher;
+        _paymentRepository = paymentRepository;
+        _domainEventDispatcher = domainEventDispatcher;
         _logger = logger;
     }
 
@@ -52,15 +59,8 @@ public sealed class OrderEventSubscriber : ICapSubscribe
         if (success)
         {
             payment.Complete($"TXN-{Guid.NewGuid():N}"[..20]);
-
-            var completedEvent = payment.DomainEvents
-                .OfType<DotNetModulith.Modules.Payments.Domain.Events.PaymentCompletedDomainEvent>()
-                .First()
-                .ToIntegrationEvent();
-
-            await _capPublisher.PublishAsync(
-                "modulith.payments.PaymentCompletedIntegrationEvent",
-                completedEvent, cancellationToken: ct);
+            await _paymentRepository.AddAsync(payment, ct);
+            await _domainEventDispatcher.DispatchAsync(payment, ct);
 
             _logger.LogInformation("Payment completed for order {OrderId}", @event.OrderId);
             activity?.SetStatus(ActivityStatusCode.Ok);
@@ -68,15 +68,8 @@ public sealed class OrderEventSubscriber : ICapSubscribe
         else
         {
             payment.Fail("Payment gateway timeout");
-
-            var failedEvent = payment.DomainEvents
-                .OfType<DotNetModulith.Modules.Payments.Domain.Events.PaymentFailedDomainEvent>()
-                .First()
-                .ToIntegrationEvent();
-
-            await _capPublisher.PublishAsync(
-                "modulith.payments.PaymentFailedIntegrationEvent",
-                failedEvent, cancellationToken: ct);
+            await _paymentRepository.AddAsync(payment, ct);
+            await _domainEventDispatcher.DispatchAsync(payment, ct);
 
             _logger.LogWarning("Payment failed for order {OrderId}", @event.OrderId);
             activity?.SetStatus(ActivityStatusCode.Error, "Payment failed");

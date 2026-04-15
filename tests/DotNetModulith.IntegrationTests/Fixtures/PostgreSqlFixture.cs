@@ -33,11 +33,26 @@ public sealed class PostgreSqlFixture : IAsyncLifetime
         await using var connection = new NpgsqlConnection(ConnectionString);
         await connection.OpenAsync();
 
+        await EnsureMigrationsAppliedAsync();
+
         _respawner = await Respawner.CreateAsync(connection, new RespawnerOptions
         {
             DbAdapter = DbAdapter.Postgres,
             SchemasToInclude = ["public"]
         });
+    }
+
+    /// <summary>
+    /// 确保数据库迁移已应用，使表结构存在
+    /// </summary>
+    private async Task EnsureMigrationsAppliedAsync()
+    {
+        var options = new DbContextOptionsBuilder<OrdersDbContext>()
+            .UseNpgsql(ConnectionString)
+            .Options;
+
+        await using var dbContext = new OrdersDbContext(options);
+        await dbContext.Database.MigrateAsync();
     }
 
     /// <summary>

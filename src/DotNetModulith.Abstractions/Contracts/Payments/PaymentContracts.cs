@@ -8,10 +8,12 @@ namespace DotNetModulith.Abstractions.Contracts.Payments;
 /// </summary>
 /// <param name="OrderId">订单ID</param>
 /// <param name="PaymentId">支付ID</param>
+/// <param name="CustomerId">客户ID</param>
 /// <param name="Amount">支付金额</param>
 public sealed record PaymentCompletedIntegrationEvent(
     [property: JsonPropertyName("orderId")] string OrderId,
     [property: JsonPropertyName("paymentId")] string PaymentId,
+    [property: JsonPropertyName("customerId")] string CustomerId,
     [property: JsonPropertyName("amount")] decimal Amount) : IntegrationEvent;
 
 /// <summary>
@@ -19,8 +21,10 @@ public sealed record PaymentCompletedIntegrationEvent(
 /// </summary>
 /// <param name="OrderId">订单ID</param>
 /// <param name="PaymentId">支付ID</param>
+/// <param name="CustomerId">客户ID</param>
 /// <param name="Reason">失败原因</param>
 public sealed record PaymentFailedIntegrationEvent(
     [property: JsonPropertyName("orderId")] string OrderId,
     [property: JsonPropertyName("paymentId")] string PaymentId,
+    [property: JsonPropertyName("customerId")] string CustomerId,
     [property: JsonPropertyName("reason")] string Reason) : IntegrationEvent;

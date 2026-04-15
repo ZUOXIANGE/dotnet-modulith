@@ -14,9 +14,9 @@ builder.AddServiceDefaults();
 var ordersConn = builder.Configuration.GetConnectionString("ordersdb")
     ?? throw new InvalidOperationException("ordersdb connection string not found.");
 var inventoryConn = builder.Configuration.GetConnectionString("inventorydb")
-    ?? ordersConn;
+    ?? throw new InvalidOperationException("inventorydb connection string not found.");
 var paymentsConn = builder.Configuration.GetConnectionString("paymentsdb")
-    ?? ordersConn;
+    ?? throw new InvalidOperationException("paymentsdb connection string not found.");
 
 builder.Services.AddDbContext<OrdersDbContext>(options =>
     options.UseNpgsql(ordersConn));

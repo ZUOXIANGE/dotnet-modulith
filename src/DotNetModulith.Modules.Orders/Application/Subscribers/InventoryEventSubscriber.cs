@@ -2,7 +2,6 @@ using System.Diagnostics;
 using System.Diagnostics.Metrics;
 using DotNetCore.CAP;
 using DotNetModulith.Abstractions.Contracts.Inventory;
-using DotNetModulith.Modules.Orders.Domain;
 using Microsoft.Extensions.Logging;
 
 namespace DotNetModulith.Modules.Orders.Application.Subscribers;
@@ -30,7 +29,7 @@ public sealed class InventoryEventSubscriber : ICapSubscribe
     /// 处理库存已预留事件，确认订单
     /// </summary>
     [CapSubscribe("modulith.inventory.StockReservedIntegrationEvent")]
-    public async Task HandleStockReservedAsync(StockReservedIntegrationEvent @event, CancellationToken ct = default)
+    public Task HandleStockReservedAsync(StockReservedIntegrationEvent @event, CancellationToken ct = default)
     {
         using var activity = ActivitySource.StartActivity("HandleStockReserved", ActivityKind.Consumer);
         activity?.SetTag("modulith.event_type", "StockReservedIntegrationEvent");
@@ -43,6 +42,6 @@ public sealed class InventoryEventSubscriber : ICapSubscribe
 
         EventsConsumed.Add(1, new KeyValuePair<string, object?>("modulith.event_type", "StockReservedIntegrationEvent"));
 
-        await Task.CompletedTask;
+        return Task.CompletedTask;
     }
 }

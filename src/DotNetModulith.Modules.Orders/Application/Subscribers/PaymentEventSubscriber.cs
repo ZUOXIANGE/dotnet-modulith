@@ -23,7 +23,7 @@ public sealed class PaymentEventSubscriber : ICapSubscribe
     /// 处理支付完成事件，更新订单状态为已支付
     /// </summary>
     [CapSubscribe("modulith.payments.PaymentCompletedIntegrationEvent")]
-    public async Task HandlePaymentCompletedAsync(PaymentCompletedIntegrationEvent @event, CancellationToken ct = default)
+    public Task HandlePaymentCompletedAsync(PaymentCompletedIntegrationEvent @event, CancellationToken ct = default)
     {
         using var activity = ActivitySource.StartActivity("HandlePaymentCompleted", ActivityKind.Consumer);
         activity?.SetTag("modulith.event_type", "PaymentCompletedIntegrationEvent");
@@ -32,6 +32,6 @@ public sealed class PaymentEventSubscriber : ICapSubscribe
         _logger.LogInformation("Payment completed for order {OrderId}, amount {Amount}",
             @event.OrderId, @event.Amount);
 
-        await Task.CompletedTask;
+        return Task.CompletedTask;
     }
 }

@@ -22,8 +22,6 @@ public class OrderPersistenceTests(PostgreSqlFixture dbFixture) : IAsyncLifetime
             .Options;
 
         _dbContext = new OrdersDbContext(options);
-
-        await _dbContext.Database.MigrateAsync(TestContext.Current.CancellationToken);
     }
 
     public async ValueTask DisposeAsync()
@@ -38,6 +36,9 @@ public class OrderPersistenceTests(PostgreSqlFixture dbFixture) : IAsyncLifetime
     public async Task SaveOrder_ShouldPersistToDatabase()
     {
         var ct = TestContext.Current.CancellationToken;
+
+        await dbFixture.ResetAsync();
+
         var order = Order.Create("CUST-001",
         [
             new OrderLineData("PROD-001", "Widget", 2, 10.00m),
@@ -63,6 +64,9 @@ public class OrderPersistenceTests(PostgreSqlFixture dbFixture) : IAsyncLifetime
     public async Task OrderStatusTransition_ShouldPersist()
     {
         var ct = TestContext.Current.CancellationToken;
+
+        await dbFixture.ResetAsync();
+
         var order = Order.Create("CUST-002", [new OrderLineData("PROD-003", "Bolt", 5, 3.50m)]);
 
         _dbContext.Orders.Add(order);
@@ -74,9 +78,10 @@ public class OrderPersistenceTests(PostgreSqlFixture dbFixture) : IAsyncLifetime
         _dbContext.Orders.Update(order);
         await _dbContext.SaveChangesAsync(ct);
 
-        await dbFixture.ResetAsync();
+        var saved = await _dbContext.Orders
+            .Include("_lines")
+            .FirstOrDefaultAsync(o => o.Id == order.Id, ct);
 
-        var saved = await _dbContext.Orders.FindAsync([order.Id], ct);
         saved.Should().NotBeNull();
         saved!.Status.Should().Be(OrderStatus.Paid);
     }

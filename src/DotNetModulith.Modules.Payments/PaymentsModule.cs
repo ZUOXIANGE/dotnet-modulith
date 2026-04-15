@@ -1,5 +1,9 @@
 using System.Diagnostics;
+using DotNetModulith.Abstractions.Events;
+using DotNetModulith.Modules.Payments.Application.Events;
 using DotNetModulith.Modules.Payments.Application.Subscribers;
+using DotNetModulith.Modules.Payments.Domain;
+using DotNetModulith.Modules.Payments.Domain.Events;
 using DotNetModulith.Modules.Payments.Infrastructure;
 using DotNetModulith.ModulithCore;
 using Microsoft.EntityFrameworkCore;
@@ -46,13 +50,12 @@ public sealed class PaymentsModule : IModule
     ];
 
     /// <summary>
-    /// 注册支付模块的数据访问层和事件订阅者
+    /// 注册支付模块的数据访问层、仓储和事件处理器
     /// </summary>
     public IServiceCollection AddModuleServices(IServiceCollection services, IConfiguration configuration)
     {
         var connectionString = configuration.GetConnectionString("paymentsdb")
-            ?? configuration.GetConnectionString("ordersdb")
-            ?? throw new InvalidOperationException("Connection string not found.");
+            ?? throw new InvalidOperationException("Connection string 'paymentsdb' not found.");
 
         services.AddDbContext<PaymentsDbContext>(options =>
         {
@@ -62,6 +65,9 @@ public sealed class PaymentsModule : IModule
             });
         });
 
+        services.AddScoped<IPaymentRepository, PaymentRepository>();
+        services.AddTransient<IDomainEventHandler<PaymentCompletedDomainEvent>, PaymentCompletedDomainEventHandler>();
+        services.AddTransient<IDomainEventHandler<PaymentFailedDomainEvent>, PaymentFailedDomainEventHandler>();
         services.AddTransient<OrderEventSubscriber>();
 
         ActivitySource.AddActivityListener(new ActivityListener

@@ -1,0 +1,57 @@
+version: 2
+updates:
+  - package-ecosystem: "nuget"
+    directory: "/"
+    schedule:
+      interval: "daily"
+    open-pull-requests-limit: 10
+    groups:
+      microsoft-extensions:
+        patterns:
+          - "Microsoft.Extensions.*"
+      ef-core:
+        patterns:
+          - "Microsoft.EntityFrameworkCore.*"
+          - "Microsoft.EntityFrameworkCore.Design"
+          - "Microsoft.EntityFrameworkCore.Tools"
+      aspire:
+        patterns:
+          - "Aspire.*"
+      cap:
+        patterns:
+          - "DotNetCore.CAP*"
+      opentelemetry:
+        patterns:
+          - "OpenTelemetry*"
+      npgsql:
+        patterns:
+          - "Npgsql*"
+      testcontainers:
+        patterns:
+          - "Testcontainers*"
+      xunit:
+        patterns:
+          - "xunit*"
+      fluent-validation:
+        patterns:
+          - "FluentValidation*"
+      mapperly:
+        patterns:
+          - "Riok.Mapperly*"
+      health-checks:
+        patterns:
+          - "AspNetCore.HealthChecks.*"
+      aspnetcore:
+        patterns:
+          - "Microsoft.AspNetCore.*"
+      microsoft-net-test:
+        patterns:
+          - "Microsoft.NET.Test.Sdk"
+          - "coverlet*"
+          - "Microsoft.AspNetCore.Mvc.Testing"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10

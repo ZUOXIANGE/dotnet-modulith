@@ -174,13 +174,13 @@ jobs:
     if: github.event_name == 'pull_request'
     steps:
       - name: Download unit test results
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: unit-test-results
           path: TestResults/unit
 
       - name: Download integration test results
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: integration-test-results
           path: TestResults/integration

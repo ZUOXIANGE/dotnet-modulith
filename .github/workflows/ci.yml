@@ -65,16 +65,16 @@ jobs:
         run: dotnet restore
 
       - name: Run unit tests
-        run: >
-          dotnet test
-          tests/DotNetModulith.Modules.Orders.Tests/DotNetModulith.Modules.Orders.Tests.csproj
-          --no-restore
-          --configuration Release
-          --logger "trx;LogFileName=unit-tests.trx"
-          --results-directory TestResults
-          --collect:"XPlat Code Coverage"
-          -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=cobertura
-          -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.ExcludeByAttribute=ObsoleteAttribute,GeneratedCodeAttribute,CompilerGeneratedAttribute
+        run: |
+          dotnet test \
+            tests/DotNetModulith.Modules.Orders.Tests/DotNetModulith.Modules.Orders.Tests.csproj \
+            --no-restore \
+            --configuration Release \
+            --logger "trx;LogFileName=unit-tests.trx" \
+            --results-directory TestResults \
+            --collect:"XPlat Code Coverage" \
+            -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=cobertura \
+               DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.ExcludeByAttribute=ObsoleteAttribute,GeneratedCodeAttribute,CompilerGeneratedAttribute
 
       - name: Upload unit test results
         uses: actions/upload-artifact@v4
@@ -108,13 +108,13 @@ jobs:
         run: dotnet restore
 
       - name: Run architecture tests
-        run: >
-          dotnet test
-          tests/DotNetModulith.ArchitectureTests/DotNetModulith.ArchitectureTests.csproj
-          --no-restore
-          --configuration Release
-          --logger "trx;LogFileName=architecture-tests.trx"
-          --results-directory TestResults
+        run: |
+          dotnet test \
+            tests/DotNetModulith.ArchitectureTests/DotNetModulith.ArchitectureTests.csproj \
+            --no-restore \
+            --configuration Release \
+            --logger "trx;LogFileName=architecture-tests.trx" \
+            --results-directory TestResults
 
       - name: Upload architecture test results
         uses: actions/upload-artifact@v4
@@ -148,16 +148,16 @@ jobs:
         run: dotnet restore
 
       - name: Run integration tests
-        run: >
-          dotnet test
-          tests/DotNetModulith.IntegrationTests/DotNetModulith.IntegrationTests.csproj
-          --no-restore
-          --configuration Release
-          --logger "trx;LogFileName=integration-tests.trx"
-          --results-directory TestResults
-          --collect:"XPlat Code Coverage"
-          -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=cobertura
-          -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.ExcludeByAttribute=ObsoleteAttribute,GeneratedCodeAttribute,CompilerGeneratedAttribute
+        run: |
+          dotnet test \
+            tests/DotNetModulith.IntegrationTests/DotNetModulith.IntegrationTests.csproj \
+            --no-restore \
+            --configuration Release \
+            --logger "trx;LogFileName=integration-tests.trx" \
+            --results-directory TestResults \
+            --collect:"XPlat Code Coverage" \
+            -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=cobertura \
+               DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.ExcludeByAttribute=ObsoleteAttribute,GeneratedCodeAttribute,CompilerGeneratedAttribute
 
       - name: Upload integration test results
         uses: actions/upload-artifact@v4
@@ -173,8 +173,6 @@ jobs:
     needs: [unit-tests, integration-tests]
     if: github.event_name == 'pull_request'
     steps:
-      - uses: actions/checkout@v4
-
       - name: Download unit test results
         uses: actions/download-artifact@v4
         with:
@@ -187,12 +185,29 @@ jobs:
           name: integration-test-results
           path: TestResults/integration
 
+      - name: Find coverage files
+        id: find_coverage
+        run: |
+          echo "Listing all downloaded files..."
+          find TestResults -type f -name "*.xml" || true
+          COVERAGE_FILES=$(find TestResults -type f -name "coverage.cobertura.xml" 2>/dev/null)
+          if [ -z "$COVERAGE_FILES" ]; then
+            echo "has_coverage=false" >> "$GITHUB_OUTPUT"
+            echo "No coverage files found, skipping report generation"
+          else
+            echo "has_coverage=true" >> "$GITHUB_OUTPUT"
+            echo "Found coverage files:"
+            echo "$COVERAGE_FILES"
+          fi
+
       - name: Setup .NET SDK
+        if: steps.find_coverage.outputs.has_coverage == 'true'
         uses: actions/setup-dotnet@v4
         with:
           global-json-file: global.json
 
       - name: Merge coverage reports
+        if: steps.find_coverage.outputs.has_coverage == 'true'
         run: |
           dotnet tool install --global dotnet-reportgenerator-globaltool --version 5.* || true
           reportgenerator \
@@ -203,14 +218,15 @@ jobs:
             "-classfilters:+DotNetModulith.*;-*Migrations*;-*Snapshot*"
 
       - name: Upload coverage report
+        if: steps.find_coverage.outputs.has_coverage == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: coverage-report
           path: coveragereport/
           retention-days: 7
 
-      - name: Add coverage comment to PR
-        if: github.event_name == 'pull_request'
+      - name: Add coverage summary
+        if: steps.find_coverage.outputs.has_coverage == 'true'
         run: |
           if [ -f coveragereport/SummaryGithub.md ]; then
             cat coveragereport/SummaryGithub.md >> $GITHUB_STEP_SUMMARY

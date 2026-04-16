@@ -92,7 +92,7 @@ jobs:
           --output publish/api
 
       - name: Upload API artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: api-${{ needs.validate.outputs.version }}
           path: publish/api/

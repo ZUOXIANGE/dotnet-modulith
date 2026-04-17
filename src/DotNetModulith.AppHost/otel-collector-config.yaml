@@ -1,0 +1,148 @@
+# ============================================================
+# OpenTelemetry Collector 配置
+# 用于接收应用遥测数据，经处理后导出到 OpenObserve
+#
+# 数据流: 应用 → OTLP → Collector → 处理 → OpenObserve
+#
+# 环境变量（在 Aspire AppHost 中设置）:
+#   OPENOBSERVE_ENDPOINT  - OpenObserve HTTP 端点地址
+#   OPENOBSERVE_BASIC_AUTH - Base64 编码的认证凭据 (email:password)
+#   SAMPLING_PERCENTAGE   - 概率采样百分比 (默认 10)
+# ============================================================
+
+# -----------------------------------------------------------
+# 接收器: 定义 Collector 如何接收遥测数据
+# -----------------------------------------------------------
+receivers:
+  otlp:
+    protocols:
+      http:
+        # OTLP HTTP 协议端口 (应用通过此端口发送遥测数据)
+        endpoint: 0.0.0.0:4318
+      grpc:
+        # OTLP gRPC 协议端口 (高性能场景可选)
+        endpoint: 0.0.0.0:4317
+
+# -----------------------------------------------------------
+# 处理器: 对接收到的遥测数据进行加工处理
+# 处理顺序: memory_limiter → batch → tail_sampling
+# -----------------------------------------------------------
+processors:
+  # 内存限制器 - 防止 Collector 在高负载下 OOM
+  # 必须放在处理器链最前面，在数据进入后续处理前进行保护
+  memory_limiter:
+    check_interval: 5s      # 内存检查间隔
+    limit_mib: 512          # 内存软限制 (MiB)，超过后拒绝新数据
+    spike_limit_mib: 128    # 内存峰值限制 (MiB)，超过后立即拒绝
+
+  # 批处理器 - 将数据批量发送以减少网络请求次数
+  # 降低下游系统压力，提高吞吐量
+  batch:
+    send_batch_size: 1024       # 每批最大数据条数
+    send_batch_max_size: 2048   # 单批绝对上限（防止批过大）
+    timeout: 5s                 # 等待超时，超时后即使未满也发送
+
+  # 尾采样处理器 - 基于完整 trace 信息做采样决策
+  # 与头采样不同，尾采样在 trace 完成后根据其特征决定是否保留
+  # 策略之间为 OR 关系: 任一策略匹配即保留该 trace
+  tail_sampling:
+    decision_wait: 10s              # 等待 trace 所有 span 到达后再做决策
+    num_traces: 100000              # 内存中缓存的 trace 数量
+    expected_new_traces_per_sec: 10 # 预期每秒新增 trace 数（用于内存预分配）
+
+    policies:
+      # 策略1: 错误 trace 全量保留
+      # 确保所有异常和错误场景的 trace 都被采集，便于问题排查
+      - name: error-traces
+        type: status_code
+        status_code:
+          status_codes:
+            - ERROR
+
+      # 策略2: 慢请求 trace 全量保留
+      # 超过 2 秒的请求视为慢请求，保留用于性能分析
+      - name: slow-traces
+        type: latency
+        latency:
+          threshold_ms: 2000
+
+      # 策略3: 排除健康检查 trace
+      # /health 和 /alive 端点的 trace 无业务价值，invert_match=true 表示排除匹配项
+      # 注意: 此策略仅排除健康检查，不影响其他 trace 的采样
+      - name: health-check-traces
+        type: string_attribute
+        string_attribute:
+          key: http.route
+          values:
+            - /health
+            - /alive
+          invert_match: true
+
+      # 策略4: 概率采样
+      # 对未被上述策略匹配的 trace 按设定百分比随机采样
+      # 百分比通过 SAMPLING_PERCENTAGE 环境变量动态配置
+      - name: probabilistic-sampling
+        type: probabilistic
+        probabilistic:
+          sampling_percentage: ${SAMPLING_PERCENTAGE}
+
+# -----------------------------------------------------------
+# 导出器: 定义 Collector 如何将处理后的数据发送到后端
+# -----------------------------------------------------------
+exporters:
+  # 日志导出器 → OpenObserve
+  # otlphttp exporter 会自动追加 /v1/logs，所以 endpoint 只需设置到 /api/default
+  otlphttp/openobserve-logs:
+    endpoint: ${OPENOBSERVE_ENDPOINT}/api/default
+    headers:
+      Authorization: Basic ${OPENOBSERVE_BASIC_AUTH}
+      stream-name: dotnet-modulith
+
+  # 指标导出器 → OpenObserve
+  # otlphttp exporter 会自动追加 /v1/metrics，所以 endpoint 只需设置到 /api/default
+  otlphttp/openobserve-metrics:
+    endpoint: ${OPENOBSERVE_ENDPOINT}/api/default
+    headers:
+      Authorization: Basic ${OPENOBSERVE_BASIC_AUTH}
+      stream-name: dotnet-modulith
+
+  # 追踪导出器 → OpenObserve
+  # otlphttp exporter 会自动追加 /v1/traces，所以 endpoint 只需设置到 /api/default
+  otlphttp/openobserve-traces:
+    endpoint: ${OPENOBSERVE_ENDPOINT}/api/default
+    headers:
+      Authorization: Basic ${OPENOBSERVE_BASIC_AUTH}
+      stream-name: dotnet-modulith
+
+# -----------------------------------------------------------
+# 扩展: Collector 的辅助功能组件
+# -----------------------------------------------------------
+extensions:
+  health_check:
+    endpoint: 0.0.0.0:13133
+
+# -----------------------------------------------------------
+# 服务管道: 将接收器、处理器、导出器串联为数据处理管道
+# 处理器按列表顺序依次执行
+# -----------------------------------------------------------
+service:
+  extensions: [health_check]
+  pipelines:
+    # 日志管道: 日志不做采样，全量导出
+    logs:
+      receivers: [otlp]
+      processors: [memory_limiter, batch]
+      exporters: [otlphttp/openobserve-logs]
+
+    # 指标管道: 指标不做采样，全量导出
+    metrics:
+      receivers: [otlp]
+      processors: [memory_limiter, batch]
+      exporters: [otlphttp/openobserve-metrics]
+
+    # 追踪管道: 经过尾采样后导出
+    # 采样策略: 错误全量 > 慢请求全量 > 排除健康检查 > 概率采样
+    traces:
+      receivers: [otlp]
+      processors: [memory_limiter, batch, tail_sampling]
+      exporters: [otlphttp/openobserve-traces]

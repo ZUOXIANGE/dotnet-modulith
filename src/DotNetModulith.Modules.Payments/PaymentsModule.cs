@@ -54,8 +54,8 @@ public sealed class PaymentsModule : IModule
     /// </summary>
     public IServiceCollection AddModuleServices(IServiceCollection services, IConfiguration configuration)
     {
-        var connectionString = configuration.GetConnectionString("paymentsdb")
-            ?? throw new InvalidOperationException("Connection string 'paymentsdb' not found.");
+        var connectionString = configuration.GetConnectionString("modulithdb")
+            ?? throw new InvalidOperationException("Connection string 'modulithdb' not found.");
 
         services.AddDbContext<PaymentsDbContext>(options =>
         {

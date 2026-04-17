@@ -11,7 +11,7 @@ internal sealed class InventoryDbContextFactory : IDesignTimeDbContextFactory<In
     public InventoryDbContext CreateDbContext(string[] args)
     {
         var optionsBuilder = new DbContextOptionsBuilder<InventoryDbContext>();
-        optionsBuilder.UseNpgsql("Host=localhost;Database=modulith_inventory;Username=postgres;Password=postgres",
+        optionsBuilder.UseNpgsql("Host=localhost;Database=modulith;Username=postgres;Password=postgres",
             npgsql => npgsql.MigrationsAssembly(typeof(InventoryDbContext).Assembly.FullName));
 
         return new InventoryDbContext(optionsBuilder.Options);

@@ -54,8 +54,8 @@ public sealed class InventoryModule : IModule
     /// </summary>
     public IServiceCollection AddModuleServices(IServiceCollection services, IConfiguration configuration)
     {
-        var connectionString = configuration.GetConnectionString("inventorydb")
-            ?? throw new InvalidOperationException("Connection string 'inventorydb' not found.");
+        var connectionString = configuration.GetConnectionString("modulithdb")
+            ?? throw new InvalidOperationException("Connection string 'modulithdb' not found.");
 
         services.AddDbContext<InventoryDbContext>(options =>
         {

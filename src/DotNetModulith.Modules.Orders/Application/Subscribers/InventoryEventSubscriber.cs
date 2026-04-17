@@ -35,10 +35,9 @@ public sealed class InventoryEventSubscriber : ICapSubscribe
         activity?.SetTag("modulith.event_type", "StockReservedIntegrationEvent");
         activity?.SetTag("modulith.order_id", @event.OrderId);
 
-        var lineSummary = string.Join(", ", @event.Lines.Select(l => $"{l.ProductId}: {l.Quantity}"));
         _logger.LogInformation(
-            "Stock reserved for order {OrderId}, lines: {LineSummary}, proceeding with confirmation",
-            @event.OrderId, lineSummary);
+            "Stock reserved for order {OrderId} with {LineCount} lines, proceeding with confirmation",
+            @event.OrderId, @event.Lines.Count);
 
         EventsConsumed.Add(1, new KeyValuePair<string, object?>("modulith.event_type", "StockReservedIntegrationEvent"));
 

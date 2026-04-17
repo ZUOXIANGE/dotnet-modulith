@@ -4,7 +4,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Logging;
-using OpenTelemetry;
+using Npgsql;
 using OpenTelemetry.Exporter;
 using OpenTelemetry.Logs;
 using OpenTelemetry.Metrics;
@@ -14,15 +14,23 @@ using OpenTelemetry.Trace;
 namespace Microsoft.Extensions.Hosting;
 
 /// <summary>
-/// 服务默认配置扩展方法，提供OpenTelemetry、健康检查、服务发现和HTTP弹性能力的统一配置
+/// 统一的服务默认配置扩展：
+/// 包含 OpenTelemetry、健康检查、服务发现与默认 HTTP 客户端策略。
 /// </summary>
 public static class Extensions
 {
+    /// <summary>
+    /// 健康检查端点路径（就绪探针）。
+    /// </summary>
     private const string HealthEndpointPath = "/health";
+    /// <summary>
+    /// 存活检查端点路径（存活探针）。
+    /// </summary>
     private const string AlivenessEndpointPath = "/alive";
 
     /// <summary>
-    /// 添加服务默认配置，包括OpenTelemetry、健康检查、服务发现和HTTP弹性处理
+    /// 为应用添加统一默认能力：
+    /// OpenTelemetry、健康检查、服务发现与默认 HTTP 客户端配置。
     /// </summary>
     public static TBuilder AddServiceDefaults<TBuilder>(this TBuilder builder)
         where TBuilder : IHostApplicationBuilder
@@ -42,7 +50,8 @@ public static class Extensions
     }
 
     /// <summary>
-    /// 配置OpenTelemetry可观测性，包括日志、指标和链路追踪
+    /// 配置 OpenTelemetry 日志、指标与链路追踪。
+    /// 所有信号均通过 OTLP 上报（OpenObserve 或 OTEL Collector）。
     /// </summary>
     public static TBuilder ConfigureOpenTelemetry<TBuilder>(this TBuilder builder)
         where TBuilder : IHostApplicationBuilder
@@ -56,13 +65,16 @@ public static class Extensions
                 serviceVersion: typeof(Extensions).Assembly.GetName().Version?.ToString() ?? "1.0.0")
             .AddAttributes(new Dictionary<string, object>
             {
+                // 统一打上部署环境维度，便于按环境筛选观测数据。
                 ["deployment.environment"] = builder.Environment.EnvironmentName
             });
 
+        // 日志信号：通过 OTLP 输出到 OpenObserve 或 Collector。
         builder.Logging.AddOpenTelemetry(logging =>
         {
             logging.IncludeFormattedMessage = true;
             logging.IncludeScopes = true;
+            logging.ParseStateValues = true;
             logging.SetResourceBuilder(resourceBuilder);
 
             if (openObserveEnabled)
@@ -70,16 +82,23 @@ public static class Extensions
                 logging.AddOtlpExporter(ConfigureOtlpForOpenObserve(
                     openObserveConfig, "logs", builder));
             }
+            else
+            {
+                logging.AddOtlpExporter(ConfigureOtlpForCollector());
+            }
         });
 
         builder.Services.AddOpenTelemetry()
             .WithMetrics(metrics =>
             {
+                // 指标信号：接入 ASP.NET Core、HttpClient、Runtime、Npgsql、FusionCache 等 instrumentation。
                 metrics
                     .SetResourceBuilder(resourceBuilder)
                     .AddAspNetCoreInstrumentation()
                     .AddHttpClientInstrumentation()
                     .AddRuntimeInstrumentation()
+                    .AddNpgsqlInstrumentation()
+                    .AddFusionCacheInstrumentation()
                     .AddMeter("DotNetModulith")
                     .AddMeter("DotNetCore.CAP");
 
@@ -88,11 +107,14 @@ public static class Extensions
                     metrics.AddOtlpExporter(ConfigureOtlpForOpenObserve(
                         openObserveConfig, "metrics", builder));
                 }
-
-                metrics.AddPrometheusExporter();
+                else
+                {
+                    metrics.AddOtlpExporter(ConfigureOtlpForCollector());
+                }
             })
             .WithTracing(tracing =>
             {
+                // 链路信号：接入 Web 请求、HttpClient、Npgsql、EF Core 及各业务模块 ActivitySource。
                 tracing
                     .SetResourceBuilder(resourceBuilder)
                     .AddSource(builder.Environment.ApplicationName)
@@ -102,6 +124,8 @@ public static class Extensions
                             !context.Request.Path.StartsWithSegments(HealthEndpointPath) &&
                             !context.Request.Path.StartsWithSegments(AlivenessEndpointPath))
                     .AddHttpClientInstrumentation()
+                    .AddNpgsql()
+                    .AddFusionCacheInstrumentation()
                     .AddEntityFrameworkCoreInstrumentation(options =>
                         options.SetDbStatementForText = true)
                     .AddSource("DotNetModulith.Modules.Orders")
@@ -114,13 +138,29 @@ public static class Extensions
                     tracing.AddOtlpExporter(ConfigureOtlpForOpenObserve(
                         openObserveConfig, "traces", builder));
                 }
+                else
+                {
+                    tracing.AddOtlpExporter(ConfigureOtlpForCollector());
+                }
             });
 
         return builder;
     }
 
     /// <summary>
-    /// 配置OpenObserve OTLP导出器选项
+    /// OTLP 导出配置（面向本地/通用 Collector）。
+    /// </summary>
+    private static Action<OtlpExporterOptions> ConfigureOtlpForCollector()
+    {
+        return options =>
+        {
+            options.Protocol = OtlpExportProtocol.HttpProtobuf;
+        };
+    }
+
+    /// <summary>
+    /// OTLP 导出配置（面向 OpenObserve）。
+    /// 自动拼接不同信号（logs/metrics/traces）的上报路径。
     /// </summary>
     private static Action<OtlpExporterOptions> ConfigureOtlpForOpenObserve(
         IConfigurationSection config, string signal, IHostApplicationBuilder builder)
@@ -135,6 +175,7 @@ public static class Extensions
             var streamName = config.GetValue<string>("StreamName")
                 ?? builder.Environment.ApplicationName.ToLowerInvariant();
 
+            // OpenObserve 以 signal 区分日志/指标/链路入口。
             options.Endpoint = new Uri($"{endpoint}/api/{organization}/v1/{signal}");
             options.Protocol = OtlpExportProtocol.HttpProtobuf;
 
@@ -148,7 +189,7 @@ public static class Extensions
     }
 
     /// <summary>
-    /// 添加默认健康检查
+    /// 注册默认健康检查项。
     /// </summary>
     public static TBuilder AddDefaultHealthChecks<TBuilder>(this TBuilder builder)
         where TBuilder : IHostApplicationBuilder
@@ -160,7 +201,7 @@ public static class Extensions
     }
 
     /// <summary>
-    /// 映射默认端点，包括健康检查和Prometheus指标抓取端点
+    /// 映射默认基础端点（健康检查与存活检查）。
     /// </summary>
     public static WebApplication MapDefaultEndpoints(this WebApplication app)
     {
@@ -170,8 +211,6 @@ public static class Extensions
         {
             Predicate = r => r.Tags.Contains("live")
         });
-
-        app.MapPrometheusScrapingEndpoint();
 
         return app;
     }

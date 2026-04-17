@@ -1,15 +1,15 @@
-<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Aspire.AppHost.Sdk/13.2.2">
   <PropertyGroup>
     <TargetFramework>$(NetAppVersion)</TargetFramework>
     <OutputType>Exe</OutputType>
-    <IsAspireHost>true</IsAspireHost>
-    <AspireHostingSdkVersion>9.2.0</AspireHostingSdkVersion>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Aspire.Hosting.AppHost" />
     <PackageReference Include="Aspire.Hosting.PostgreSQL" />
     <PackageReference Include="Aspire.Hosting.RabbitMQ" />
+    <PackageReference Include="Aspire.Hosting.Redis" />
   </ItemGroup>
 
   <ItemGroup>

@@ -53,8 +53,7 @@ if (!isTesting)
                 failed.MessageType);
         };
 
-        var capDbConnection = builder.Configuration.GetConnectionString("capdb")
-            ?? builder.Configuration.GetConnectionString("ordersdb")
+        var capDbConnection = builder.Configuration.GetConnectionString("modulithdb")
             ?? throw new InvalidOperationException("CAP database connection string not found.");
 
         capOptions.UsePostgreSql(capDbConnection);
@@ -82,7 +81,7 @@ builder.Services.RegisterModule<NotificationsModule>(builder.Configuration);
 
 builder.Services.AddHealthChecks()
     .AddNpgSql(
-        builder.Configuration.GetConnectionString("ordersdb")!,
+        builder.Configuration.GetConnectionString("modulithdb")!,
         name: "postgresql",
         tags: ["ready"]);
 

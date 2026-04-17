@@ -23,9 +23,10 @@
 | 数据库   | PostgreSQL (Npgsql / EF Core 10)             |
 | 消息代理 | RabbitMQ                                     |
 | 事件总线 | DotNetCore.CAP 8.3                           |
+| 缓存     | FusionCache (L1 Memory + L2 Redis)           |
 | Mediator | Mediator 3.0 (源生成)                        |
 | 对象映射 | Riok.Mapperly 4.3 (源生成)                   |
-| 可观测性 | OpenTelemetry + OpenObserve + Prometheus      |
+| 可观测性 | OpenTelemetry + OpenObserve + OTEL Collector |
 | API 文档 | Scalar.AspNetCore 2.x                        |
 | 编排     | .NET Aspire 9.2                              |
 | 测试     | xUnit v3 + FluentAssertions + Testcontainers |
@@ -135,7 +136,6 @@ Aspire 将自动：
 - **CAP Dashboard**：`https://localhost:7001/cap-dashboard`
 - **OpenObserve**：`http://localhost:5080`（账号：`admin@modulith.local`，密码：`Modulith@2026`）
 - **Aspire Dashboard**：`http://localhost:15000`
-- **Prometheus 指标**：`https://localhost:7001/metrics`
 
 ### 不使用 Aspire 启动
 
@@ -190,6 +190,40 @@ pwsh -ExecutionPolicy Bypass -File test-api.ps1
 | POST | `/api/orders`                   | 创建订单     |
 | POST | `/api/orders/{orderId}/confirm` | 确认订单     |
 | GET  | `/api/orders/{orderId}`         | 查询订单详情 |
+| DELETE | `/api/orders/{orderId}/cache` | 手动清理订单缓存 |
+
+## 多级缓存（FusionCache）示例
+
+项目已在订单查询链路集成 FusionCache，多级缓存策略如下：
+
+- L1：进程内内存缓存（默认 30 秒）
+- L2：Redis 分布式缓存（默认 5 分钟）
+- 查询入口：`GET /api/orders/{orderId}`（`GetOrderQueryHandler` 使用 `IFusionCache.GetOrSetAsync`）
+- 失效入口：订单创建/确认后自动清理指定订单缓存；可调用 `DELETE /api/orders/{orderId}/cache` 手动清理
+
+默认配置位于 `appsettings*.json`：
+
+```json
+"ConnectionStrings": {
+  "redis": "localhost:6379"
+},
+"Caching": {
+  "Orders": {
+    "Duration": "00:05:00",
+    "MemoryCacheDuration": "00:00:30",
+    "DistributedCacheDuration": "00:05:00",
+    "EnableFailSafe": true,
+    "FailSafeMaxDuration": "00:30:00"
+  }
+}
+```
+
+可通过以下步骤验证缓存行为：
+
+1. 创建订单：`POST /api/orders`
+2. 连续两次读取：`GET /api/orders/{orderId}`（第二次应命中缓存）
+3. 调用确认接口：`POST /api/orders/{orderId}/confirm`
+4. 再次读取订单：`GET /api/orders/{orderId}`（应触发缓存重建）
 
 ### 库存模块
 

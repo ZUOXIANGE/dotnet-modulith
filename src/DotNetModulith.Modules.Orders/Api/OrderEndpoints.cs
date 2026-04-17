@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using DotNetModulith.Abstractions.Results;
+using DotNetModulith.Modules.Orders.Application.Caching;
 using DotNetModulith.Modules.Orders.Application.Commands.ConfirmOrder;
 using DotNetModulith.Modules.Orders.Application.Commands.CreateOrder;
 using DotNetModulith.Modules.Orders.Application.Mappings;
@@ -9,6 +10,7 @@ using Mediator;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using ZiggyCreatures.Caching.Fusion;
 
 namespace DotNetModulith.Modules.Orders.Api;
 
@@ -67,6 +69,19 @@ public static class OrderEndpoints
         .WithName("GetOrder")
         .WithSummary("查询订单")
         .WithDescription("根据订单唯一标识符获取订单详情")
+        .WithTags("订单");
+
+        group.MapDelete("/{orderId:guid}/cache", async (
+            Guid orderId,
+            IFusionCache cache,
+            CancellationToken ct) =>
+        {
+            await cache.RemoveAsync(OrderCacheKeys.OrderDetail(orderId.ToString()), null, ct);
+            return Microsoft.AspNetCore.Http.Results.NoContent();
+        })
+        .WithName("ClearOrderCache")
+        .WithSummary("清理订单缓存")
+        .WithDescription("手动清理指定订单详情缓存，便于演示和排查缓存命中行为")
         .WithTags("订单");
 
         return app;

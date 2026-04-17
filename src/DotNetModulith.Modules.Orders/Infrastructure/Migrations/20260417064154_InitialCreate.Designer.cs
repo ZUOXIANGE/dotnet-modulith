@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace DotNetModulith.Modules.Orders.Infrastructure.Migrations
 {
     [DbContext(typeof(OrdersDbContext))]
-    [Migration("20260414022303_InitialCreate")]
+    [Migration("20260417064154_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -20,7 +20,8 @@ namespace DotNetModulith.Modules.Orders.Infrastructure.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.0")
+                .HasDefaultSchema("orders")
+                .HasAnnotation("ProductVersion", "10.0.6")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
@@ -57,7 +58,7 @@ namespace DotNetModulith.Modules.Orders.Infrastructure.Migrations
 
                     b.HasIndex("Status");
 
-                    b.ToTable("orders", (string)null);
+                    b.ToTable("orders", "orders");
                 });
 
             modelBuilder.Entity("DotNetModulith.Modules.Orders.Domain.OrderLine", b =>
@@ -96,7 +97,7 @@ namespace DotNetModulith.Modules.Orders.Infrastructure.Migrations
 
                     b.HasIndex("order_id");
 
-                    b.ToTable("order_lines", (string)null);
+                    b.ToTable("order_lines", "orders");
                 });
 
             modelBuilder.Entity("DotNetModulith.Modules.Orders.Domain.OrderLine", b =>

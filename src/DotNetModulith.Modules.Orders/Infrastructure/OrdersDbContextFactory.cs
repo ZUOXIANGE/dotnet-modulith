@@ -11,7 +11,7 @@ internal sealed class OrdersDbContextFactory : IDesignTimeDbContextFactory<Order
     public OrdersDbContext CreateDbContext(string[] args)
     {
         var optionsBuilder = new DbContextOptionsBuilder<OrdersDbContext>();
-        optionsBuilder.UseNpgsql("Host=localhost;Database=modulith_orders;Username=postgres;Password=postgres",
+        optionsBuilder.UseNpgsql("Host=localhost;Database=modulith;Username=postgres;Password=postgres",
             npgsql => npgsql.MigrationsAssembly(typeof(OrdersDbContext).Assembly.FullName));
 
         return new OrdersDbContext(optionsBuilder.Options);

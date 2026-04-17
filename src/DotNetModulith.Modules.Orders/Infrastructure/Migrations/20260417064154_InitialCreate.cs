@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -11,8 +11,12 @@ namespace DotNetModulith.Modules.Orders.Infrastructure.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.EnsureSchema(
+                name: "orders");
+
             migrationBuilder.CreateTable(
                 name: "orders",
+                schema: "orders",
                 columns: table => new
                 {
                     id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -28,6 +32,7 @@ namespace DotNetModulith.Modules.Orders.Infrastructure.Migrations
 
             migrationBuilder.CreateTable(
                 name: "order_lines",
+                schema: "orders",
                 columns: table => new
                 {
                     id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -43,6 +48,7 @@ namespace DotNetModulith.Modules.Orders.Infrastructure.Migrations
                     table.ForeignKey(
                         name: "FK_order_lines_orders_order_id",
                         column: x => x.order_id,
+                        principalSchema: "orders",
                         principalTable: "orders",
                         principalColumn: "id",
                         onDelete: ReferentialAction.Cascade);
@@ -50,16 +56,19 @@ namespace DotNetModulith.Modules.Orders.Infrastructure.Migrations
 
             migrationBuilder.CreateIndex(
                 name: "IX_order_lines_order_id",
+                schema: "orders",
                 table: "order_lines",
                 column: "order_id");
 
             migrationBuilder.CreateIndex(
                 name: "IX_orders_customer_id",
+                schema: "orders",
                 table: "orders",
                 column: "customer_id");
 
             migrationBuilder.CreateIndex(
                 name: "IX_orders_status",
+                schema: "orders",
                 table: "orders",
                 column: "status");
         }
@@ -68,10 +77,12 @@ namespace DotNetModulith.Modules.Orders.Infrastructure.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
-                name: "order_lines");
+                name: "order_lines",
+                schema: "orders");
 
             migrationBuilder.DropTable(
-                name: "orders");
+                name: "orders",
+                schema: "orders");
         }
     }
 }

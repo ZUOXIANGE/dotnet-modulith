@@ -49,7 +49,7 @@ public sealed class OrdersModule : IModule
     public IServiceCollection AddModuleServices(IServiceCollection services, IConfiguration configuration)
     {
         services.AddOrdersInfrastructure(configuration);
-        services.AddOrdersApplication();
+        services.AddOrdersApplication(configuration);
         return services;
     }
 }

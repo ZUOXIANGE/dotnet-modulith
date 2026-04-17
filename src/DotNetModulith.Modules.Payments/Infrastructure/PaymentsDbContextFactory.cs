@@ -11,7 +11,7 @@ internal sealed class PaymentsDbContextFactory : IDesignTimeDbContextFactory<Pay
     public PaymentsDbContext CreateDbContext(string[] args)
     {
         var optionsBuilder = new DbContextOptionsBuilder<PaymentsDbContext>();
-        optionsBuilder.UseNpgsql("Host=localhost;Database=modulith_payments;Username=postgres;Password=postgres",
+        optionsBuilder.UseNpgsql("Host=localhost;Database=modulith;Username=postgres;Password=postgres",
             npgsql => npgsql.MigrationsAssembly(typeof(PaymentsDbContext).Assembly.FullName));
 
         return new PaymentsDbContext(optionsBuilder.Options);

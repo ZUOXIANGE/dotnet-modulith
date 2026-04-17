@@ -63,8 +63,8 @@ public sealed class DomainEventDispatcher : IDomainEventDispatcher
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error handling domain event {EventType}: {Error}",
-                    eventType.Name, ex.InnerException?.Message ?? ex.Message);
+                _logger.LogError(ex, "Error handling domain event {EventType}",
+                    eventType.Name);
             }
         }
     }

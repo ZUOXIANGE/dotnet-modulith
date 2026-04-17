@@ -1,9 +1,11 @@
 using System.Diagnostics;
 using DotNetModulith.Abstractions.Events;
 using DotNetModulith.Abstractions.Results;
+using DotNetModulith.Modules.Orders.Application.Caching;
 using DotNetModulith.Modules.Orders.Domain;
 using Mediator;
 using Microsoft.Extensions.Logging;
+using ZiggyCreatures.Caching.Fusion;
 
 namespace DotNetModulith.Modules.Orders.Application.Commands.ConfirmOrder;
 
@@ -17,15 +19,18 @@ public sealed class ConfirmOrderCommandHandler : ICommandHandler<ConfirmOrderCom
     private readonly IOrderRepository _orderRepository;
     private readonly IDomainEventDispatcher _domainEventDispatcher;
     private readonly ILogger<ConfirmOrderCommandHandler> _logger;
+    private readonly IFusionCache _cache;
 
     public ConfirmOrderCommandHandler(
         IOrderRepository orderRepository,
         IDomainEventDispatcher domainEventDispatcher,
-        ILogger<ConfirmOrderCommandHandler> logger)
+        ILogger<ConfirmOrderCommandHandler> logger,
+        IFusionCache cache)
     {
         _orderRepository = orderRepository;
         _domainEventDispatcher = domainEventDispatcher;
         _logger = logger;
+        _cache = cache;
     }
 
     public async ValueTask<Result> Handle(ConfirmOrderCommand command, CancellationToken cancellationToken)
@@ -37,6 +42,9 @@ public sealed class ConfirmOrderCommandHandler : ICommandHandler<ConfirmOrderCom
 
         if (order is null)
         {
+            _logger.LogWarning("Order {OrderId} not found for confirmation",
+                command.OrderId);
+
             activity?.SetStatus(ActivityStatusCode.Error, "Order not found");
             return Result.Failure($"Order {command.OrderId} not found.", "ORDER_NOT_FOUND");
         }
@@ -45,6 +53,7 @@ public sealed class ConfirmOrderCommandHandler : ICommandHandler<ConfirmOrderCom
         {
             order.Confirm();
             await _orderRepository.UpdateAsync(order, cancellationToken);
+            await _cache.RemoveAsync(OrderCacheKeys.OrderDetail(order.Id.ToString()), null, cancellationToken);
             await _domainEventDispatcher.DispatchAsync(order, cancellationToken);
 
             _logger.LogInformation("Order {OrderId} confirmed", order.Id);
@@ -54,6 +63,9 @@ public sealed class ConfirmOrderCommandHandler : ICommandHandler<ConfirmOrderCom
         }
         catch (InvalidOperationException ex)
         {
+            _logger.LogError(ex, "Failed to confirm order {OrderId}: {Reason}",
+                command.OrderId, ex.Message);
+
             activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
             return Result.Failure(ex.Message, "INVALID_STATE");
         }

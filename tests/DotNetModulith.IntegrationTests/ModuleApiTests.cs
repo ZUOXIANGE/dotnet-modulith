@@ -73,10 +73,7 @@ public sealed class ApiWebApplicationFactory : WebApplicationFactory<Program>, I
         {
             config.AddInMemoryCollection(new Dictionary<string, string?>
             {
-                ["ConnectionStrings:ordersdb"] = _dbFixture.ConnectionString,
-                ["ConnectionStrings:inventorydb"] = _dbFixture.ConnectionString,
-                ["ConnectionStrings:paymentsdb"] = _dbFixture.ConnectionString,
-                ["ConnectionStrings:capdb"] = _dbFixture.ConnectionString,
+                ["ConnectionStrings:modulithdb"] = _dbFixture.ConnectionString,
             });
         });
 

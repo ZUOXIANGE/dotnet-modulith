@@ -6,14 +6,15 @@ var postgres = builder.AddPostgres("postgres")
     .WithDataVolume("modulith-postgres-data")
     .WithPgAdmin();
 
-var ordersDb = postgres.AddDatabase("ordersdb", "modulith_orders");
-var inventoryDb = postgres.AddDatabase("inventorydb", "modulith_inventory");
-var paymentsDb = postgres.AddDatabase("paymentsdb", "modulith_payments");
-var capDb = postgres.AddDatabase("capdb", "modulith_cap");
+var modulithDb = postgres.AddDatabase("modulithdb", "modulith");
 
 var rabbitmq = builder.AddRabbitMQ("rabbitmq")
     .WithDataVolume("modulith-rabbitmq-data")
     .WithManagementPlugin();
+
+var redis = builder.AddRedis("redis")
+    .WithDataVolume("modulith-redis-data")
+    .WithRedisInsight();
 
 var openobserve = builder.AddContainer("openobserve", "public.ecr.aws/zinclabs/openobserve")
     .WithHttpEndpoint(targetPort: 5080, name: "http")
@@ -22,25 +23,29 @@ var openobserve = builder.AddContainer("openobserve", "public.ecr.aws/zinclabs/o
     .WithEnvironment("ZO_DATA_DIR", "/data")
     .WithVolume("modulith-openobserve-data", "/data");
 
+var otelCollector = builder.AddContainer("otel-collector", "otel/opentelemetry-collector-contrib")
+    .WithHttpEndpoint(targetPort: 4318, name: "otlp-http")
+    .WithEndpoint(targetPort: 4317, name: "otlp-grpc", scheme: "grpc")
+    .WithBindMount("otel-collector-config.yaml", "/etc/otelcol-contrib/config.yaml")
+    .WithEnvironment("OPENOBSERVE_ENDPOINT", openobserve.GetEndpoint("http"))
+    .WithEnvironment("OPENOBSERVE_BASIC_AUTH", "YWRtaW5AbW9kdWxpdGgubG9jYWw6TW9kdWxpdGhAMjAyNg==")
+    .WithEnvironment("SAMPLING_PERCENTAGE", "10")
+    .WaitFor(openobserve);
+
 var migrations = builder.AddProject<DotNetModulith_MigrationService>("migrations")
-    .WithReference(ordersDb)
-    .WithReference(inventoryDb)
-    .WithReference(paymentsDb)
-    .WithReference(capDb)
-    .WaitFor(ordersDb)
-    .WaitFor(inventoryDb)
-    .WaitFor(paymentsDb)
-    .WaitFor(capDb);
+    .WithReference(modulithDb)
+    .WithEnvironment("OTEL_EXPORTER_OTLP_ENDPOINT", otelCollector.GetEndpoint("otlp-http"))
+    .WithEnvironment("OpenObserve__Enabled", "false")
+    .WaitFor(modulithDb);
 
 var api = builder.AddProject<DotNetModulith_Api>("api")
-    .WithReference(ordersDb)
-    .WithReference(inventoryDb)
-    .WithReference(paymentsDb)
-    .WithReference(capDb)
+    .WithReference(modulithDb)
     .WithReference(rabbitmq)
-    .WithEnvironment("OpenObserve__Endpoint", openobserve.GetEndpoint("http"))
+    .WithReference(redis)
+    .WithEnvironment("OTEL_EXPORTER_OTLP_ENDPOINT", otelCollector.GetEndpoint("otlp-http"))
+    .WithEnvironment("OpenObserve__Enabled", "false")
     .WaitForCompletion(migrations)
     .WaitFor(rabbitmq)
-    .WaitFor(openobserve);
+    .WaitFor(redis);
 
 builder.Build().Run();

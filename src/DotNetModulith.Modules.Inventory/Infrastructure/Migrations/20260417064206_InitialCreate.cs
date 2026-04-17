@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -11,8 +11,12 @@ namespace DotNetModulith.Modules.Inventory.Infrastructure.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.EnsureSchema(
+                name: "inventory");
+
             migrationBuilder.CreateTable(
                 name: "stocks",
+                schema: "inventory",
                 columns: table => new
                 {
                     id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -30,6 +34,7 @@ namespace DotNetModulith.Modules.Inventory.Infrastructure.Migrations
 
             migrationBuilder.CreateIndex(
                 name: "IX_stocks_product_id",
+                schema: "inventory",
                 table: "stocks",
                 column: "product_id",
                 unique: true);
@@ -39,7 +44,8 @@ namespace DotNetModulith.Modules.Inventory.Infrastructure.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
-                name: "stocks");
+                name: "stocks",
+                schema: "inventory");
         }
     }
 }

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -11,8 +11,12 @@ namespace DotNetModulith.Modules.Payments.Infrastructure.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.EnsureSchema(
+                name: "payments");
+
             migrationBuilder.CreateTable(
                 name: "payments",
+                schema: "payments",
                 columns: table => new
                 {
                     id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -31,6 +35,7 @@ namespace DotNetModulith.Modules.Payments.Infrastructure.Migrations
 
             migrationBuilder.CreateIndex(
                 name: "IX_payments_order_id",
+                schema: "payments",
                 table: "payments",
                 column: "order_id");
         }
@@ -39,7 +44,8 @@ namespace DotNetModulith.Modules.Payments.Infrastructure.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
-                name: "payments");
+                name: "payments",
+                schema: "payments");
         }
     }
 }

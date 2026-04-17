@@ -11,19 +11,15 @@ var builder = Host.CreateApplicationBuilder(args);
 
 builder.AddServiceDefaults();
 
-var ordersConn = builder.Configuration.GetConnectionString("ordersdb")
-    ?? throw new InvalidOperationException("ordersdb connection string not found.");
-var inventoryConn = builder.Configuration.GetConnectionString("inventorydb")
-    ?? throw new InvalidOperationException("inventorydb connection string not found.");
-var paymentsConn = builder.Configuration.GetConnectionString("paymentsdb")
-    ?? throw new InvalidOperationException("paymentsdb connection string not found.");
+var connectionString = builder.Configuration.GetConnectionString("modulithdb")
+    ?? throw new InvalidOperationException("modulithdb connection string not found.");
 
 builder.Services.AddDbContext<OrdersDbContext>(options =>
-    options.UseNpgsql(ordersConn));
+    options.UseNpgsql(connectionString));
 builder.Services.AddDbContext<InventoryDbContext>(options =>
-    options.UseNpgsql(inventoryConn));
+    options.UseNpgsql(connectionString));
 builder.Services.AddDbContext<PaymentsDbContext>(options =>
-    options.UseNpgsql(paymentsConn));
+    options.UseNpgsql(connectionString));
 
 builder.Services.AddHostedService<MigrationWorker>();
 
@@ -51,7 +47,7 @@ internal sealed class MigrationWorker : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        _logger.LogInformation("Migration service starting...");
+        _logger.LogInformation("Migration service starting for {Application}", "DotNetModulith");
 
         try
         {
@@ -65,7 +61,7 @@ internal sealed class MigrationWorker : BackgroundService
             await MigrateAsync(inventoryDb, "Inventory", stoppingToken);
             await MigrateAsync(paymentsDb, "Payments", stoppingToken);
 
-            _logger.LogInformation("All migrations applied successfully.");
+            _logger.LogInformation("All migrations applied successfully for {ModuleCount} modules", 3);
         }
         catch (Exception ex)
         {

@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace DotNetModulith.Modules.Payments.Infrastructure.Migrations
 {
     [DbContext(typeof(PaymentsDbContext))]
-    [Migration("20260414022353_InitialCreate")]
+    [Migration("20260417064221_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -20,7 +20,8 @@ namespace DotNetModulith.Modules.Payments.Infrastructure.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.0")
+                .HasDefaultSchema("payments")
+                .HasAnnotation("ProductVersion", "10.0.6")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
@@ -71,7 +72,7 @@ namespace DotNetModulith.Modules.Payments.Infrastructure.Migrations
 
                     b.HasIndex("OrderId");
 
-                    b.ToTable("payments", (string)null);
+                    b.ToTable("payments", "payments");
                 });
 #pragma warning restore 612, 618
         }

@@ -89,7 +89,7 @@
     <PackageVersion Include="Testcontainers.PostgreSql" Version="4.11.0" />
     <PackageVersion Include="Testcontainers.RabbitMq" Version="4.11.0" />
     <PackageVersion Include="Npgsql" Version="10.0.2" />
-    <PackageVersion Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.5" />
+    <PackageVersion Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.6" />
     <PackageVersion Include="TngTech.ArchUnitNET" Version="0.13.3" />
     <PackageVersion Include="TngTech.ArchUnitNET.xUnit" Version="0.13.3" />
     <PackageVersion Include="Respawn" Version="7.0.0" />

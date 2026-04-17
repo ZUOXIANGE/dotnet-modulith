@@ -73,7 +73,7 @@
     <PackageVersion Include="AspNetCore.HealthChecks.Uris" Version="9.0.0" />
   </ItemGroup>
   <ItemGroup>
-    <PackageVersion Include="Microsoft.SourceLink.GitHub" Version="10.0.201" />
+    <PackageVersion Include="Microsoft.SourceLink.GitHub" Version="10.0.202" />
   </ItemGroup>
   <ItemGroup>
     <PackageVersion Include="Scalar.AspNetCore" Version="2.14.0" />

@@ -123,7 +123,7 @@ jobs:
           echo "EOF" >> "$GITHUB_OUTPUT"
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           prerelease: ${{ needs.validate.outputs.is_prerelease == 'true' }}
           generate_release_notes: false

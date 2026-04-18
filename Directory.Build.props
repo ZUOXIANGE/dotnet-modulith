@@ -3,9 +3,9 @@
     <Authors>DotNetModulith</Authors>
     <Copyright>Copyright © 2025-$([System.DateTime]::Now.Year) DotNetModulith</Copyright>
     <Product>DotNetModulith</Product>
-    <PackageProjectUrl>https://github.com/example/dotnet-modulith</PackageProjectUrl>
-    <RepositoryUrl>https://github.com/example/dotnet-modulith</RepositoryUrl>
-    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/ZUOXIANGE/dotnet-modulith</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/ZUOXIANGE/dotnet-modulith</RepositoryUrl>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
   </PropertyGroup>
 
   <PropertyGroup>

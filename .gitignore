@@ -30,3 +30,4 @@ Thumbs.db
 
 ## Husky
 .husky/_
+src/DotNetModulith.Api/logs

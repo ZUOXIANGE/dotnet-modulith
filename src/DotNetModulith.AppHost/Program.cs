@@ -1,5 +1,14 @@
 using Projects;
 
+// 某些本地环境下 Aspire Dashboard 所需环境变量未注入，会导致 AppHost 启动失败。
+// 这里提供默认值兜底，保证 `dotnet run --project AppHost` 可以直接启动。
+Environment.SetEnvironmentVariable(
+    "ASPNETCORE_URLS",
+    Environment.GetEnvironmentVariable("ASPNETCORE_URLS") ?? "http://localhost:15000");
+Environment.SetEnvironmentVariable(
+    "ASPIRE_DASHBOARD_OTLP_HTTP_ENDPOINT_URL",
+    Environment.GetEnvironmentVariable("ASPIRE_DASHBOARD_OTLP_HTTP_ENDPOINT_URL") ?? "http://localhost:18889");
+
 var builder = DistributedApplication.CreateBuilder(args);
 
 var postgres = builder.AddPostgres("postgres")

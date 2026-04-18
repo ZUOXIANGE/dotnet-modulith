@@ -61,6 +61,15 @@ builder.Services.AddMediator(options =>
 
 var isTesting = builder.Environment.IsEnvironment("Testing");
 
+if (isTesting && string.IsNullOrWhiteSpace(builder.Configuration.GetConnectionString("modulithdb")))
+{
+    // 测试主机在配置注入时序异常时，提供兜底连接串，避免模块注册阶段直接失败。
+    builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
+    {
+        ["ConnectionStrings:modulithdb"] = "Host=localhost;Port=5432;Database=modulith;Username=postgres;Password=postgres"
+    });
+}
+
 if (!isTesting)
 {
     builder.Services.AddCap(capOptions =>

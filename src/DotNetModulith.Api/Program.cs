@@ -9,8 +9,31 @@ using DotNetModulith.ModulithCore;
 using Mediator;
 using Microsoft.EntityFrameworkCore;
 using Scalar.AspNetCore;
+using Serilog;
+using Serilog.Events;
+using Serilog.Formatting.Compact;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Host.UseSerilog((context, _, loggerConfiguration) =>
+{
+    loggerConfiguration
+        .MinimumLevel.Information()
+        .MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
+        .MinimumLevel.Override("Microsoft.AspNetCore", LogEventLevel.Warning)
+        .MinimumLevel.Override("DotNetCore.CAP", LogEventLevel.Information)
+        .MinimumLevel.Override("DotNetModulith", LogEventLevel.Debug)
+        .Enrich.FromLogContext()
+        .Enrich.WithProperty("service", context.HostingEnvironment.ApplicationName)
+        .WriteTo.Async(writeTo => writeTo.Console(new RenderedCompactJsonFormatter()))
+        .WriteTo.Async(writeTo => writeTo.File(
+            formatter: new RenderedCompactJsonFormatter(),
+            path: "logs/log-.json",
+            rollingInterval: RollingInterval.Day,
+            retainedFileCountLimit: 14,
+            shared: true));
+},
+writeToProviders: true);
 
 builder.AddServiceDefaults();
 
@@ -86,6 +109,22 @@ builder.Services.AddHealthChecks()
         tags: ["ready"]);
 
 var app = builder.Build();
+
+app.UseWhen(
+    context =>
+        !context.Request.Path.StartsWithSegments("/health") &&
+        !context.Request.Path.StartsWithSegments("/alive"),
+    appBuilder => appBuilder.UseSerilogRequestLogging(options =>
+    {
+        options.GetLevel = (httpContext, _, ex) => ex is null
+            ? LogEventLevel.Information
+            : LogEventLevel.Error;
+        options.EnrichDiagnosticContext = (diagnosticContext, httpContext) =>
+        {
+            diagnosticContext.Set("RequestHost", httpContext.Request.Host.Value);
+            diagnosticContext.Set("RequestScheme", httpContext.Request.Scheme);
+        };
+    }));
 
 app.MapDefaultEndpoints();
 

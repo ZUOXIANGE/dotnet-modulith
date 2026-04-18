@@ -67,7 +67,8 @@ namespace DotNetModulith.Modules.Payments.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("OrderId");
+                    b.HasIndex("OrderId")
+                        .IsUnique();
 
                     b.ToTable("payments", "payments");
                 });

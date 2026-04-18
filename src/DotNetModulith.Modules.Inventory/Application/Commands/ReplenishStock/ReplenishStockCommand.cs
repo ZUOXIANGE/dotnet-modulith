@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using DotNetModulith.Abstractions.Events;
+using DotNetModulith.Abstractions.Exceptions;
 using DotNetModulith.Abstractions.Results;
 using DotNetModulith.Modules.Inventory.Domain;
 using Mediator;
@@ -41,7 +42,10 @@ public sealed class ReplenishStockCommandHandler : ICommandHandler<ReplenishStoc
         if (stock is null)
         {
             activity?.SetStatus(ActivityStatusCode.Error, "Stock not found");
-            return Result.Failure($"Stock for product {command.ProductId} not found.", "STOCK_NOT_FOUND");
+            throw new BusinessException(
+                message: $"Stock for product {command.ProductId} not found.",
+                code: ApiCodes.Common.NotFound,
+                httpStatusCode: 404);
         }
 
         stock.Replenish(command.Quantity);

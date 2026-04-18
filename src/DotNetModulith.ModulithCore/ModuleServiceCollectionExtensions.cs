@@ -13,9 +13,15 @@ public static class ModuleServiceCollectionExtensions
     /// 注册模块化核心服务，包括模块注册表、边界验证器和领域事件派发器
     /// </summary>
     /// <param name="services">服务集合</param>
+    /// <param name="configuration">配置对象。</param>
     /// <returns>注册了核心服务的服务集合</returns>
-    public static IServiceCollection AddModulithCore(this IServiceCollection services)
+    public static IServiceCollection AddModulithCore(this IServiceCollection services, IConfiguration configuration)
     {
+        services
+            .AddOptions<DomainEventDispatcherOptions>()
+            .Bind(configuration.GetSection(DomainEventDispatcherOptions.SectionName))
+            .ValidateOnStart();
+
         services.AddSingleton<ModuleRegistry>();
         services.AddSingleton<ModuleBoundaryVerifier>();
         services.AddScoped<IDomainEventDispatcher, DomainEventDispatcher>();

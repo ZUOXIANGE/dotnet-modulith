@@ -57,6 +57,6 @@ internal sealed class PaymentConfiguration : IEntityTypeConfiguration<Payment>
 
         builder.Ignore(p => p.DomainEvents);
 
-        builder.HasIndex(p => p.OrderId);
+        builder.HasIndex(p => p.OrderId).IsUnique();
     }
 }

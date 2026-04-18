@@ -2,6 +2,7 @@ using DotNetModulith.Abstractions.Domain;
 using DotNetModulith.Abstractions.Events;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace DotNetModulith.ModulithCore;
 
@@ -13,13 +14,16 @@ public sealed class DomainEventDispatcher : IDomainEventDispatcher
 {
     private readonly IServiceProvider _serviceProvider;
     private readonly ILogger<DomainEventDispatcher> _logger;
+    private readonly DomainEventDispatcherOptions _options;
 
     public DomainEventDispatcher(
         IServiceProvider serviceProvider,
-        ILogger<DomainEventDispatcher> logger)
+        ILogger<DomainEventDispatcher> logger,
+        IOptions<DomainEventDispatcherOptions> options)
     {
         _serviceProvider = serviceProvider;
         _logger = logger;
+        _options = options.Value;
     }
 
     /// <summary>
@@ -65,6 +69,11 @@ public sealed class DomainEventDispatcher : IDomainEventDispatcher
             {
                 _logger.LogError(ex, "Error handling domain event {EventType}",
                     eventType.Name);
+
+                if (!_options.ContinueOnHandlerError)
+                {
+                    throw;
+                }
             }
         }
     }

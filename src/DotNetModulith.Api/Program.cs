@@ -1,13 +1,16 @@
-using DotNetCore.CAP;
+using DotNetModulith.Abstractions.Exceptions;
+using DotNetModulith.Abstractions.Results;
+using DotNetModulith.Api.Configuration;
+using DotNetModulith.Api.HealthChecks;
 using DotNetModulith.Modules.Inventory;
-using DotNetModulith.Modules.Inventory.Api;
+using DotNetModulith.Modules.Inventory.Api.Controllers;
 using DotNetModulith.Modules.Notifications;
 using DotNetModulith.Modules.Orders;
-using DotNetModulith.Modules.Orders.Api;
+using DotNetModulith.Modules.Orders.Api.Controllers;
 using DotNetModulith.Modules.Payments;
 using DotNetModulith.ModulithCore;
-using Mediator;
-using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Diagnostics;
+using Microsoft.AspNetCore.Mvc;
 using Scalar.AspNetCore;
 using Serilog;
 using Serilog.Events;
@@ -37,7 +40,7 @@ writeToProviders: true);
 
 builder.AddServiceDefaults();
 
-builder.Services.AddModulithCore();
+builder.Services.AddModulithCore(builder.Configuration);
 
 builder.Services.AddOpenApi(options =>
 {
@@ -53,11 +56,47 @@ builder.Services.AddOpenApi(options =>
     });
 });
 
+builder.Services.AddProblemDetails();
+builder.Services
+    .AddControllers()
+    .AddApplicationPart(typeof(OrdersController).Assembly)
+    .AddApplicationPart(typeof(InventoryController).Assembly)
+    .ConfigureApiBehaviorOptions(options =>
+    {
+        options.InvalidModelStateResponseFactory = context =>
+        {
+            var errors = context.ModelState
+                .Where(x => x.Value?.Errors.Count > 0)
+                .ToDictionary(
+                    x => x.Key,
+                    x => x.Value!.Errors
+                        .Select(e => string.IsNullOrWhiteSpace(e.ErrorMessage) ? "validation failed" : e.ErrorMessage)
+                        .ToArray());
+
+            return new OkObjectResult(ApiResponse.Failure(
+                msg: "validation failed",
+                code: ApiCodes.Common.ValidationFailed,
+                data: new { errors }));
+        };
+    });
+
 builder.Services.AddMediator(options =>
 {
     options.ServiceLifetime = ServiceLifetime.Scoped;
     options.Namespace = "DotNetModulith.Mediator";
 });
+
+builder.Services
+    .AddOptions<CapMessagingOptions>()
+    .Bind(builder.Configuration.GetSection(CapMessagingOptions.SectionName))
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
+
+builder.Services
+    .AddOptions<RabbitMqOptions>()
+    .Bind(builder.Configuration.GetSection(RabbitMqOptions.SectionName))
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
 
 var isTesting = builder.Environment.IsEnvironment("Testing");
 
@@ -72,13 +111,21 @@ if (isTesting && string.IsNullOrWhiteSpace(builder.Configuration.GetConnectionSt
 
 if (!isTesting)
 {
-    builder.Services.AddCap(capOptions =>
+    var capSettings = builder.Configuration
+        .GetSection(CapMessagingOptions.SectionName)
+        .Get<CapMessagingOptions>() ?? new CapMessagingOptions();
+
+    var rabbitMqOptions = builder.Configuration
+        .GetSection(RabbitMqOptions.SectionName)
+        .Get<RabbitMqOptions>() ?? new RabbitMqOptions();
+
+    builder.Services.AddCap(cap =>
     {
-        capOptions.DefaultGroupName = "modulith";
-        capOptions.Version = "v1";
-        capOptions.FailedRetryCount = 5;
-        capOptions.FailedRetryInterval = 60;
-        capOptions.FailedThresholdCallback = failed =>
+        cap.DefaultGroupName = capSettings.DefaultGroupName;
+        cap.Version = capSettings.Version;
+        cap.FailedRetryCount = capSettings.FailedRetryCount;
+        cap.FailedRetryInterval = capSettings.FailedRetryInterval;
+        cap.FailedThresholdCallback = failed =>
         {
             var logger = failed.ServiceProvider.GetRequiredService<ILogger<Program>>();
             logger.LogError("CAP message failed after retries: {MessageType}",
@@ -88,18 +135,18 @@ if (!isTesting)
         var capDbConnection = builder.Configuration.GetConnectionString("modulithdb")
             ?? throw new InvalidOperationException("CAP database connection string not found.");
 
-        capOptions.UsePostgreSql(capDbConnection);
+        cap.UsePostgreSql(capDbConnection);
 
-        capOptions.UseRabbitMQ(rabbitOptions =>
+        cap.UseRabbitMQ(rabbitOptions =>
         {
-            rabbitOptions.HostName = builder.Configuration["RabbitMQ:HostName"] ?? "localhost";
-            rabbitOptions.UserName = builder.Configuration["RabbitMQ:UserName"] ?? "guest";
-            rabbitOptions.Password = builder.Configuration["RabbitMQ:Password"] ?? "guest";
-            rabbitOptions.VirtualHost = builder.Configuration["RabbitMQ:VirtualHost"] ?? "/";
+            rabbitOptions.HostName = rabbitMqOptions.HostName;
+            rabbitOptions.UserName = rabbitMqOptions.UserName;
+            rabbitOptions.Password = rabbitMqOptions.Password;
+            rabbitOptions.VirtualHost = rabbitMqOptions.VirtualHost;
             rabbitOptions.ExchangeName = "modulith.events";
         });
 
-        capOptions.UseDashboard(dashboardOptions =>
+        cap.UseDashboard(dashboardOptions =>
         {
             dashboardOptions.PathMatch = "/cap-dashboard";
         });
@@ -111,13 +158,56 @@ builder.Services.RegisterModule<OrdersModule>(builder.Configuration);
 builder.Services.RegisterModule<PaymentsModule>(builder.Configuration);
 builder.Services.RegisterModule<NotificationsModule>(builder.Configuration);
 
+var redisConnection = builder.Configuration.GetConnectionString("redis") ?? "localhost:6379";
+var (redisHost, redisPort) = TcpHealthCheck.ParseEndpoint(redisConnection, 6379);
+
+var rabbitEndpoint = builder.Configuration["RabbitMQ:HostName"] ?? "localhost";
+var (rabbitHost, rabbitPort) = TcpHealthCheck.ParseEndpoint(rabbitEndpoint, 5672);
+
 builder.Services.AddHealthChecks()
+    .AddCheck<StartupHealthCheck>("startup-state", tags: ["startup"])
+    .AddCheck<ReadinessStateHealthCheck>("readiness-state", tags: ["ready"])
     .AddNpgSql(
         builder.Configuration.GetConnectionString("modulithdb")!,
         name: "postgresql",
-        tags: ["ready"]);
+        tags: ["ready"])
+    .AddCheck("redis", new TcpHealthCheck(redisHost, redisPort), tags: ["ready"])
+    .AddCheck("rabbitmq", new TcpHealthCheck(rabbitHost, rabbitPort), tags: ["ready"]);
 
 var app = builder.Build();
+
+app.UseExceptionHandler(errorApp =>
+{
+    errorApp.Run(async context =>
+    {
+        var exception = context.Features.Get<IExceptionHandlerFeature>()?.Error;
+        if (exception is null)
+        {
+            context.Response.StatusCode = StatusCodes.Status200OK;
+            await context.Response.WriteAsJsonAsync(
+                ApiResponse.Failure("internal server error", ApiCodes.Common.InternalError),
+                context.RequestAborted);
+            return;
+        }
+
+        if (exception is BusinessException businessException)
+        {
+            context.Response.StatusCode = StatusCodes.Status200OK;
+            await context.Response.WriteAsJsonAsync(
+                ApiResponse.Failure(
+                    businessException.Message,
+                    businessException.Code,
+                    businessException.Payload),
+                context.RequestAborted);
+            return;
+        }
+
+        context.Response.StatusCode = StatusCodes.Status200OK;
+        await context.Response.WriteAsJsonAsync(
+            ApiResponse.Failure("internal server error", ApiCodes.Common.InternalError),
+            context.RequestAborted);
+    });
+});
 
 app.UseWhen(
     context =>
@@ -135,7 +225,7 @@ app.UseWhen(
         };
     }));
 
-app.MapDefaultEndpoints();
+app.MapControllers();
 
 if (app.Environment.IsDevelopment())
 {
@@ -148,55 +238,6 @@ if (app.Environment.IsDevelopment())
         .WithDefaultHttpClient(ScalarTarget.CSharp, ScalarClient.HttpClient);
     });
 }
-
-app.UseHttpsRedirection();
-
-app.MapOrderEndpoints();
-app.MapInventoryEndpoints();
-
-app.MapGet("/api/modules", (ModuleRegistry registry) =>
-{
-    var modules = registry.Modules.Select(m => new
-    {
-        m.Name,
-        m.BaseNamespace,
-        Dependencies = m.Dependencies,
-        PublishedEvents = m.PublishedEvents,
-        SubscribedEvents = m.SubscribedEvents
-    });
-
-    return Microsoft.AspNetCore.Http.Results.Ok(modules);
-})
-.WithName("GetModules")
-.WithSummary("获取模块列表")
-.WithDescription("获取系统中所有已注册模块的信息，包括名称、命名空间、依赖关系、发布事件和订阅事件")
-.WithTags("模块管理");
-
-app.MapGet("/api/modules/graph", (ModuleRegistry registry) =>
-{
-    var graph = registry.BuildDependencyGraph();
-    return Microsoft.AspNetCore.Http.Results.Ok(new
-    {
-        Mermaid = graph.ToMermaid(),
-        PlantUml = graph.ToPlantUml()
-    });
-})
-.WithName("GetModuleGraph")
-.WithSummary("获取模块依赖图")
-.WithDescription("获取模块间依赖关系的可视化图表数据，支持 Mermaid 和 PlantUML 格式")
-.WithTags("模块管理");
-
-app.MapGet("/api/modules/verify", (ModuleBoundaryVerifier verifier) =>
-{
-    var violations = verifier.VerifyBoundaries();
-    return violations.Count == 0
-        ? Microsoft.AspNetCore.Http.Results.Ok(new { status = "healthy", violations = 0 })
-        : Microsoft.AspNetCore.Http.Results.Ok(new { status = "violations_detected", violations });
-})
-.WithName("VerifyModuleBoundaries")
-.WithSummary("验证模块边界")
-.WithDescription("验证各模块是否遵守边界约束，检测是否存在违规的跨模块依赖")
-.WithTags("模块管理");
 
 app.Run();
 

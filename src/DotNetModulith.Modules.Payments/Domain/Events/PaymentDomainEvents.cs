@@ -1,5 +1,4 @@
 using DotNetModulith.Abstractions.Events;
-using DotNetModulith.Modules.Payments.Domain;
 
 namespace DotNetModulith.Modules.Payments.Domain.Events;
 

@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using DotNetModulith.Abstractions.Events;
 using DotNetModulith.Modules.Orders.Application.Caching;
 using DotNetModulith.Modules.Orders.Application.Events;
@@ -7,7 +6,6 @@ using DotNetModulith.Modules.Orders.Domain;
 using DotNetModulith.Modules.Orders.Domain.Events;
 using DotNetModulith.Modules.Orders.Infrastructure;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Caching.StackExchangeRedis;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
@@ -76,13 +74,6 @@ internal static class OrdersServiceCollectionExtensions
         services.AddTransient<IDomainEventHandler<OrderCancelledDomainEvent>, OrderCancelledDomainEventHandler>();
         services.AddTransient<InventoryEventSubscriber>();
         services.AddTransient<PaymentEventSubscriber>();
-
-        ActivitySource.AddActivityListener(new ActivityListener
-        {
-            ShouldListenTo = source => source.Name.StartsWith("DotNetModulith.Modules.Orders"),
-            SampleUsingParentId = (ref ActivityCreationOptions<string> options) => ActivitySamplingResult.AllData,
-            Sample = (ref ActivityCreationOptions<ActivityContext> options) => ActivitySamplingResult.AllData
-        });
 
         return services;
     }

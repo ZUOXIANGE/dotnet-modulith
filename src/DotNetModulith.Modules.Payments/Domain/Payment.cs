@@ -1,6 +1,5 @@
 using System.Diagnostics;
 using DotNetModulith.Abstractions.Domain;
-using DotNetModulith.Abstractions.Events;
 using DotNetModulith.Modules.Payments.Domain.Events;
 
 namespace DotNetModulith.Modules.Payments.Domain;

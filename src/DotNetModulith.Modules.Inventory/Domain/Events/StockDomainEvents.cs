@@ -1,5 +1,4 @@
 using DotNetModulith.Abstractions.Events;
-using DotNetModulith.Modules.Inventory.Domain;
 
 namespace DotNetModulith.Modules.Inventory.Domain.Events;
 

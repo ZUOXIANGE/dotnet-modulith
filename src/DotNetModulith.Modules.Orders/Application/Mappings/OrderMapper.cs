@@ -1,5 +1,5 @@
 using DotNetModulith.Abstractions.Contracts.Orders;
-using DotNetModulith.Modules.Orders.Api;
+using DotNetModulith.Modules.Orders.Api.Contracts.Requests;
 using DotNetModulith.Modules.Orders.Application.Commands.CreateOrder;
 using DotNetModulith.Modules.Orders.Application.Queries.GetOrder;
 using DotNetModulith.Modules.Orders.Domain;

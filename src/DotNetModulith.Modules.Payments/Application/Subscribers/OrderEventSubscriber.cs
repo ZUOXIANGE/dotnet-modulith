@@ -2,11 +2,8 @@ using System.Diagnostics;
 using System.Diagnostics.Metrics;
 using DotNetCore.CAP;
 using DotNetModulith.Abstractions.Contracts.Orders;
-using DotNetModulith.Abstractions.Contracts.Payments;
 using DotNetModulith.Abstractions.Events;
-using DotNetModulith.Modules.Payments.Application.Mappings;
 using DotNetModulith.Modules.Payments.Domain;
-using DotNetModulith.Modules.Payments.Domain.Events;
 using Microsoft.Extensions.Logging;
 
 namespace DotNetModulith.Modules.Payments.Application.Subscribers;
@@ -51,6 +48,14 @@ public sealed class OrderEventSubscriber : ICapSubscribe
             @event.OrderId, @event.TotalAmount);
 
         EventsConsumed.Add(1, new KeyValuePair<string, object?>("modulith.event_type", "OrderCreatedIntegrationEvent"));
+
+        var existingPayment = await _paymentRepository.GetByOrderIdAsync(@event.OrderId, ct);
+        if (existingPayment is not null)
+        {
+            _logger.LogInformation("Payment for order {OrderId} already exists, skip duplicate event", @event.OrderId);
+            activity?.SetStatus(ActivityStatusCode.Ok);
+            return;
+        }
 
         var payment = Payment.Create(@event.OrderId, @event.CustomerId, @event.TotalAmount);
 

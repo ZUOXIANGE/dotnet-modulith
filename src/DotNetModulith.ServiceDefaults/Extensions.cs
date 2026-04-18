@@ -1,5 +1,3 @@
-using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.HttpLogging;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -16,26 +14,35 @@ namespace Microsoft.Extensions.Hosting;
 
 /// <summary>
 /// 统一的服务默认配置扩展：
-/// 包含 OpenTelemetry、健康检查、服务发现与默认 HTTP 客户端策略。
+/// 包含 OpenTelemetry、健康检查、服务发现与默认 HTTP 客户端策略
 /// </summary>
 public static class Extensions
 {
     /// <summary>
-    /// 健康检查端点路径（就绪探针）。
+    /// 健康检查端点路径（就绪探针）
     /// </summary>
     private const string HealthEndpointPath = "/health";
     /// <summary>
-    /// 存活检查端点路径（存活探针）。
+    /// 存活检查端点路径（存活探针）
     /// </summary>
     private const string AlivenessEndpointPath = "/alive";
 
     /// <summary>
     /// 为应用添加统一默认能力：
-    /// OpenTelemetry、健康检查、服务发现与默认 HTTP 客户端配置。
+    /// OpenTelemetry、健康检查、服务发现与默认 HTTP 客户端配置
     /// </summary>
     public static TBuilder AddServiceDefaults<TBuilder>(this TBuilder builder)
         where TBuilder : IHostApplicationBuilder
     {
+        builder.Services
+            .AddOptions<OpenObserveOptions>()
+            .Bind(builder.Configuration.GetSection(OpenObserveOptions.SectionName))
+            .ValidateDataAnnotations()
+            .Validate(
+                options => !options.Enabled || Uri.TryCreate(options.Endpoint, UriKind.Absolute, out _),
+                "OpenObserve:Endpoint must be a valid absolute URI when OpenObserve is enabled.")
+            .ValidateOnStart();
+
         builder.ConfigureOpenTelemetry();
         builder.AddDefaultHealthChecks();
 
@@ -61,14 +68,17 @@ public static class Extensions
     }
 
     /// <summary>
-    /// 配置 OpenTelemetry 日志、指标与链路追踪。
-    /// 所有信号均通过 OTLP 上报（OpenObserve 或 OTEL Collector）。
+    /// 配置 OpenTelemetry 日志、指标与链路追踪
+    /// 所有信号均通过 OTLP 上报（OpenObserve 或 OTEL Collector）
     /// </summary>
     public static TBuilder ConfigureOpenTelemetry<TBuilder>(this TBuilder builder)
         where TBuilder : IHostApplicationBuilder
     {
-        var openObserveConfig = builder.Configuration.GetSection("OpenObserve");
-        var openObserveEnabled = openObserveConfig.GetValue<bool?>("Enabled") ?? true;
+        var openObserveOptions = builder.Configuration
+            .GetSection(OpenObserveOptions.SectionName)
+            .Get<OpenObserveOptions>() ?? new OpenObserveOptions();
+
+        var openObserveEnabled = openObserveOptions.Enabled;
 
         var resourceBuilder = ResourceBuilder.CreateDefault()
             .AddService(
@@ -91,7 +101,7 @@ public static class Extensions
             if (openObserveEnabled)
             {
                 logging.AddOtlpExporter(ConfigureOtlpForOpenObserve(
-                    openObserveConfig, "logs", builder));
+                    openObserveOptions, "logs"));
             }
             else
             {
@@ -116,7 +126,7 @@ public static class Extensions
                 if (openObserveEnabled)
                 {
                     metrics.AddOtlpExporter(ConfigureOtlpForOpenObserve(
-                        openObserveConfig, "metrics", builder));
+                        openObserveOptions, "metrics"));
                 }
                 else
                 {
@@ -147,7 +157,7 @@ public static class Extensions
                 if (openObserveEnabled)
                 {
                     tracing.AddOtlpExporter(ConfigureOtlpForOpenObserve(
-                        openObserveConfig, "traces", builder));
+                        openObserveOptions, "traces"));
                 }
                 else
                 {
@@ -159,7 +169,7 @@ public static class Extensions
     }
 
     /// <summary>
-    /// OTLP 导出配置（面向本地/通用 Collector）。
+    /// OTLP 导出配置（面向本地/通用 Collector）
     /// </summary>
     private static Action<OtlpExporterOptions> ConfigureOtlpForCollector()
     {
@@ -170,28 +180,24 @@ public static class Extensions
     }
 
     /// <summary>
-    /// OTLP 导出配置（面向 OpenObserve）。
-    /// 自动拼接不同信号（logs/metrics/traces）的上报路径。
+    /// OTLP 导出配置（面向 OpenObserve）
+    /// 自动拼接不同信号（logs/metrics/traces）的上报路径
     /// </summary>
     private static Action<OtlpExporterOptions> ConfigureOtlpForOpenObserve(
-        IConfigurationSection config, string signal, IHostApplicationBuilder builder)
+        OpenObserveOptions optionsConfig, string signal)
     {
         return options =>
         {
-            var endpoint = config.GetValue<string>("Endpoint")
-                ?? builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"]
-                ?? "http://localhost:5080";
-
-            var organization = config.GetValue<string>("Organization") ?? "default";
-            var streamName = config.GetValue<string>("StreamName")
-                ?? builder.Environment.ApplicationName.ToLowerInvariant();
+            var endpoint = optionsConfig.Endpoint;
+            var organization = optionsConfig.Organization;
+            var streamName = optionsConfig.StreamName;
 
             // OpenObserve 以 signal 区分日志/指标/链路入口。
             options.Endpoint = new Uri($"{endpoint}/api/{organization}/v1/{signal}");
             options.Protocol = OtlpExportProtocol.HttpProtobuf;
 
-            var email = config.GetValue<string>("UserEmail") ?? "admin@modulith.local";
-            var password = config.GetValue<string>("UserPassword") ?? "Modulith@2026";
+            var email = optionsConfig.UserEmail;
+            var password = optionsConfig.UserPassword;
             var credentials = Convert.ToBase64String(
                 System.Text.Encoding.UTF8.GetBytes($"{email}:{password}"));
 
@@ -200,7 +206,7 @@ public static class Extensions
     }
 
     /// <summary>
-    /// 注册默认健康检查项。
+    /// 注册默认健康检查项
     /// </summary>
     public static TBuilder AddDefaultHealthChecks<TBuilder>(this TBuilder builder)
         where TBuilder : IHostApplicationBuilder
@@ -211,18 +217,4 @@ public static class Extensions
         return builder;
     }
 
-    /// <summary>
-    /// 映射默认基础端点（健康检查与存活检查）。
-    /// </summary>
-    public static WebApplication MapDefaultEndpoints(this WebApplication app)
-    {
-        app.MapHealthChecks(HealthEndpointPath);
-
-        app.MapHealthChecks(AlivenessEndpointPath, new HealthCheckOptions
-        {
-            Predicate = r => r.Tags.Contains("live")
-        });
-
-        return app;
-    }
 }

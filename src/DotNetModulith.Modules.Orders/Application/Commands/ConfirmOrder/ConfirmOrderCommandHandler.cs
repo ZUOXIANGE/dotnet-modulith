@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using DotNetModulith.Abstractions.Events;
+using DotNetModulith.Abstractions.Exceptions;
 using DotNetModulith.Abstractions.Results;
 using DotNetModulith.Modules.Orders.Application.Caching;
 using DotNetModulith.Modules.Orders.Domain;
@@ -46,7 +47,10 @@ public sealed class ConfirmOrderCommandHandler : ICommandHandler<ConfirmOrderCom
                 command.OrderId);
 
             activity?.SetStatus(ActivityStatusCode.Error, "Order not found");
-            return Result.Failure($"Order {command.OrderId} not found.", "ORDER_NOT_FOUND");
+            throw new BusinessException(
+                message: $"Order {command.OrderId} not found.",
+                code: ApiCodes.Common.NotFound,
+                httpStatusCode: 404);
         }
 
         try
@@ -67,7 +71,11 @@ public sealed class ConfirmOrderCommandHandler : ICommandHandler<ConfirmOrderCom
                 command.OrderId, ex.Message);
 
             activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
-            return Result.Failure(ex.Message, "INVALID_STATE");
+            throw new BusinessException(
+                message: ex.Message,
+                code: ApiCodes.Order.InvalidState,
+                httpStatusCode: 400,
+                innerException: ex);
         }
     }
 }

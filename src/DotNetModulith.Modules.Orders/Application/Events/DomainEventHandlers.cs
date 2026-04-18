@@ -1,7 +1,6 @@
 using System.Diagnostics;
 using System.Diagnostics.Metrics;
 using DotNetCore.CAP;
-using DotNetModulith.Abstractions.Contracts.Orders;
 using DotNetModulith.Abstractions.Events;
 using DotNetModulith.Modules.Orders.Application.Mappings;
 using DotNetModulith.Modules.Orders.Domain.Events;

@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using DotNetModulith.Modules.Notifications.Application.Subscribers;
 using DotNetModulith.ModulithCore;
 using Microsoft.Extensions.Configuration;
@@ -47,13 +46,6 @@ public sealed class NotificationsModule : IModule
     public IServiceCollection AddModuleServices(IServiceCollection services, IConfiguration configuration)
     {
         services.AddTransient<NotificationEventSubscriber>();
-
-        ActivitySource.AddActivityListener(new ActivityListener
-        {
-            ShouldListenTo = source => source.Name.StartsWith("DotNetModulith.Modules.Notifications"),
-            SampleUsingParentId = (ref ActivityCreationOptions<string> options) => ActivitySamplingResult.AllData,
-            Sample = (ref ActivityCreationOptions<ActivityContext> options) => ActivitySamplingResult.AllData
-        });
 
         return services;
     }

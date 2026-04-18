@@ -1,5 +1,3 @@
-using DotNetModulith.Modules.Orders.Domain;
-
 namespace DotNetModulith.Modules.Orders.Domain;
 
 /// <summary>

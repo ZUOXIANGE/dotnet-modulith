@@ -1,5 +1,3 @@
-using DotNetModulith.Modules.Payments.Domain;
-
 namespace DotNetModulith.Modules.Payments.Domain;
 
 /// <summary>

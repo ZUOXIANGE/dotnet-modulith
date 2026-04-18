@@ -1,10 +1,7 @@
-using System.Diagnostics;
-using DotNetModulith.Modules.Inventory.Application.Commands.ReserveStock;
 using DotNetModulith.Modules.Inventory.Application.Subscribers;
 using DotNetModulith.Modules.Inventory.Domain;
 using DotNetModulith.Modules.Inventory.Infrastructure;
 using DotNetModulith.ModulithCore;
-using Mediator;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -68,13 +65,6 @@ public sealed class InventoryModule : IModule
 
         services.AddScoped<IStockRepository, StockRepository>();
         services.AddTransient<OrderEventSubscriber>();
-
-        ActivitySource.AddActivityListener(new ActivityListener
-        {
-            ShouldListenTo = source => source.Name.StartsWith("DotNetModulith.Modules.Inventory"),
-            SampleUsingParentId = (ref ActivityCreationOptions<string> options) => ActivitySamplingResult.AllData,
-            Sample = (ref ActivityCreationOptions<ActivityContext> options) => ActivitySamplingResult.AllData
-        });
 
         return services;
     }

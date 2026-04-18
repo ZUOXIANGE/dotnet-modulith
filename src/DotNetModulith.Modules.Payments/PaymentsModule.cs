@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using DotNetModulith.Abstractions.Events;
 using DotNetModulith.Modules.Payments.Application.Events;
 using DotNetModulith.Modules.Payments.Application.Subscribers;
@@ -69,13 +68,6 @@ public sealed class PaymentsModule : IModule
         services.AddTransient<IDomainEventHandler<PaymentCompletedDomainEvent>, PaymentCompletedDomainEventHandler>();
         services.AddTransient<IDomainEventHandler<PaymentFailedDomainEvent>, PaymentFailedDomainEventHandler>();
         services.AddTransient<OrderEventSubscriber>();
-
-        ActivitySource.AddActivityListener(new ActivityListener
-        {
-            ShouldListenTo = source => source.Name.StartsWith("DotNetModulith.Modules.Payments"),
-            SampleUsingParentId = (ref ActivityCreationOptions<string> options) => ActivitySamplingResult.AllData,
-            Sample = (ref ActivityCreationOptions<ActivityContext> options) => ActivitySamplingResult.AllData
-        });
 
         return services;
     }

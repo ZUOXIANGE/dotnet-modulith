@@ -1,5 +1,8 @@
 using System.Net;
+using System.Net.Http.Json;
+using System.Text.Json.Nodes;
 using DotNetCore.CAP;
+using DotNetModulith.Abstractions.Results;
 using DotNetModulith.IntegrationTests.Fixtures;
 using DotNetModulith.Modules.Inventory.Infrastructure;
 using DotNetModulith.Modules.Orders.Infrastructure;
@@ -54,6 +57,64 @@ public class ModuleApiTests : IClassFixture<ApiWebApplicationFactory>
         var response = await _client.GetAsync("/api/modules/verify", TestContext.Current.CancellationToken);
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
+    }
+
+    [Fact]
+    public async Task CreateOrder_WithInvalidRequest_ShouldReturnUnifiedErrorResponse()
+    {
+        var response = await _client.PostAsJsonAsync(
+            "/api/orders",
+            new
+            {
+                CustomerId = "",
+                Lines = Array.Empty<object>()
+            },
+            TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        await AssertValidationErrorContainsAsync(response, "CustomerId");
+    }
+
+    [Fact]
+    public async Task CreateStock_WithInvalidRequest_ShouldReturnUnifiedErrorResponse()
+    {
+        var response = await _client.PostAsJsonAsync(
+            "/api/inventory/stocks",
+            new
+            {
+                ProductId = "",
+                ProductName = "",
+                InitialQuantity = -1
+            },
+            TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        await AssertValidationErrorContainsAsync(response, "InitialQuantity");
+    }
+
+    [Fact]
+    public async Task ReplenishStock_WithInvalidQuantity_ShouldReturnUnifiedErrorResponse()
+    {
+        var response = await _client.PostAsJsonAsync(
+            "/api/inventory/stocks/PROD-001/replenish",
+            new
+            {
+                Quantity = 0
+            },
+            TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        await AssertValidationErrorContainsAsync(response, "Quantity");
+    }
+
+    private static async Task AssertValidationErrorContainsAsync(HttpResponseMessage response, string fieldName)
+    {
+        var body = await response.Content.ReadFromJsonAsync<JsonObject>(TestContext.Current.CancellationToken);
+        body.Should().NotBeNull();
+        body!["msg"]!.GetValue<string>().Should().Be("validation failed");
+        body!["code"]!.GetValue<int>().Should().Be(ApiCodes.Common.ValidationFailed);
+        body!["data"]!["errors"].Should().NotBeNull();
+        body!["data"]!["errors"]![fieldName].Should().NotBeNull();
     }
 }
 

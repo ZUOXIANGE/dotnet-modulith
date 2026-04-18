@@ -1,5 +1,3 @@
-using DotNetModulith.Modules.Inventory.Domain;
-
 namespace DotNetModulith.Modules.Inventory.Domain;
 
 /// <summary>

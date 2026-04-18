@@ -1,7 +1,6 @@
 using System.Diagnostics;
 using System.Diagnostics.Metrics;
 using DotNetModulith.Abstractions.Events;
-using DotNetModulith.Abstractions.Results;
 using DotNetModulith.Modules.Orders.Application.Caching;
 using DotNetModulith.Modules.Orders.Domain;
 using Mediator;

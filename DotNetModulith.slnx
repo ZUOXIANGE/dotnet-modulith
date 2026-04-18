@@ -26,4 +26,8 @@
     <Project Path="tests/DotNetModulith.Modules.Orders.Tests/DotNetModulith.Modules.Orders.Tests.csproj" />
     <Project Path="tests/DotNetModulith.IntegrationTests/DotNetModulith.IntegrationTests.csproj" />
   </Folder>
+  <Folder Name="/docs/">
+    <File Path="docs/api-error-codes.md" />
+    <File Path="docs/development-standards.md" />
+  </Folder>
 </Solution>

@@ -8,7 +8,6 @@
     <EfCoreVersion>10.0.0</EfCoreVersion>
     <OpenTelemetryVersion>1.11.0</OpenTelemetryVersion>
     <MediatorVersion>3.0.2</MediatorVersion>
-    <FluentValidationVersion>11.9.0</FluentValidationVersion>
     <ScalarVersion>2.13.22</ScalarVersion>
     <MapperlyVersion>4.3.1</MapperlyVersion>
   </PropertyGroup>
@@ -21,6 +20,8 @@
     <PackageVersion Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="10.0.6" />
     <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.6" />
     <PackageVersion Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.0" />
+    <PackageVersion Include="Microsoft.Extensions.Options" Version="10.0.6" />
+    <PackageVersion Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="10.0.6" />
     <PackageVersion Include="Npgsql.OpenTelemetry" Version="10.0.2" />
     <PackageVersion Include="Serilog.AspNetCore" Version="10.0.0" />
     <PackageVersion Include="Serilog.Formatting.Compact" Version="3.0.0" />
@@ -59,11 +60,6 @@
   <ItemGroup>
     <PackageVersion Include="Riok.Mapperly" Version="$(MapperlyVersion)" />
     <PackageVersion Include="Riok.Mapperly.Abstractions" Version="$(MapperlyVersion)" />
-  </ItemGroup>
-  <!-- FluentValidation 验证相关包版本 -->
-  <ItemGroup>
-    <PackageVersion Include="FluentValidation" Version="12.1.1" />
-    <PackageVersion Include="FluentValidation.DependencyInjectionExtensions" Version="12.1.1" />
   </ItemGroup>
   <!-- OpenTelemetry 可观测性相关包版本 -->
   <ItemGroup>

@@ -1,5 +1,4 @@
 using DotNetModulith.Abstractions.Results;
-using DotNetModulith.Modules.Inventory.Domain;
 using Mediator;
 
 namespace DotNetModulith.Modules.Inventory.Application.Commands.ReserveStock;

@@ -32,7 +32,9 @@ public sealed record OrderPaidDomainEvent(
 /// <param name="OrderId">订单ID</param>
 /// <param name="CustomerId">客户ID</param>
 /// <param name="Reason">取消原因</param>
+/// <param name="Lines">订单行项目列表</param>
 public sealed record OrderCancelledDomainEvent(
     OrderId OrderId,
     string CustomerId,
-    string Reason) : DomainEvent;
+    string Reason,
+    IReadOnlyList<OrderLineData> Lines) : DomainEvent;

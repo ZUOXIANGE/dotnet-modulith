@@ -1,8 +1,10 @@
 using System.Diagnostics;
+using DotNetCore.CAP;
 using DotNetModulith.Abstractions.Events;
 using DotNetModulith.Abstractions.Exceptions;
 using DotNetModulith.Abstractions.Results;
 using DotNetModulith.Modules.Inventory.Domain;
+using DotNetModulith.Modules.Inventory.Infrastructure;
 using Mediator;
 
 namespace DotNetModulith.Modules.Inventory.Application.Commands.ReplenishStock;
@@ -23,13 +25,19 @@ public sealed class ReplenishStockCommandHandler : ICommandHandler<ReplenishStoc
 
     private readonly IStockRepository _stockRepository;
     private readonly IDomainEventDispatcher _domainEventDispatcher;
+    private readonly InventoryDbContext _dbContext;
+    private readonly ICapPublisher _capPublisher;
 
     public ReplenishStockCommandHandler(
         IStockRepository stockRepository,
-        IDomainEventDispatcher domainEventDispatcher)
+        IDomainEventDispatcher domainEventDispatcher,
+        InventoryDbContext dbContext,
+        ICapPublisher capPublisher)
     {
         _stockRepository = stockRepository;
         _domainEventDispatcher = domainEventDispatcher;
+        _dbContext = dbContext;
+        _capPublisher = capPublisher;
     }
 
     public async ValueTask<Result> Handle(ReplenishStockCommand command, CancellationToken cancellationToken)
@@ -49,8 +57,15 @@ public sealed class ReplenishStockCommandHandler : ICommandHandler<ReplenishStoc
         }
 
         stock.Replenish(command.Quantity);
-        await _stockRepository.UpdateAsync(stock, cancellationToken);
-        await _domainEventDispatcher.DispatchAsync(stock, cancellationToken);
+        await CapTransactionScope.ExecuteAsync(
+            _dbContext,
+            _capPublisher,
+            async ct =>
+            {
+                await _stockRepository.UpdateAsync(stock, ct);
+                await _domainEventDispatcher.DispatchAsync(stock, ct);
+            },
+            cancellationToken);
 
         activity?.SetStatus(ActivityStatusCode.Ok);
 

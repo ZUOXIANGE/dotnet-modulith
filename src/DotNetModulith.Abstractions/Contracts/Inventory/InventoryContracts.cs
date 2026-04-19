@@ -7,9 +7,13 @@ namespace DotNetModulith.Abstractions.Contracts.Inventory;
 /// 库存已预留集成事件
 /// </summary>
 /// <param name="OrderId">订单ID</param>
+/// <param name="CustomerId">客户ID</param>
+/// <param name="TotalAmount">订单总金额</param>
 /// <param name="Lines">预留行项目列表</param>
 public sealed record StockReservedIntegrationEvent(
     [property: JsonPropertyName("orderId")] string OrderId,
+    [property: JsonPropertyName("customerId")] string CustomerId,
+    [property: JsonPropertyName("totalAmount")] decimal TotalAmount,
     [property: JsonPropertyName("lines")] IReadOnlyList<StockReservedLine> Lines) : IntegrationEvent;
 
 /// <summary>

@@ -24,9 +24,9 @@ public sealed class InventoryModule : IModule
     public string BaseNamespace => "DotNetModulith.Modules.Inventory";
 
     /// <summary>
-    /// 模块依赖列表（无外部依赖）
+    /// 模块依赖列表（依赖订单模块事件）
     /// </summary>
-    public IReadOnlyList<string> Dependencies => [];
+    public IReadOnlyList<string> Dependencies => ["Orders"];
 
     /// <summary>
     /// 模块发布的集成事件列表
@@ -39,11 +39,13 @@ public sealed class InventoryModule : IModule
     ];
 
     /// <summary>
-    /// 模块订阅的集成事件列表（订阅订单创建事件以预留库存）
+    /// 模块订阅的集成事件列表（订阅订单创建、取消、支付完成事件）
     /// </summary>
     public IReadOnlyList<string> SubscribedEvents =>
     [
-        "modulith.orders.OrderCreatedIntegrationEvent"
+        "modulith.orders.OrderCreatedIntegrationEvent",
+        "modulith.orders.OrderCancelledIntegrationEvent",
+        "modulith.orders.OrderPaidIntegrationEvent"
     ];
 
     /// <summary>

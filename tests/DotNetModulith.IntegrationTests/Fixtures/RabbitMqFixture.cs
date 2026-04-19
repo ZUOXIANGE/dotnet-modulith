@@ -17,7 +17,7 @@ public sealed class RabbitMqFixture : IAsyncLifetime
     /// <summary>
     /// RabbitMQ主机名
     /// </summary>
-    public string HostName => _container.Hostname;
+    public string HostName => "localhost";
 
     /// <summary>
     /// RabbitMQ映射端口

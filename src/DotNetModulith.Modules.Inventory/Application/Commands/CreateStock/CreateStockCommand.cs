@@ -1,6 +1,8 @@
 using System.Diagnostics;
+using DotNetCore.CAP;
 using DotNetModulith.Abstractions.Events;
 using DotNetModulith.Modules.Inventory.Domain;
+using DotNetModulith.Modules.Inventory.Infrastructure;
 using Mediator;
 
 namespace DotNetModulith.Modules.Inventory.Application.Commands.CreateStock;
@@ -25,13 +27,19 @@ public sealed class CreateStockCommandHandler : ICommandHandler<CreateStockComma
 
     private readonly IStockRepository _stockRepository;
     private readonly IDomainEventDispatcher _domainEventDispatcher;
+    private readonly InventoryDbContext _dbContext;
+    private readonly ICapPublisher _capPublisher;
 
     public CreateStockCommandHandler(
         IStockRepository stockRepository,
-        IDomainEventDispatcher domainEventDispatcher)
+        IDomainEventDispatcher domainEventDispatcher,
+        InventoryDbContext dbContext,
+        ICapPublisher capPublisher)
     {
         _stockRepository = stockRepository;
         _domainEventDispatcher = domainEventDispatcher;
+        _dbContext = dbContext;
+        _capPublisher = capPublisher;
     }
 
     public async ValueTask<StockId> Handle(CreateStockCommand command, CancellationToken cancellationToken)
@@ -41,8 +49,15 @@ public sealed class CreateStockCommandHandler : ICommandHandler<CreateStockComma
 
         var stock = Stock.Create(command.ProductId, command.ProductName, command.InitialQuantity);
 
-        await _stockRepository.AddAsync(stock, cancellationToken);
-        await _domainEventDispatcher.DispatchAsync(stock, cancellationToken);
+        await CapTransactionScope.ExecuteAsync(
+            _dbContext,
+            _capPublisher,
+            async ct =>
+            {
+                await _stockRepository.AddAsync(stock, ct);
+                await _domainEventDispatcher.DispatchAsync(stock, ct);
+            },
+            cancellationToken);
 
         activity?.SetStatus(ActivityStatusCode.Ok);
 

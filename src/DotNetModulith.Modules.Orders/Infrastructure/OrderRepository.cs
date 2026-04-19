@@ -46,12 +46,15 @@ internal sealed class OrderRepository : IOrderRepository
     public async Task AddAsync(Order order, CancellationToken ct = default)
     {
         await _context.Orders.AddAsync(order, ct);
-        await _context.SaveChangesAsync(ct);
     }
 
     public async Task UpdateAsync(Order order, CancellationToken ct = default)
     {
         _context.Orders.Update(order);
-        await _context.SaveChangesAsync(ct);
+    }
+
+    public Task SaveChangesAsync(CancellationToken ct = default)
+    {
+        return _context.SaveChangesAsync(ct);
     }
 }

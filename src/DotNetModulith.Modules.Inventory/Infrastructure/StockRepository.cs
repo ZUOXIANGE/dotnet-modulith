@@ -38,15 +38,38 @@ internal sealed class StockRepository : IStockRepository
             .ToListAsync(ct);
     }
 
+    public async Task<IReadOnlyList<StockReservation>> GetReservationsByOrderIdAsync(string orderId, CancellationToken ct = default)
+    {
+        return await _context.StockReservations
+            .AsTracking()
+            .Where(r => r.OrderId == orderId)
+            .OrderBy(r => r.CreatedAt)
+            .ToListAsync(ct);
+    }
+
     public async Task AddAsync(Stock stock, CancellationToken ct = default)
     {
         await _context.Stocks.AddAsync(stock, ct);
-        await _context.SaveChangesAsync(ct);
     }
 
     public async Task UpdateAsync(Stock stock, CancellationToken ct = default)
     {
         _context.Stocks.Update(stock);
-        await _context.SaveChangesAsync(ct);
+    }
+
+    public async Task AddReservationAsync(StockReservation reservation, CancellationToken ct = default)
+    {
+        await _context.StockReservations.AddAsync(reservation, ct);
+    }
+
+    public Task UpdateReservationAsync(StockReservation reservation, CancellationToken ct = default)
+    {
+        _context.StockReservations.Update(reservation);
+        return Task.CompletedTask;
+    }
+
+    public Task SaveChangesAsync(CancellationToken ct = default)
+    {
+        return _context.SaveChangesAsync(ct);
     }
 }

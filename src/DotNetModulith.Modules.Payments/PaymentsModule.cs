@@ -27,9 +27,9 @@ public sealed class PaymentsModule : IModule
     public string BaseNamespace => "DotNetModulith.Modules.Payments";
 
     /// <summary>
-    /// 模块依赖列表（依赖订单模块）
+    /// 模块依赖列表（依赖库存模块事件）
     /// </summary>
-    public IReadOnlyList<string> Dependencies => ["Orders"];
+    public IReadOnlyList<string> Dependencies => ["Inventory"];
 
     /// <summary>
     /// 模块发布的集成事件列表
@@ -41,11 +41,11 @@ public sealed class PaymentsModule : IModule
     ];
 
     /// <summary>
-    /// 模块订阅的集成事件列表（订阅订单创建事件以发起支付）
+    /// 模块订阅的集成事件列表（订阅库存预留成功事件以发起支付）
     /// </summary>
     public IReadOnlyList<string> SubscribedEvents =>
     [
-        "modulith.orders.OrderCreatedIntegrationEvent"
+        "modulith.inventory.StockReservedIntegrationEvent"
     ];
 
     /// <summary>

@@ -1,6 +1,4 @@
 using DotNetModulith.Abstractions.Contracts.Orders;
-using DotNetModulith.Modules.Orders.Api.Contracts.Requests;
-using DotNetModulith.Modules.Orders.Application.Commands.CreateOrder;
 using DotNetModulith.Modules.Orders.Application.Queries.GetOrder;
 using DotNetModulith.Modules.Orders.Domain;
 using DotNetModulith.Modules.Orders.Domain.Events;
@@ -47,16 +45,6 @@ public static partial class OrderMapper
     public static partial IReadOnlyList<OrderLineContract> ToContractList(this IReadOnlyList<OrderLineData> lines);
 
     /// <summary>
-    /// 将创建订单请求映射为创建订单命令
-    /// </summary>
-    public static partial CreateOrderCommand ToCommand(this CreateOrderRequest request);
-
-    /// <summary>
-    /// 将创建订单行项目请求映射为订单行项目数据
-    /// </summary>
-    private static partial OrderLineData MapToOrderLineData(CreateOrderLineRequest request);
-
-    /// <summary>
     /// 将订单创建领域事件映射为订单创建集成事件
     /// </summary>
     public static OrderCreatedIntegrationEvent ToIntegrationEvent(
@@ -82,5 +70,6 @@ public static partial class OrderMapper
         this OrderCancelledDomainEvent domainEvent) => new(
         domainEvent.OrderId.ToString(),
         domainEvent.CustomerId,
-        domainEvent.Reason);
+        domainEvent.Reason,
+        domainEvent.Lines.ToContractList());
 }

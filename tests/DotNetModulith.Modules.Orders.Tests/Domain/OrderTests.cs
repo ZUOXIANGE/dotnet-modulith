@@ -114,6 +114,10 @@ public class OrderTests
 
         order.Status.Should().Be(OrderStatus.Cancelled);
         order.DomainEvents.Should().ContainSingle(e => e is OrderCancelledDomainEvent);
+        var cancelledEvent = order.DomainEvents.OfType<OrderCancelledDomainEvent>().Single();
+        cancelledEvent.Lines.Should().ContainSingle();
+        cancelledEvent.Lines[0].ProductId.Should().Be("PROD-001");
+        cancelledEvent.Lines[0].Quantity.Should().Be(2);
     }
 
     /// <summary>

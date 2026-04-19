@@ -32,6 +32,30 @@ public class ModuleBoundaryTests
     private readonly IObjectProvider<IType> _notificationsModule =
         Types().That().ResideInNamespace("DotNetModulith.Modules.Notifications*").As("Notifications Module");
 
+    private readonly IObjectProvider<IType> _ordersExternalModules =
+        Types().That().ResideInNamespace("DotNetModulith.Modules.Inventory*")
+            .Or().ResideInNamespace("DotNetModulith.Modules.Payments*")
+            .Or().ResideInNamespace("DotNetModulith.Modules.Notifications*")
+            .As("All non-Orders modules");
+
+    private readonly IObjectProvider<IType> _inventoryExternalModules =
+        Types().That().ResideInNamespace("DotNetModulith.Modules.Orders*")
+            .Or().ResideInNamespace("DotNetModulith.Modules.Payments*")
+            .Or().ResideInNamespace("DotNetModulith.Modules.Notifications*")
+            .As("All non-Inventory modules");
+
+    private readonly IObjectProvider<IType> _paymentsExternalModules =
+        Types().That().ResideInNamespace("DotNetModulith.Modules.Orders*")
+            .Or().ResideInNamespace("DotNetModulith.Modules.Inventory*")
+            .Or().ResideInNamespace("DotNetModulith.Modules.Notifications*")
+            .As("All non-Payments modules");
+
+    private readonly IObjectProvider<IType> _notificationsExternalModules =
+        Types().That().ResideInNamespace("DotNetModulith.Modules.Orders*")
+            .Or().ResideInNamespace("DotNetModulith.Modules.Inventory*")
+            .Or().ResideInNamespace("DotNetModulith.Modules.Payments*")
+            .As("All non-Notifications modules");
+
     /// <summary>
     /// 验证订单模块不直接引用库存模块的领域层
     /// </summary>
@@ -41,6 +65,20 @@ public class ModuleBoundaryTests
         var rule = Types().That().Are(_ordersModule)
             .Should().NotDependOnAny(Types().That().ResideInNamespace("DotNetModulith.Modules.Inventory.Domain*"))
             .Because("Modules should communicate via integration events, not direct domain references")
+            .WithoutRequiringPositiveResults();
+
+        rule.Check(Architecture);
+    }
+
+    /// <summary>
+    /// 验证订单模块不直接依赖其他模块实现命名空间
+    /// </summary>
+    [Fact]
+    public void OrdersModule_ShouldNotReferenceOtherModules()
+    {
+        var rule = Types().That().Are(_ordersModule)
+            .Should().NotDependOnAny(_ordersExternalModules)
+            .Because("Orders should communicate with other modules only through abstractions and integration contracts")
             .WithoutRequiringPositiveResults();
 
         rule.Check(Architecture);
@@ -75,6 +113,48 @@ public class ModuleBoundaryTests
     }
 
     /// <summary>
+    /// 验证库存模块不直接依赖其他模块实现命名空间
+    /// </summary>
+    [Fact]
+    public void InventoryModule_ShouldNotReferenceOtherModules()
+    {
+        var rule = Types().That().Are(_inventoryModule)
+            .Should().NotDependOnAny(_inventoryExternalModules)
+            .Because("Inventory should communicate with other modules only through abstractions and integration contracts")
+            .WithoutRequiringPositiveResults();
+
+        rule.Check(Architecture);
+    }
+
+    /// <summary>
+    /// 验证支付模块不直接依赖其他模块实现命名空间
+    /// </summary>
+    [Fact]
+    public void PaymentsModule_ShouldNotReferenceOtherModules()
+    {
+        var rule = Types().That().Are(_paymentsModule)
+            .Should().NotDependOnAny(_paymentsExternalModules)
+            .Because("Payments should communicate with other modules only through abstractions and integration contracts")
+            .WithoutRequiringPositiveResults();
+
+        rule.Check(Architecture);
+    }
+
+    /// <summary>
+    /// 验证通知模块不直接依赖其他模块实现命名空间
+    /// </summary>
+    [Fact]
+    public void NotificationsModule_ShouldNotReferenceOtherModules()
+    {
+        var rule = Types().That().Are(_notificationsModule)
+            .Should().NotDependOnAny(_notificationsExternalModules)
+            .Because("Notifications should communicate with other modules only through abstractions and integration contracts")
+            .WithoutRequiringPositiveResults();
+
+        rule.Check(Architecture);
+    }
+
+    /// <summary>
     /// 验证领域层不依赖应用层（DDD依赖规则）
     /// </summary>
     [Fact]
@@ -97,6 +177,34 @@ public class ModuleBoundaryTests
         var rule = Types().That().ResideInNamespace("DotNetModulith.Modules.*.Domain*")
             .Should().NotDependOnAny(Types().That().ResideInNamespace("DotNetModulith.Modules.*.Infrastructure*"))
             .Because("Domain layer should not depend on infrastructure layer (DDD dependency rule)")
+            .WithoutRequiringPositiveResults();
+
+        rule.Check(Architecture);
+    }
+
+    /// <summary>
+    /// 验证应用层不依赖接口层
+    /// </summary>
+    [Fact]
+    public void ApplicationLayer_ShouldNotReferenceApiLayer()
+    {
+        var rule = Types().That().ResideInNamespace("DotNetModulith.Modules.*.Application*")
+            .Should().NotDependOnAny(Types().That().ResideInNamespace("DotNetModulith.Modules.*.Api*"))
+            .Because("Application layer should remain transport-agnostic and must not depend on API contracts")
+            .WithoutRequiringPositiveResults();
+
+        rule.Check(Architecture);
+    }
+
+    /// <summary>
+    /// 验证基础设施层不依赖接口层
+    /// </summary>
+    [Fact]
+    public void InfrastructureLayer_ShouldNotReferenceApiLayer()
+    {
+        var rule = Types().That().ResideInNamespace("DotNetModulith.Modules.*.Infrastructure*")
+            .Should().NotDependOnAny(Types().That().ResideInNamespace("DotNetModulith.Modules.*.Api*"))
+            .Because("Infrastructure layer should not depend on transport-specific API contracts")
             .WithoutRequiringPositiveResults();
 
         rule.Check(Architecture);

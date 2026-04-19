@@ -1,9 +1,11 @@
 using System.Diagnostics;
+using DotNetCore.CAP;
 using DotNetModulith.Abstractions.Events;
 using DotNetModulith.Abstractions.Exceptions;
 using DotNetModulith.Abstractions.Results;
 using DotNetModulith.Modules.Orders.Application.Caching;
 using DotNetModulith.Modules.Orders.Domain;
+using DotNetModulith.Modules.Orders.Infrastructure;
 using Mediator;
 using Microsoft.Extensions.Logging;
 using ZiggyCreatures.Caching.Fusion;
@@ -21,17 +23,23 @@ public sealed class ConfirmOrderCommandHandler : ICommandHandler<ConfirmOrderCom
     private readonly IDomainEventDispatcher _domainEventDispatcher;
     private readonly ILogger<ConfirmOrderCommandHandler> _logger;
     private readonly IFusionCache _cache;
+    private readonly OrdersDbContext _dbContext;
+    private readonly ICapPublisher _capPublisher;
 
     public ConfirmOrderCommandHandler(
         IOrderRepository orderRepository,
         IDomainEventDispatcher domainEventDispatcher,
         ILogger<ConfirmOrderCommandHandler> logger,
-        IFusionCache cache)
+        IFusionCache cache,
+        OrdersDbContext dbContext,
+        ICapPublisher capPublisher)
     {
         _orderRepository = orderRepository;
         _domainEventDispatcher = domainEventDispatcher;
         _logger = logger;
         _cache = cache;
+        _dbContext = dbContext;
+        _capPublisher = capPublisher;
     }
 
     public async ValueTask<Result> Handle(ConfirmOrderCommand command, CancellationToken cancellationToken)
@@ -56,9 +64,16 @@ public sealed class ConfirmOrderCommandHandler : ICommandHandler<ConfirmOrderCom
         try
         {
             order.Confirm();
-            await _orderRepository.UpdateAsync(order, cancellationToken);
-            await _cache.RemoveAsync(OrderCacheKeys.OrderDetail(order.Id.ToString()), null, cancellationToken);
-            await _domainEventDispatcher.DispatchAsync(order, cancellationToken);
+            await CapTransactionScope.ExecuteAsync(
+                _dbContext,
+                _capPublisher,
+                async ct =>
+                {
+                    await _orderRepository.UpdateAsync(order, ct);
+                    await _cache.RemoveAsync(OrderCacheKeys.OrderDetail(order.Id.ToString()), null, ct);
+                    await _domainEventDispatcher.DispatchAsync(order, ct);
+                },
+                cancellationToken);
 
             _logger.LogInformation("Order {OrderId} confirmed", order.Id);
             activity?.SetStatus(ActivityStatusCode.Ok);

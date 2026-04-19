@@ -10,6 +10,7 @@
   <ItemGroup>
     <PackageReference Include="DotNetCore.CAP" />
     <PackageReference Include="DotNetCore.CAP.OpenTelemetry" />
+    <PackageReference Include="DotNetCore.CAP.PostgreSql" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" PrivateAssets="All" />

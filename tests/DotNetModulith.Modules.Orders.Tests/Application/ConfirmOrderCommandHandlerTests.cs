@@ -1,10 +1,13 @@
+using DotNetCore.CAP;
 using DotNetModulith.Abstractions.Domain;
 using DotNetModulith.Abstractions.Events;
 using DotNetModulith.Abstractions.Exceptions;
 using DotNetModulith.Abstractions.Results;
 using DotNetModulith.Modules.Orders.Application.Commands.ConfirmOrder;
 using DotNetModulith.Modules.Orders.Domain;
+using DotNetModulith.Modules.Orders.Infrastructure;
 using FluentAssertions;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
 using ZiggyCreatures.Caching.Fusion;
@@ -57,7 +60,9 @@ public sealed class ConfirmOrderCommandHandlerTests
             repository,
             dispatcher,
             NullLogger<ConfirmOrderCommandHandler>.Instance,
-            new FusionCache(new FusionCacheOptions()));
+            new FusionCache(new FusionCacheOptions()),
+            new OrdersDbContext(new DbContextOptionsBuilder<OrdersDbContext>().Options),
+            new NullCapPublisher());
     }
 
     private sealed class InMemoryOrderRepository : IOrderRepository
@@ -90,11 +95,49 @@ public sealed class ConfirmOrderCommandHandlerTests
             _orders[order.Id] = order;
             return Task.CompletedTask;
         }
+
+        public Task SaveChangesAsync(CancellationToken ct = default)
+            => Task.CompletedTask;
     }
 
     private sealed class NoopDomainEventDispatcher : IDomainEventDispatcher
     {
         public Task DispatchAsync(IAggregateRoot aggregateRoot, CancellationToken ct = default)
             => Task.CompletedTask;
+    }
+
+    private sealed class NullCapPublisher : ICapPublisher
+    {
+        public IServiceProvider ServiceProvider => null!;
+
+        public ICapTransaction? Transaction { get; set; }
+
+        public Task PublishAsync<T>(string name, T? contentObj, string? callbackName = null, CancellationToken cancellationToken = default)
+            => Task.CompletedTask;
+
+        public Task PublishAsync<T>(string name, T? contentObj, IDictionary<string, string?> headers, CancellationToken cancellationToken = default)
+            => Task.CompletedTask;
+
+        public void Publish<T>(string name, T? contentObj, string? callbackName = null)
+        {
+        }
+
+        public void Publish<T>(string name, T? contentObj, IDictionary<string, string?> headers)
+        {
+        }
+
+        public Task PublishDelayAsync<T>(TimeSpan delayTime, string name, T? contentObj, IDictionary<string, string?> headers, CancellationToken cancellationToken = default)
+            => Task.CompletedTask;
+
+        public Task PublishDelayAsync<T>(TimeSpan delayTime, string name, T? contentObj, string? callbackName = null, CancellationToken cancellationToken = default)
+            => Task.CompletedTask;
+
+        public void PublishDelay<T>(TimeSpan delayTime, string name, T? contentObj, IDictionary<string, string?> headers)
+        {
+        }
+
+        public void PublishDelay<T>(TimeSpan delayTime, string name, T? contentObj, string? callbackName = null)
+        {
+        }
     }
 }

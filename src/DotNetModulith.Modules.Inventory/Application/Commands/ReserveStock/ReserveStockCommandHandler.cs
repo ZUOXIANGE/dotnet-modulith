@@ -1,6 +1,8 @@
 using System.Diagnostics;
+using DotNetCore.CAP;
 using DotNetModulith.Abstractions.Results;
 using DotNetModulith.Modules.Inventory.Domain;
+using DotNetModulith.Modules.Inventory.Infrastructure;
 using Mediator;
 
 namespace DotNetModulith.Modules.Inventory.Application.Commands.ReserveStock;
@@ -13,10 +15,17 @@ public sealed class ReserveStockCommandHandler : ICommandHandler<ReserveStockCom
     private static readonly ActivitySource ActivitySource = new("DotNetModulith.Modules.Inventory");
 
     private readonly IStockRepository _stockRepository;
+    private readonly InventoryDbContext _dbContext;
+    private readonly ICapPublisher _capPublisher;
 
-    public ReserveStockCommandHandler(IStockRepository stockRepository)
+    public ReserveStockCommandHandler(
+        IStockRepository stockRepository,
+        InventoryDbContext dbContext,
+        ICapPublisher capPublisher)
     {
         _stockRepository = stockRepository;
+        _dbContext = dbContext;
+        _capPublisher = capPublisher;
     }
 
     public async ValueTask<Result> Handle(ReserveStockCommand command, CancellationToken cancellationToken)
@@ -24,20 +33,52 @@ public sealed class ReserveStockCommandHandler : ICommandHandler<ReserveStockCom
         using var activity = ActivitySource.StartActivity("ReserveStock", ActivityKind.Internal);
         activity?.SetTag("modulith.order_id", command.OrderId);
 
-        foreach (var line in command.Lines)
+        Result result = Result.Success();
+
+        await CapTransactionScope.ExecuteAsync(
+            _dbContext,
+            _capPublisher,
+            async ct =>
+            {
+                var requestedQuantities = command.Lines
+                    .GroupBy(line => line.ProductId, StringComparer.Ordinal)
+                    .ToDictionary(group => group.Key, group => group.Sum(item => item.Quantity), StringComparer.Ordinal);
+
+                var stocksToReserve = new List<(Stock Stock, int Quantity)>();
+
+                foreach (var request in requestedQuantities)
+                {
+                    var stock = await _stockRepository.GetByProductIdAsync(request.Key, ct);
+
+                    if (stock is null)
+                    {
+                        result = Result.Failure($"Stock for product {request.Key} not found.", "STOCK_NOT_FOUND");
+                        return;
+                    }
+
+                    if (stock.AvailableQuantity < request.Value)
+                    {
+                        result = Result.Failure($"Insufficient stock for product {request.Key}.", "INSUFFICIENT_STOCK");
+                        return;
+                    }
+
+                    stocksToReserve.Add((stock, request.Value));
+                }
+
+                foreach (var (stock, quantity) in stocksToReserve)
+                {
+                    stock.TryReserve(quantity);
+                    await _stockRepository.UpdateAsync(stock, ct);
+                }
+            },
+            cancellationToken);
+
+        if (!result.IsSuccess)
         {
-            var stock = await _stockRepository.GetByProductIdAsync(line.ProductId, cancellationToken);
-
-            if (stock is null)
-                return Result.Failure($"Stock for product {line.ProductId} not found.", "STOCK_NOT_FOUND");
-
-            if (!stock.TryReserve(line.Quantity))
-                return Result.Failure($"Insufficient stock for product {line.ProductId}.", "INSUFFICIENT_STOCK");
-
-            await _stockRepository.UpdateAsync(stock, cancellationToken);
+            return result;
         }
 
         activity?.SetStatus(ActivityStatusCode.Ok);
-        return Result.Success();
+        return result;
     }
 }

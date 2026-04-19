@@ -26,6 +26,9 @@ public sealed class RabbitMqOptions
     [Required]
     public string HostName { get; set; } = "localhost";
 
+    [Range(1, 65535)]
+    public int Port { get; set; } = 5672;
+
     [Required]
     public string UserName { get; set; } = "guest";
 

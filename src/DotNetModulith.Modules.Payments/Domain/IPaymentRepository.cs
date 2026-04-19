@@ -34,4 +34,10 @@ public interface IPaymentRepository
     /// <param name="payment">要更新的支付</param>
     /// <param name="ct">取消令牌</param>
     Task UpdateAsync(Payment payment, CancellationToken ct = default);
+
+    /// <summary>
+    /// 提交当前工作单元中的支付变更
+    /// </summary>
+    /// <param name="ct">取消令牌</param>
+    Task SaveChangesAsync(CancellationToken ct = default);
 }

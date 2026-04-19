@@ -10,6 +10,7 @@
   <ItemGroup>
     <PackageReference Include="DotNetCore.CAP" />
     <PackageReference Include="DotNetCore.CAP.OpenTelemetry" />
+    <PackageReference Include="DotNetCore.CAP.PostgreSql" />
     <PackageReference Include="Mediator.Abstractions" />
     <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" />

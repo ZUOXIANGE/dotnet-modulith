@@ -32,12 +32,15 @@ internal sealed class PaymentRepository : IPaymentRepository
     public async Task AddAsync(Payment payment, CancellationToken ct = default)
     {
         await _context.Payments.AddAsync(payment, ct);
-        await _context.SaveChangesAsync(ct);
     }
 
     public async Task UpdateAsync(Payment payment, CancellationToken ct = default)
     {
         _context.Payments.Update(payment);
-        await _context.SaveChangesAsync(ct);
+    }
+
+    public Task SaveChangesAsync(CancellationToken ct = default)
+    {
+        return _context.SaveChangesAsync(ct);
     }
 }

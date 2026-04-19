@@ -46,7 +46,9 @@ public sealed record OrderPaidIntegrationEvent(
 /// <param name="OrderId">订单ID</param>
 /// <param name="CustomerId">客户ID</param>
 /// <param name="Reason">取消原因</param>
+/// <param name="Lines">订单行项目列表</param>
 public sealed record OrderCancelledIntegrationEvent(
     [property: JsonPropertyName("orderId")] string OrderId,
     [property: JsonPropertyName("customerId")] string CustomerId,
-    [property: JsonPropertyName("reason")] string Reason) : IntegrationEvent;
+    [property: JsonPropertyName("reason")] string Reason,
+    [property: JsonPropertyName("lines")] IReadOnlyList<OrderLineContract> Lines) : IntegrationEvent;

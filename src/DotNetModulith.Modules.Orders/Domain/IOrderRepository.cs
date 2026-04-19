@@ -43,4 +43,10 @@ public interface IOrderRepository
     /// <param name="order">要更新的订单</param>
     /// <param name="ct">取消令牌</param>
     Task UpdateAsync(Order order, CancellationToken ct = default);
+
+    /// <summary>
+    /// 提交当前工作单元中的订单变更
+    /// </summary>
+    /// <param name="ct">取消令牌</param>
+    Task SaveChangesAsync(CancellationToken ct = default);
 }

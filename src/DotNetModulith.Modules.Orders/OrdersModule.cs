@@ -20,9 +20,9 @@ public sealed class OrdersModule : IModule
     public string BaseNamespace => "DotNetModulith.Modules.Orders";
 
     /// <summary>
-    /// 模块依赖列表（依赖库存模块）
+    /// 模块依赖列表（依赖库存与支付模块）
     /// </summary>
-    public IReadOnlyList<string> Dependencies => ["Inventory"];
+    public IReadOnlyList<string> Dependencies => ["Inventory", "Payments"];
 
     /// <summary>
     /// 模块发布的集成事件列表
@@ -40,7 +40,9 @@ public sealed class OrdersModule : IModule
     public IReadOnlyList<string> SubscribedEvents =>
     [
         "modulith.inventory.StockReservedIntegrationEvent",
-        "modulith.payments.PaymentCompletedIntegrationEvent"
+        "modulith.inventory.StockInsufficientIntegrationEvent",
+        "modulith.payments.PaymentCompletedIntegrationEvent",
+        "modulith.payments.PaymentFailedIntegrationEvent"
     ];
 
     /// <summary>

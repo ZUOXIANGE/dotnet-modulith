@@ -1,9 +1,10 @@
 using System.Diagnostics;
 using System.Diagnostics.Metrics;
 using DotNetCore.CAP;
-using DotNetModulith.Abstractions.Contracts.Orders;
+using DotNetModulith.Abstractions.Contracts.Inventory;
 using DotNetModulith.Abstractions.Events;
 using DotNetModulith.Modules.Payments.Domain;
+using DotNetModulith.Modules.Payments.Infrastructure;
 using Microsoft.Extensions.Logging;
 
 namespace DotNetModulith.Modules.Payments.Application.Subscribers;
@@ -23,31 +24,37 @@ public sealed class OrderEventSubscriber : ICapSubscribe
     private readonly IPaymentRepository _paymentRepository;
     private readonly IDomainEventDispatcher _domainEventDispatcher;
     private readonly ILogger<OrderEventSubscriber> _logger;
+    private readonly PaymentsDbContext _dbContext;
+    private readonly ICapPublisher _capPublisher;
 
     public OrderEventSubscriber(
         IPaymentRepository paymentRepository,
         IDomainEventDispatcher domainEventDispatcher,
-        ILogger<OrderEventSubscriber> logger)
+        ILogger<OrderEventSubscriber> logger,
+        PaymentsDbContext dbContext,
+        ICapPublisher capPublisher)
     {
         _paymentRepository = paymentRepository;
         _domainEventDispatcher = domainEventDispatcher;
         _logger = logger;
+        _dbContext = dbContext;
+        _capPublisher = capPublisher;
     }
 
     /// <summary>
-    /// 处理订单创建事件，为订单创建支付记录并模拟支付处理
+    /// 处理库存预留成功事件，为订单创建支付记录并模拟支付处理
     /// </summary>
-    [CapSubscribe("modulith.orders.OrderCreatedIntegrationEvent")]
-    public async Task HandleOrderCreatedAsync(OrderCreatedIntegrationEvent @event, CancellationToken ct = default)
+    [CapSubscribe("modulith.inventory.StockReservedIntegrationEvent", Group = "payments")]
+    public async Task HandleOrderCreatedAsync(StockReservedIntegrationEvent @event, CancellationToken ct = default)
     {
-        using var activity = ActivitySource.StartActivity("HandleOrderCreated_ProcessPayment", ActivityKind.Consumer);
-        activity?.SetTag("modulith.event_type", "OrderCreatedIntegrationEvent");
+        using var activity = ActivitySource.StartActivity("HandleStockReserved_ProcessPayment", ActivityKind.Consumer);
+        activity?.SetTag("modulith.event_type", "StockReservedIntegrationEvent");
         activity?.SetTag("modulith.order_id", @event.OrderId);
 
         _logger.LogInformation("Processing payment for order {OrderId}, amount {Amount}",
             @event.OrderId, @event.TotalAmount);
 
-        EventsConsumed.Add(1, new KeyValuePair<string, object?>("modulith.event_type", "OrderCreatedIntegrationEvent"));
+        EventsConsumed.Add(1, new KeyValuePair<string, object?>("modulith.event_type", "StockReservedIntegrationEvent"));
 
         var existingPayment = await _paymentRepository.GetByOrderIdAsync(@event.OrderId, ct);
         if (existingPayment is not null)
@@ -57,28 +64,33 @@ public sealed class OrderEventSubscriber : ICapSubscribe
             return;
         }
 
-        var payment = Payment.Create(@event.OrderId, @event.CustomerId, @event.TotalAmount);
+        await CapTransactionScope.ExecuteAsync(
+            _dbContext,
+            _capPublisher,
+            async cancellationToken =>
+            {
+                var payment = Payment.Create(@event.OrderId, @event.CustomerId, @event.TotalAmount);
+                var success = SimulatePayment(@event.TotalAmount);
 
-        var success = SimulatePayment(@event.TotalAmount);
+                if (success)
+                {
+                    payment.Complete($"TXN-{Guid.NewGuid():N}"[..20]);
+                    await _paymentRepository.AddAsync(payment, cancellationToken);
+                    await _domainEventDispatcher.DispatchAsync(payment, cancellationToken);
 
-        if (success)
-        {
-            payment.Complete($"TXN-{Guid.NewGuid():N}"[..20]);
-            await _paymentRepository.AddAsync(payment, ct);
-            await _domainEventDispatcher.DispatchAsync(payment, ct);
+                    _logger.LogInformation("Payment completed for order {OrderId}", @event.OrderId);
+                    activity?.SetStatus(ActivityStatusCode.Ok);
+                    return;
+                }
 
-            _logger.LogInformation("Payment completed for order {OrderId}", @event.OrderId);
-            activity?.SetStatus(ActivityStatusCode.Ok);
-        }
-        else
-        {
-            payment.Fail("Payment gateway timeout");
-            await _paymentRepository.AddAsync(payment, ct);
-            await _domainEventDispatcher.DispatchAsync(payment, ct);
+                payment.Fail("Payment gateway timeout");
+                await _paymentRepository.AddAsync(payment, cancellationToken);
+                await _domainEventDispatcher.DispatchAsync(payment, cancellationToken);
 
-            _logger.LogWarning("Payment failed for order {OrderId}", @event.OrderId);
-            activity?.SetStatus(ActivityStatusCode.Error, "Payment failed");
-        }
+                _logger.LogWarning("Payment failed for order {OrderId}", @event.OrderId);
+                activity?.SetStatus(ActivityStatusCode.Error, "Payment failed");
+            },
+            ct);
     }
 
     /// <summary>

@@ -29,7 +29,7 @@ public sealed class NotificationEventSubscriber : ICapSubscribe
     /// <summary>
     /// 处理订单创建事件，发送订单确认通知
     /// </summary>
-    [CapSubscribe("modulith.orders.OrderCreatedIntegrationEvent")]
+    [CapSubscribe("modulith.orders.OrderCreatedIntegrationEvent", Group = "notifications")]
     public Task HandleOrderCreatedAsync(OrderCreatedIntegrationEvent @event, CancellationToken ct = default)
     {
         using var activity = ActivitySource.StartActivity("SendOrderCreatedNotification", ActivityKind.Consumer);
@@ -50,7 +50,7 @@ public sealed class NotificationEventSubscriber : ICapSubscribe
     /// <summary>
     /// 处理支付完成事件，发送支付回执通知
     /// </summary>
-    [CapSubscribe("modulith.payments.PaymentCompletedIntegrationEvent")]
+    [CapSubscribe("modulith.payments.PaymentCompletedIntegrationEvent", Group = "notifications")]
     public Task HandlePaymentCompletedAsync(PaymentCompletedIntegrationEvent @event, CancellationToken ct = default)
     {
         using var activity = ActivitySource.StartActivity("SendPaymentCompletedNotification", ActivityKind.Consumer);
@@ -71,7 +71,7 @@ public sealed class NotificationEventSubscriber : ICapSubscribe
     /// <summary>
     /// 处理订单取消事件，发送订单取消通知
     /// </summary>
-    [CapSubscribe("modulith.orders.OrderCancelledIntegrationEvent")]
+    [CapSubscribe("modulith.orders.OrderCancelledIntegrationEvent", Group = "notifications")]
     public Task HandleOrderCancelledAsync(OrderCancelledIntegrationEvent @event, CancellationToken ct = default)
     {
         using var activity = ActivitySource.StartActivity("SendOrderCancelledNotification", ActivityKind.Consumer);

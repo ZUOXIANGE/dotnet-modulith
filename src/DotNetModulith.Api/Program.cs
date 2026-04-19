@@ -109,6 +109,11 @@ if (isTesting && string.IsNullOrWhiteSpace(builder.Configuration.GetConnectionSt
     });
 }
 
+builder.Services.RegisterModule<InventoryModule>(builder.Configuration);
+builder.Services.RegisterModule<OrdersModule>(builder.Configuration);
+builder.Services.RegisterModule<PaymentsModule>(builder.Configuration);
+builder.Services.RegisterModule<NotificationsModule>(builder.Configuration);
+
 if (!isTesting)
 {
     var capSettings = builder.Configuration
@@ -140,6 +145,7 @@ if (!isTesting)
         cap.UseRabbitMQ(rabbitOptions =>
         {
             rabbitOptions.HostName = rabbitMqOptions.HostName;
+            rabbitOptions.Port = rabbitMqOptions.Port;
             rabbitOptions.UserName = rabbitMqOptions.UserName;
             rabbitOptions.Password = rabbitMqOptions.Password;
             rabbitOptions.VirtualHost = rabbitMqOptions.VirtualHost;
@@ -153,16 +159,11 @@ if (!isTesting)
     });
 }
 
-builder.Services.RegisterModule<InventoryModule>(builder.Configuration);
-builder.Services.RegisterModule<OrdersModule>(builder.Configuration);
-builder.Services.RegisterModule<PaymentsModule>(builder.Configuration);
-builder.Services.RegisterModule<NotificationsModule>(builder.Configuration);
-
 var redisConnection = builder.Configuration.GetConnectionString("redis") ?? "localhost:6379";
 var (redisHost, redisPort) = TcpHealthCheck.ParseEndpoint(redisConnection, 6379);
 
-var rabbitEndpoint = builder.Configuration["RabbitMQ:HostName"] ?? "localhost";
-var (rabbitHost, rabbitPort) = TcpHealthCheck.ParseEndpoint(rabbitEndpoint, 5672);
+var rabbitHost = builder.Configuration["RabbitMQ:HostName"] ?? "localhost";
+var rabbitPort = builder.Configuration.GetValue<int?>("RabbitMQ:Port") ?? 5672;
 
 builder.Services.AddHealthChecks()
     .AddCheck<StartupHealthCheck>("startup-state", tags: ["startup"])

@@ -1,8 +1,10 @@
 using System.Diagnostics;
 using System.Diagnostics.Metrics;
+using DotNetCore.CAP;
 using DotNetModulith.Abstractions.Events;
 using DotNetModulith.Modules.Orders.Application.Caching;
 using DotNetModulith.Modules.Orders.Domain;
+using DotNetModulith.Modules.Orders.Infrastructure;
 using Mediator;
 using Microsoft.Extensions.Logging;
 using ZiggyCreatures.Caching.Fusion;
@@ -25,17 +27,23 @@ public sealed class CreateOrderCommandHandler : ICommandHandler<CreateOrderComma
     private readonly IDomainEventDispatcher _domainEventDispatcher;
     private readonly ILogger<CreateOrderCommandHandler> _logger;
     private readonly IFusionCache _cache;
+    private readonly OrdersDbContext _dbContext;
+    private readonly ICapPublisher _capPublisher;
 
     public CreateOrderCommandHandler(
         IOrderRepository orderRepository,
         IDomainEventDispatcher domainEventDispatcher,
         ILogger<CreateOrderCommandHandler> logger,
-        IFusionCache cache)
+        IFusionCache cache,
+        OrdersDbContext dbContext,
+        ICapPublisher capPublisher)
     {
         _orderRepository = orderRepository;
         _domainEventDispatcher = domainEventDispatcher;
         _logger = logger;
         _cache = cache;
+        _dbContext = dbContext;
+        _capPublisher = capPublisher;
     }
 
     public async ValueTask<OrderId> Handle(CreateOrderCommand command, CancellationToken cancellationToken)
@@ -50,9 +58,16 @@ public sealed class CreateOrderCommandHandler : ICommandHandler<CreateOrderComma
         {
             var order = Order.Create(command.CustomerId, command.Lines);
 
-            await _orderRepository.AddAsync(order, cancellationToken);
-            await _cache.RemoveAsync(OrderCacheKeys.OrderDetail(order.Id.ToString()), null, cancellationToken);
-            await _domainEventDispatcher.DispatchAsync(order, cancellationToken);
+            await CapTransactionScope.ExecuteAsync(
+                _dbContext,
+                _capPublisher,
+                async ct =>
+                {
+                    await _orderRepository.AddAsync(order, ct);
+                    await _cache.RemoveAsync(OrderCacheKeys.OrderDetail(order.Id.ToString()), null, ct);
+                    await _domainEventDispatcher.DispatchAsync(order, ct);
+                },
+                cancellationToken);
 
             _logger.LogInformation("Order {OrderId} created for customer {CustomerId} with total {TotalAmount}",
                 order.Id, order.CustomerId, order.TotalAmount);
@@ -80,7 +95,7 @@ public sealed class CreateOrderCommandHandler : ICommandHandler<CreateOrderComma
         {
             var duration = Stopwatch.GetElapsedTime(startTime);
             OrderCreationDuration.Record(duration.TotalMilliseconds,
-                new KeyValuePair<string, object?>("modulith.outcome", "success"));
+                new KeyValuePair<string, object?>("modulith.outcome", Activity.Current?.Status == ActivityStatusCode.Error ? "failure" : "success"));
         }
     }
 }

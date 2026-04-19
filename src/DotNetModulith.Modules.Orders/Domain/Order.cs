@@ -129,7 +129,11 @@ public sealed class Order : AggregateRoot, IEntity<OrderId>
         Status = OrderStatus.Cancelled;
         UpdatedAt = DateTimeOffset.UtcNow;
 
-        AddDomainEvent(new OrderCancelledDomainEvent(Id, CustomerId, reason));
+        var lines = _lines
+            .Select(line => new OrderLineData(line.ProductId, line.ProductName, line.Quantity, line.UnitPrice))
+            .ToList();
+
+        AddDomainEvent(new OrderCancelledDomainEvent(Id, CustomerId, reason, lines));
     }
 }
 

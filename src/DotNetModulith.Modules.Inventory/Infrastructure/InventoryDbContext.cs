@@ -14,6 +14,11 @@ public sealed class InventoryDbContext : DbContext
     /// </summary>
     public DbSet<Stock> Stocks => Set<Stock>();
 
+    /// <summary>
+    /// 库存预留明细数据集
+    /// </summary>
+    public DbSet<StockReservation> StockReservations => Set<StockReservation>();
+
     public InventoryDbContext(DbContextOptions<InventoryDbContext> options) : base(options)
     {
     }
@@ -75,5 +80,59 @@ internal sealed class StockConfiguration : IEntityTypeConfiguration<Stock>
         builder.Ignore(s => s.DomainEvents);
 
         builder.HasIndex(s => s.ProductId).IsUnique();
+    }
+}
+
+/// <summary>
+/// 库存预留明细EF Core配置
+/// </summary>
+internal sealed class StockReservationConfiguration : IEntityTypeConfiguration<StockReservation>
+{
+    public void Configure(EntityTypeBuilder<StockReservation> builder)
+    {
+        builder.ToTable("stock_reservations");
+
+        builder.HasKey(r => r.Id);
+
+        builder.Property(r => r.Id)
+            .HasColumnName("id")
+            .ValueGeneratedNever();
+
+        builder.Property(r => r.StockId)
+            .HasColumnName("stock_id")
+            .HasConversion(
+                id => id.Value,
+                value => new StockId(value))
+            .IsRequired();
+
+        builder.Property(r => r.OrderId)
+            .HasColumnName("order_id")
+            .HasMaxLength(100)
+            .IsRequired();
+
+        builder.Property(r => r.ProductId)
+            .HasColumnName("product_id")
+            .HasMaxLength(100)
+            .IsRequired();
+
+        builder.Property(r => r.Quantity)
+            .HasColumnName("quantity")
+            .IsRequired();
+
+        builder.Property(r => r.Status)
+            .HasColumnName("status")
+            .HasConversion<string>()
+            .HasMaxLength(20)
+            .IsRequired();
+
+        builder.Property(r => r.CreatedAt)
+            .HasColumnName("created_at")
+            .IsRequired();
+
+        builder.Property(r => r.CompletedAt)
+            .HasColumnName("completed_at");
+
+        builder.HasIndex(r => new { r.OrderId, r.ProductId }).IsUnique();
+        builder.HasIndex(r => new { r.OrderId, r.Status });
     }
 }

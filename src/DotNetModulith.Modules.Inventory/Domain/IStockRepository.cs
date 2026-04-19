@@ -31,6 +31,14 @@ public interface IStockRepository
     Task<IReadOnlyList<Stock>> GetLowStockAsync(int threshold, int limit, CancellationToken ct = default);
 
     /// <summary>
+    /// 根据订单ID获取库存预留明细
+    /// </summary>
+    /// <param name="orderId">订单ID</param>
+    /// <param name="ct">取消令牌</param>
+    /// <returns>该订单关联的库存预留明细</returns>
+    Task<IReadOnlyList<StockReservation>> GetReservationsByOrderIdAsync(string orderId, CancellationToken ct = default);
+
+    /// <summary>
     /// 添加新库存记录
     /// </summary>
     /// <param name="stock">要添加的库存</param>
@@ -43,4 +51,24 @@ public interface IStockRepository
     /// <param name="stock">要更新的库存</param>
     /// <param name="ct">取消令牌</param>
     Task UpdateAsync(Stock stock, CancellationToken ct = default);
+
+    /// <summary>
+    /// 添加库存预留明细
+    /// </summary>
+    /// <param name="reservation">预留明细</param>
+    /// <param name="ct">取消令牌</param>
+    Task AddReservationAsync(StockReservation reservation, CancellationToken ct = default);
+
+    /// <summary>
+    /// 更新库存预留明细
+    /// </summary>
+    /// <param name="reservation">预留明细</param>
+    /// <param name="ct">取消令牌</param>
+    Task UpdateReservationAsync(StockReservation reservation, CancellationToken ct = default);
+
+    /// <summary>
+    /// 提交当前工作单元中的库存变更
+    /// </summary>
+    /// <param name="ct">取消令牌</param>
+    Task SaveChangesAsync(CancellationToken ct = default);
 }

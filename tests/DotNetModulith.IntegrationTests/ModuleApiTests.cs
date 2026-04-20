@@ -7,6 +7,8 @@ using DotNetModulith.IntegrationTests.Fixtures;
 using DotNetModulith.Modules.Inventory.Infrastructure;
 using DotNetModulith.Modules.Orders.Infrastructure;
 using DotNetModulith.Modules.Payments.Infrastructure;
+using DotNetModulith.Modules.Users;
+using DotNetModulith.Modules.Users.Infrastructure;
 using FluentAssertions;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -125,6 +127,7 @@ public class ModuleApiTests : IClassFixture<ApiWebApplicationFactory>
 public sealed class ApiWebApplicationFactory : WebApplicationFactory<Program>, IAsyncLifetime
 {
     private readonly PostgreSqlFixture _dbFixture = new();
+    private bool _usersModuleInitialized;
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
@@ -143,6 +146,7 @@ public sealed class ApiWebApplicationFactory : WebApplicationFactory<Program>, I
             ReplaceDbContext<OrdersDbContext>(services);
             ReplaceDbContext<InventoryDbContext>(services);
             ReplaceDbContext<PaymentsDbContext>(services);
+            ReplaceDbContext<UsersDbContext>(services);
 
             services.AddSingleton<ICapPublisher, NullCapPublisher>();
         });
@@ -166,6 +170,20 @@ public sealed class ApiWebApplicationFactory : WebApplicationFactory<Program>, I
     public async ValueTask InitializeAsync()
     {
         await _dbFixture.InitializeAsync();
+    }
+
+    public async Task InitializeUsersModuleAsync()
+    {
+        if (_usersModuleInitialized)
+        {
+            return;
+        }
+
+        using var scope = Services.CreateScope();
+        var usersDb = scope.ServiceProvider.GetRequiredService<UsersDbContext>();
+        await usersDb.Database.MigrateAsync();
+        await scope.ServiceProvider.SeedUsersModuleAsync();
+        _usersModuleInitialized = true;
     }
 
     public new async ValueTask DisposeAsync()

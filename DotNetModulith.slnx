@@ -15,6 +15,7 @@
     <Project Path="src/DotNetModulith.Modules.Inventory/DotNetModulith.Modules.Inventory.csproj" />
     <Project Path="src/DotNetModulith.Modules.Payments/DotNetModulith.Modules.Payments.csproj" />
     <Project Path="src/DotNetModulith.Modules.Notifications/DotNetModulith.Modules.Notifications.csproj" />
+    <Project Path="src/DotNetModulith.Modules.Users/DotNetModulith.Modules.Users.csproj" />
   </Folder>
   <Folder Name="/src/Host/">
     <Project Path="src/DotNetModulith.Api/DotNetModulith.Api.csproj" />

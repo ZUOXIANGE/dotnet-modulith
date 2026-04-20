@@ -1,6 +1,7 @@
 using DotNetModulith.Modules.Inventory.Infrastructure;
 using DotNetModulith.Modules.Orders.Infrastructure;
 using DotNetModulith.Modules.Payments.Infrastructure;
+using DotNetModulith.Modules.Users.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using Respawn;
@@ -40,7 +41,7 @@ public sealed class PostgreSqlFixture : IAsyncLifetime
         _respawner = await Respawner.CreateAsync(connection, new RespawnerOptions
         {
             DbAdapter = DbAdapter.Postgres,
-            SchemasToInclude = ["public", "orders", "inventory", "payments"]
+            SchemasToInclude = ["public", "orders", "inventory", "payments", "users"]
         });
     }
 
@@ -61,12 +62,18 @@ public sealed class PostgreSqlFixture : IAsyncLifetime
             .UseNpgsql(ConnectionString)
             .Options;
 
+        var usersOptions = new DbContextOptionsBuilder<UsersDbContext>()
+            .UseNpgsql(ConnectionString)
+            .Options;
+
         await using var ordersDbContext = new OrdersDbContext(options);
         await using var inventoryDbContext = new InventoryDbContext(inventoryOptions);
         await using var paymentsDbContext = new PaymentsDbContext(paymentOptions);
+        await using var usersDbContext = new UsersDbContext(usersOptions);
         await ordersDbContext.Database.MigrateAsync();
         await inventoryDbContext.Database.MigrateAsync();
         await paymentsDbContext.Database.MigrateAsync();
+        await usersDbContext.Database.MigrateAsync();
     }
 
     /// <summary>

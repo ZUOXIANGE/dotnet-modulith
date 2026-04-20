@@ -8,6 +8,8 @@ using DotNetModulith.Modules.Notifications;
 using DotNetModulith.Modules.Orders;
 using DotNetModulith.Modules.Orders.Api.Controllers;
 using DotNetModulith.Modules.Payments;
+using DotNetModulith.Modules.Users;
+using DotNetModulith.Modules.Users.Api.Controllers;
 using DotNetModulith.ModulithCore;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
@@ -41,6 +43,7 @@ writeToProviders: true);
 builder.AddServiceDefaults();
 
 builder.Services.AddModulithCore(builder.Configuration);
+builder.Services.AddUsersAuthentication(builder.Configuration);
 
 builder.Services.AddOpenApi(options =>
 {
@@ -50,8 +53,9 @@ builder.Services.AddOpenApi(options =>
         {
             Title = "DotNetModulith API",
             Version = "v1",
-            Description = "基于 ASP.NET Core 10 的模块化单体架构 API，借鉴 Spring Modulith 设计思想"
+            Description = "基于 ASP.NET Core 10 的模块化单体架构 API，借鉴 Spring Modulith 设计思想。受保护接口请在请求头中传递 Authorization: Bearer {token}"
         };
+
         return Task.CompletedTask;
     });
 });
@@ -61,6 +65,7 @@ builder.Services
     .AddControllers()
     .AddApplicationPart(typeof(OrdersController).Assembly)
     .AddApplicationPart(typeof(InventoryController).Assembly)
+    .AddApplicationPart(typeof(AuthController).Assembly)
     .ConfigureApiBehaviorOptions(options =>
     {
         options.InvalidModelStateResponseFactory = context =>
@@ -113,6 +118,7 @@ builder.Services.RegisterModule<InventoryModule>(builder.Configuration);
 builder.Services.RegisterModule<OrdersModule>(builder.Configuration);
 builder.Services.RegisterModule<PaymentsModule>(builder.Configuration);
 builder.Services.RegisterModule<NotificationsModule>(builder.Configuration);
+builder.Services.RegisterModule<UsersModule>(builder.Configuration);
 
 if (!isTesting)
 {
@@ -226,6 +232,9 @@ app.UseWhen(
         };
     }));
 
+app.UseAuthentication();
+app.UseAuthorization();
+
 app.MapControllers();
 
 if (app.Environment.IsDevelopment())
@@ -238,6 +247,11 @@ if (app.Environment.IsDevelopment())
         .WithOpenApiRoutePattern("/openapi/{documentName}.json")
         .WithDefaultHttpClient(ScalarTarget.CSharp, ScalarClient.HttpClient);
     });
+}
+
+if (!isTesting)
+{
+    await app.Services.SeedUsersModuleAsync();
 }
 
 app.Run();

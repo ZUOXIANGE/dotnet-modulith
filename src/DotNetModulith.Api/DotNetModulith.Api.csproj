@@ -12,6 +12,7 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
     </PackageReference>
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
@@ -33,5 +34,6 @@
     <ProjectReference Include="..\DotNetModulith.Modules.Inventory\DotNetModulith.Modules.Inventory.csproj" />
     <ProjectReference Include="..\DotNetModulith.Modules.Payments\DotNetModulith.Modules.Payments.csproj" />
     <ProjectReference Include="..\DotNetModulith.Modules.Notifications\DotNetModulith.Modules.Notifications.csproj" />
+    <ProjectReference Include="..\DotNetModulith.Modules.Users\DotNetModulith.Modules.Users.csproj" />
   </ItemGroup>
 </Project>

@@ -98,12 +98,24 @@ Aspire 启动后会自动准备：
 - Scalar UI：`{api-base-url}/scalar/v1`
 - OpenAPI JSON：`{api-base-url}/openapi/v1.json`
 - 接口说明来自 XML 注释（Controller、Action、请求/响应模型）
+- OpenAPI 描述中已补充 `Bearer` 使用说明，便于联调时复制请求头
 
 其中：
 - `{api-base-url}` 表示 Aspire Dashboard 中 `api` 资源暴露出来的 HTTP 地址
 - `{jobhost-base-url}` 表示 Aspire Dashboard 中 `jobhost` 资源暴露出来的 HTTP 地址
 - `TickerQ Dashboard`：`{jobhost-base-url}/tickerq-dashboard`
 - `CAP Dashboard`：`{api-base-url}/cap-dashboard`
+
+Bearer 授权使用方式：
+
+```text
+Authorization: Bearer {access_token}
+```
+
+联调建议：
+- 先调用 `POST /api/auth/login` 获取 `accessToken`
+- 之后访问受保护接口时，在请求头中附带 `Authorization: Bearer {accessToken}`
+- 可优先联调 `Users`、`Roles` 等受保护接口验证权限链路
 
 ## 可观测性验证（Logs + Traces）
 ### 触发请求
@@ -134,23 +146,7 @@ curl {api-base-url}/api/modules/verify
 - `DotNetModulith.Modules.Notifications` 的库存预警通知日志与通知计数
 - `TickerQ` 的调度执行链路
 
-## 主要 API
-### Orders
-| 方法   | 路径                            | 说明                   |
-| ------ | ------------------------------- | ---------------------- |
-| POST   | `/api/orders`                   | 创建订单               |
-| GET    | `/api/orders/{orderId}`         | 查询订单详情（带缓存） |
-| POST   | `/api/orders/{orderId}/confirm` | 确认订单               |
-| DELETE | `/api/orders/{orderId}/cache`   | 手动清理订单缓存       |
-
-### Inventory
-| 方法 | 路径                                          | 说明     |
-| ---- | --------------------------------------------- | -------- |
-| GET  | `/api/inventory/stocks/{productId}`           | 查询库存 |
-| POST | `/api/inventory/stocks`                       | 创建库存 |
-| POST | `/api/inventory/stocks/{productId}/replenish` | 补充库存 |
-
-### 定时任务
+## 定时任务
 - `Inventory.LowStockAlertScan`：每 5 分钟扫描一次低库存
 - 配置节点：`InventoryAlert`
 - `Threshold`：低库存阈值，默认 `10`
@@ -158,13 +154,6 @@ curl {api-base-url}/api/modules/verify
 - 宿主进程：`jobhost`
 - 任务看板：`{jobhost-base-url}/tickerq-dashboard`
 - 事件链路：`TickerQ` 扫描 -> `modulith.inventory.LowStockDetectedIntegrationEvent` -> `Notifications` 模块发送消息通知
-
-### Modules
-| 方法 | 路径                  | 说明         |
-| ---- | --------------------- | ------------ |
-| GET  | `/api/modules`        | 模块列表     |
-| GET  | `/api/modules/graph`  | 模块依赖图   |
-| GET  | `/api/modules/verify` | 模块边界验证 |
 
 ## 接口响应约定
 - 所有接口统一返回 `ApiResponse<T>` 结构

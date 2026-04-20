@@ -2,6 +2,7 @@ using DotNetModulith.JobHost.Infrastructure;
 using DotNetModulith.Modules.Inventory.Infrastructure;
 using DotNetModulith.Modules.Orders.Infrastructure;
 using DotNetModulith.Modules.Payments.Infrastructure;
+using DotNetModulith.Modules.Users.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -22,6 +23,8 @@ builder.Services.AddDbContext<OrdersDbContext>(options =>
 builder.Services.AddDbContext<InventoryDbContext>(options =>
     options.UseNpgsql(connectionString));
 builder.Services.AddDbContext<PaymentsDbContext>(options =>
+    options.UseNpgsql(connectionString));
+builder.Services.AddDbContext<UsersDbContext>(options =>
     options.UseNpgsql(connectionString));
 builder.Services.AddDbContext<TickerQSchedulerDbContext>(options =>
     options.UseNpgsql(
@@ -63,14 +66,16 @@ internal sealed class MigrationWorker : BackgroundService
             var ordersDb = scope.ServiceProvider.GetRequiredService<OrdersDbContext>();
             var inventoryDb = scope.ServiceProvider.GetRequiredService<InventoryDbContext>();
             var paymentsDb = scope.ServiceProvider.GetRequiredService<PaymentsDbContext>();
+            var usersDb = scope.ServiceProvider.GetRequiredService<UsersDbContext>();
             var tickerQDb = scope.ServiceProvider.GetRequiredService<TickerQSchedulerDbContext>();
 
             await MigrateAsync(ordersDb, "Orders", stoppingToken);
             await MigrateAsync(inventoryDb, "Inventory", stoppingToken);
             await MigrateAsync(paymentsDb, "Payments", stoppingToken);
+            await MigrateAsync(usersDb, "Users", stoppingToken);
             await MigrateAsync(tickerQDb, "TickerQ", stoppingToken);
 
-            _logger.LogInformation("All migrations applied successfully for {ModuleCount} modules", 4);
+            _logger.LogInformation("All migrations applied successfully for {ModuleCount} modules", 5);
         }
         catch (Exception ex)
         {

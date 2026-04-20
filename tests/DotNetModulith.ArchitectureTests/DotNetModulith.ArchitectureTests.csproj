@@ -24,5 +24,6 @@
     <ProjectReference Include="..\..\src\DotNetModulith.Modules.Inventory\DotNetModulith.Modules.Inventory.csproj" />
     <ProjectReference Include="..\..\src\DotNetModulith.Modules.Payments\DotNetModulith.Modules.Payments.csproj" />
     <ProjectReference Include="..\..\src\DotNetModulith.Modules.Notifications\DotNetModulith.Modules.Notifications.csproj" />
+    <ProjectReference Include="..\..\src\DotNetModulith.Modules.Users\DotNetModulith.Modules.Users.csproj" />
   </ItemGroup>
 </Project>

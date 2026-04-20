@@ -17,7 +17,8 @@ public class ModuleBoundaryTests
             typeof(Modules.Orders.Domain.Order).Assembly,
             typeof(Modules.Inventory.Domain.Stock).Assembly,
             typeof(Modules.Payments.Domain.Payment).Assembly,
-            typeof(Modules.Notifications.Application.Subscribers.NotificationEventSubscriber).Assembly)
+            typeof(Modules.Notifications.Application.Subscribers.NotificationEventSubscriber).Assembly,
+            typeof(Modules.Users.Domain.ModuleUser).Assembly)
         .Build();
 
     private readonly IObjectProvider<IType> _ordersModule =
@@ -32,29 +33,43 @@ public class ModuleBoundaryTests
     private readonly IObjectProvider<IType> _notificationsModule =
         Types().That().ResideInNamespace("DotNetModulith.Modules.Notifications*").As("Notifications Module");
 
+    private readonly IObjectProvider<IType> _usersModule =
+        Types().That().ResideInNamespace("DotNetModulith.Modules.Users*").As("Users Module");
+
     private readonly IObjectProvider<IType> _ordersExternalModules =
         Types().That().ResideInNamespace("DotNetModulith.Modules.Inventory*")
             .Or().ResideInNamespace("DotNetModulith.Modules.Payments*")
             .Or().ResideInNamespace("DotNetModulith.Modules.Notifications*")
+            .Or().ResideInNamespace("DotNetModulith.Modules.Users*")
             .As("All non-Orders modules");
 
     private readonly IObjectProvider<IType> _inventoryExternalModules =
         Types().That().ResideInNamespace("DotNetModulith.Modules.Orders*")
             .Or().ResideInNamespace("DotNetModulith.Modules.Payments*")
             .Or().ResideInNamespace("DotNetModulith.Modules.Notifications*")
+            .Or().ResideInNamespace("DotNetModulith.Modules.Users*")
             .As("All non-Inventory modules");
 
     private readonly IObjectProvider<IType> _paymentsExternalModules =
         Types().That().ResideInNamespace("DotNetModulith.Modules.Orders*")
             .Or().ResideInNamespace("DotNetModulith.Modules.Inventory*")
             .Or().ResideInNamespace("DotNetModulith.Modules.Notifications*")
+            .Or().ResideInNamespace("DotNetModulith.Modules.Users*")
             .As("All non-Payments modules");
 
     private readonly IObjectProvider<IType> _notificationsExternalModules =
         Types().That().ResideInNamespace("DotNetModulith.Modules.Orders*")
             .Or().ResideInNamespace("DotNetModulith.Modules.Inventory*")
             .Or().ResideInNamespace("DotNetModulith.Modules.Payments*")
+            .Or().ResideInNamespace("DotNetModulith.Modules.Users*")
             .As("All non-Notifications modules");
+
+    private readonly IObjectProvider<IType> _usersExternalModules =
+        Types().That().ResideInNamespace("DotNetModulith.Modules.Orders*")
+            .Or().ResideInNamespace("DotNetModulith.Modules.Inventory*")
+            .Or().ResideInNamespace("DotNetModulith.Modules.Payments*")
+            .Or().ResideInNamespace("DotNetModulith.Modules.Notifications*")
+            .As("All non-Users modules");
 
     /// <summary>
     /// 验证订单模块不直接引用库存模块的领域层
@@ -149,6 +164,20 @@ public class ModuleBoundaryTests
         var rule = Types().That().Are(_notificationsModule)
             .Should().NotDependOnAny(_notificationsExternalModules)
             .Because("Notifications should communicate with other modules only through abstractions and integration contracts")
+            .WithoutRequiringPositiveResults();
+
+        rule.Check(Architecture);
+    }
+
+    /// <summary>
+    /// 验证用户模块不直接依赖其他模块实现命名空间
+    /// </summary>
+    [Fact]
+    public void UsersModule_ShouldNotReferenceOtherModules()
+    {
+        var rule = Types().That().Are(_usersModule)
+            .Should().NotDependOnAny(_usersExternalModules)
+            .Because("Users should remain self-contained and expose auth capabilities without direct business module dependencies")
             .WithoutRequiringPositiveResults();
 
         rule.Check(Architecture);

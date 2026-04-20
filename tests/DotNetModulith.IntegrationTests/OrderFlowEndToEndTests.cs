@@ -11,12 +11,8 @@ using DotNetModulith.Modules.Orders.Domain;
 using DotNetModulith.Modules.Orders.Infrastructure;
 using DotNetModulith.Modules.Payments.Infrastructure;
 using FluentAssertions;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
 using Xunit;
 
 namespace DotNetModulith.IntegrationTests;
@@ -543,59 +539,3 @@ public sealed class OrderFlowEndToEndTests : IClassFixture<MessagingApiWebApplic
 
     private sealed record PaymentDetailRecord(Guid Id, string OrderId, string Status);
 }
-
-/// <summary>
-/// 使用真实 PostgreSQL 与 RabbitMQ 的 WebApplicationFactory，用于验证 CAP 闭环
-/// </summary>
-public sealed class MessagingApiWebApplicationFactory : WebApplicationFactory<Program>, IAsyncLifetime
-{
-    private readonly PostgreSqlFixture _dbFixture = new();
-    private readonly RabbitMqFixture _rabbitMqFixture = new();
-
-    public string ConnectionString => _dbFixture.ConnectionString;
-
-    protected override void ConfigureWebHost(IWebHostBuilder builder)
-    {
-        builder.UseEnvironment("Integration");
-
-        builder.ConfigureServices(services =>
-        {
-            services.RemoveAll<IDistributedCache>();
-            services.AddDistributedMemoryCache();
-        });
-    }
-
-    public async ValueTask InitializeAsync()
-    {
-        await _dbFixture.InitializeAsync();
-        await _rabbitMqFixture.InitializeAsync();
-
-        Environment.SetEnvironmentVariable("ConnectionStrings__modulithdb", _dbFixture.ConnectionString);
-        Environment.SetEnvironmentVariable("RabbitMQ__HostName", _rabbitMqFixture.HostName);
-        Environment.SetEnvironmentVariable("RabbitMQ__Port", _rabbitMqFixture.Port.ToString());
-        Environment.SetEnvironmentVariable("RabbitMQ__UserName", "guest");
-        Environment.SetEnvironmentVariable("RabbitMQ__Password", "guest");
-        Environment.SetEnvironmentVariable("RabbitMQ__VirtualHost", "/");
-        Environment.SetEnvironmentVariable("OpenObserve__Enabled", "false");
-    }
-
-    public Task ResetDatabaseAsync() => _dbFixture.ResetAsync();
-
-    public new async ValueTask DisposeAsync()
-    {
-        Environment.SetEnvironmentVariable("ConnectionStrings__modulithdb", null);
-        Environment.SetEnvironmentVariable("RabbitMQ__HostName", null);
-        Environment.SetEnvironmentVariable("RabbitMQ__Port", null);
-        Environment.SetEnvironmentVariable("RabbitMQ__UserName", null);
-        Environment.SetEnvironmentVariable("RabbitMQ__Password", null);
-        Environment.SetEnvironmentVariable("RabbitMQ__VirtualHost", null);
-        Environment.SetEnvironmentVariable("OpenObserve__Enabled", null);
-
-        await _rabbitMqFixture.DisposeAsync();
-        await _dbFixture.DisposeAsync();
-        await base.DisposeAsync();
-    }
-}
-
-[CollectionDefinition("Messaging api collection")]
-public sealed class MessagingApiCollection : ICollectionFixture<MessagingApiWebApplicationFactory>;

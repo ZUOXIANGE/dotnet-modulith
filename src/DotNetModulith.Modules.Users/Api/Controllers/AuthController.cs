@@ -3,6 +3,7 @@ using DotNetModulith.Abstractions.Exceptions;
 using DotNetModulith.Abstractions.Results;
 using DotNetModulith.Modules.Users.Api.Contracts.Requests;
 using DotNetModulith.Modules.Users.Api.Contracts.Responses;
+using DotNetModulith.Modules.Users.Api.Mappings;
 using DotNetModulith.Modules.Users.Application;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;

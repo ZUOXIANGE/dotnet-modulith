@@ -1,5 +1,3 @@
-using DotNetModulith.Modules.Users.Application;
-
 namespace DotNetModulith.Modules.Users.Api.Contracts.Responses;
 
 /// <summary>
@@ -36,18 +34,3 @@ public sealed record RoleResponse(Guid Id, string Name, string? Description, boo
 /// 权限响应
 /// </summary>
 public sealed record PermissionResponse(string Code, string Name, string Description);
-
-internal static class UserResponseMappings
-{
-    public static CurrentUserResponse ToResponse(this CurrentUserDetails details)
-        => new(details.Id, details.UserName, details.DisplayName, details.Email, details.IsActive, details.Roles, details.Permissions);
-
-    public static UserListItemResponse ToResponse(this UserListItem item)
-        => new(item.Id, item.UserName, item.DisplayName, item.Email, item.IsActive, item.CreatedAt, item.LastLoginAt, item.Roles);
-
-    public static RoleResponse ToResponse(this RoleDetails role)
-        => new(role.Id, role.Name, role.Description, role.IsSystem, role.Permissions);
-
-    public static PermissionResponse ToResponse(this PermissionDetails permission)
-        => new(permission.Code, permission.Name, permission.Description);
-}

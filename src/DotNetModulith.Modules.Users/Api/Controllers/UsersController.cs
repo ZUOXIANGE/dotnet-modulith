@@ -1,6 +1,7 @@
 using DotNetModulith.Abstractions.Results;
 using DotNetModulith.Modules.Users.Api.Contracts.Requests;
 using DotNetModulith.Modules.Users.Api.Contracts.Responses;
+using DotNetModulith.Modules.Users.Api.Mappings;
 using DotNetModulith.Modules.Users.Application;
 using DotNetModulith.Modules.Users.Domain;
 using Microsoft.AspNetCore.Authorization;

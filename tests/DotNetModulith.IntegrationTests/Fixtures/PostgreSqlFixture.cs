@@ -1,8 +1,5 @@
-using DotNetModulith.Modules.Inventory.Infrastructure;
-using DotNetModulith.Modules.Orders.Infrastructure;
-using DotNetModulith.Modules.Payments.Infrastructure;
-using DotNetModulith.Modules.Users.Infrastructure;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
 using Respawn;
 using Testcontainers.PostgreSql;
@@ -29,6 +26,17 @@ public sealed class PostgreSqlFixture : IAsyncLifetime
     /// </summary>
     public string ConnectionString => _container.GetConnectionString();
 
+    /// <summary>
+    /// 使用测试容器连接串替换已注册的业务模块 DbContext
+    /// </summary>
+    public void ReplaceRegisteredDbContexts(IServiceCollection services)
+    {
+        foreach (var module in TestModuleDatabaseRegistry.BusinessModules)
+        {
+            module.ReplaceDbContext(services, ConnectionString);
+        }
+    }
+
     public async ValueTask InitializeAsync()
     {
         await _container.StartAsync();
@@ -41,7 +49,7 @@ public sealed class PostgreSqlFixture : IAsyncLifetime
         _respawner = await Respawner.CreateAsync(connection, new RespawnerOptions
         {
             DbAdapter = DbAdapter.Postgres,
-            SchemasToInclude = ["public", "orders", "inventory", "payments", "users"]
+            SchemasToInclude = ["public", .. TestModuleDatabaseRegistry.BusinessModules.Select(module => module.Schema)]
         });
     }
 
@@ -50,30 +58,11 @@ public sealed class PostgreSqlFixture : IAsyncLifetime
     /// </summary>
     private async Task EnsureMigrationsAppliedAsync()
     {
-        var options = new DbContextOptionsBuilder<OrdersDbContext>()
-            .UseNpgsql(ConnectionString)
-            .Options;
-
-        var inventoryOptions = new DbContextOptionsBuilder<InventoryDbContext>()
-            .UseNpgsql(ConnectionString)
-            .Options;
-
-        var paymentOptions = new DbContextOptionsBuilder<PaymentsDbContext>()
-            .UseNpgsql(ConnectionString)
-            .Options;
-
-        var usersOptions = new DbContextOptionsBuilder<UsersDbContext>()
-            .UseNpgsql(ConnectionString)
-            .Options;
-
-        await using var ordersDbContext = new OrdersDbContext(options);
-        await using var inventoryDbContext = new InventoryDbContext(inventoryOptions);
-        await using var paymentsDbContext = new PaymentsDbContext(paymentOptions);
-        await using var usersDbContext = new UsersDbContext(usersOptions);
-        await ordersDbContext.Database.MigrateAsync();
-        await inventoryDbContext.Database.MigrateAsync();
-        await paymentsDbContext.Database.MigrateAsync();
-        await usersDbContext.Database.MigrateAsync();
+        foreach (var module in TestModuleDatabaseRegistry.BusinessModules)
+        {
+            await using var dbContext = module.CreateDbContext(ConnectionString);
+            await dbContext.Database.MigrateAsync();
+        }
     }
 
     /// <summary>

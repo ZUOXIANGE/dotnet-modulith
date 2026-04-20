@@ -1,12 +1,15 @@
 using DotNetCore.CAP;
+using DotNetModulith.Abstractions.Contracts.Inventory;
 using DotNetModulith.Abstractions.Contracts.Orders;
 using DotNetModulith.IntegrationTests.Fixtures;
+using DotNetModulith.Modules.Inventory.Application.Jobs;
 using DotNetModulith.Modules.Inventory.Application.Subscribers;
 using DotNetModulith.Modules.Inventory.Domain;
 using DotNetModulith.Modules.Inventory.Infrastructure;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
 using Xunit;
 
 namespace DotNetModulith.IntegrationTests.Inventory;
@@ -150,6 +153,51 @@ public class InventoryReservationTests(PostgreSqlFixture dbFixture) : IAsyncLife
         stock.ReservedQuantity.Should().Be(0);
     }
 
+    [Fact]
+    public async Task LowStockAlertJob_ShouldPublishEvent_AndMarkStocksAsAlerted()
+    {
+        await dbFixture.ResetAsync();
+        var ct = TestContext.Current.CancellationToken;
+
+        await SeedStocksAsync(
+            Stock.Create("PROD-LOW-001", "Sensor", 3),
+            Stock.Create("PROD-LOW-002", "Battery", 8),
+            Stock.Create("PROD-OK-001", "Cable", 20));
+
+        await using var dbContext = new InventoryDbContext(_options);
+        var publisher = new CapturingCapPublisher();
+        var job = new LowStockAlertJob(
+            new StockRepository(dbContext),
+            dbContext,
+            publisher,
+            Options.Create(new LowStockAlertOptions
+            {
+                Threshold = 10,
+                BatchSize = 20
+            }),
+            NullLogger<LowStockAlertJob>.Instance);
+
+        await job.ExecuteAsync(new TickerQ.Utilities.Base.TickerFunctionContext(), ct);
+
+        publisher.PublishedMessages.Should().ContainSingle();
+        publisher.PublishedMessages[0].Name.Should().Be("modulith.inventory.LowStockDetectedIntegrationEvent");
+
+        var payload = publisher.PublishedMessages[0].Content.Should().BeOfType<LowStockDetectedIntegrationEvent>().Subject;
+        payload.Threshold.Should().Be(10);
+        payload.Items.Should().HaveCount(2);
+        payload.Items.Should().Contain(x => x.ProductId == "PROD-LOW-001" && x.AvailableQuantity == 3);
+        payload.Items.Should().Contain(x => x.ProductId == "PROD-LOW-002" && x.AvailableQuantity == 8);
+
+        await using var assertionDbContext = new InventoryDbContext(_options);
+        var alertedStocks = await assertionDbContext.Stocks
+            .Where(x => x.ProductId.StartsWith("PROD-LOW"))
+            .OrderBy(x => x.ProductId)
+            .ToListAsync(ct);
+
+        alertedStocks.Should().OnlyContain(x => x.LowStockAlertSentAt != null);
+        alertedStocks.Should().OnlyContain(x => x.LastAlertedAvailableQuantity == x.AvailableQuantity);
+    }
+
     private async Task SeedStocksAsync(params Stock[] stocks)
     {
         await using var dbContext = new InventoryDbContext(_options);
@@ -184,6 +232,51 @@ public class InventoryReservationTests(PostgreSqlFixture dbFixture) : IAsyncLife
 
         public void Publish<T>(string name, T? contentObj, IDictionary<string, string?> headers)
         {
+        }
+
+        public Task PublishDelayAsync<T>(TimeSpan delayTime, string name, T? contentObj, IDictionary<string, string?> headers, CancellationToken cancellationToken = default)
+            => Task.CompletedTask;
+
+        public Task PublishDelayAsync<T>(TimeSpan delayTime, string name, T? contentObj, string? callbackName = null, CancellationToken cancellationToken = default)
+            => Task.CompletedTask;
+
+        public void PublishDelay<T>(TimeSpan delayTime, string name, T? contentObj, IDictionary<string, string?> headers)
+        {
+        }
+
+        public void PublishDelay<T>(TimeSpan delayTime, string name, T? contentObj, string? callbackName = null)
+        {
+        }
+    }
+
+    private sealed class CapturingCapPublisher : ICapPublisher
+    {
+        public List<(string Name, object? Content)> PublishedMessages { get; } = [];
+
+        public IServiceProvider ServiceProvider => null!;
+
+        public ICapTransaction? Transaction { get; set; }
+
+        public Task PublishAsync<T>(string name, T? contentObj, string? callbackName = null, CancellationToken cancellationToken = default)
+        {
+            PublishedMessages.Add((name, contentObj));
+            return Task.CompletedTask;
+        }
+
+        public Task PublishAsync<T>(string name, T? contentObj, IDictionary<string, string?> headers, CancellationToken cancellationToken = default)
+        {
+            PublishedMessages.Add((name, contentObj));
+            return Task.CompletedTask;
+        }
+
+        public void Publish<T>(string name, T? contentObj, string? callbackName = null)
+        {
+            PublishedMessages.Add((name, contentObj));
+        }
+
+        public void Publish<T>(string name, T? contentObj, IDictionary<string, string?> headers)
+        {
+            PublishedMessages.Add((name, contentObj));
         }
 
         public Task PublishDelayAsync<T>(TimeSpan delayTime, string name, T? contentObj, IDictionary<string, string?> headers, CancellationToken cancellationToken = default)

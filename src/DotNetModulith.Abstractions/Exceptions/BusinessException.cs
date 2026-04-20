@@ -1,6 +1,6 @@
 namespace DotNetModulith.Abstractions.Exceptions;
 
-using DotNetModulith.Abstractions.Results;
+using Results;
 
 /// <summary>
 /// 业务异常，可在应用层/领域层直接抛出并由全局异常处理统一转换为 API 响应

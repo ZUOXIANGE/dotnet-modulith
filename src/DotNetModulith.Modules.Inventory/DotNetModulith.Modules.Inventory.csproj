@@ -17,6 +17,7 @@
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" PrivateAssets="All" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
     <PackageReference Include="Riok.Mapperly" ExcludeAssets="runtime" PrivateAssets="all" />
+    <PackageReference Include="TickerQ" />
   </ItemGroup>
 
   <ItemGroup>

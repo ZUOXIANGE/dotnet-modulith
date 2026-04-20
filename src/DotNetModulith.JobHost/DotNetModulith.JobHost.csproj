@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <TargetFramework>$(NetAppVersion)</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="DotNetCore.CAP" />
+    <PackageReference Include="DotNetCore.CAP.RabbitMQ" />
+    <PackageReference Include="DotNetCore.CAP.PostgreSql" />
+    <PackageReference Include="AspNetCore.HealthChecks.NpgSql" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
+    <PackageReference Include="Serilog.AspNetCore" />
+    <PackageReference Include="Serilog.Formatting.Compact" />
+    <PackageReference Include="Serilog.Sinks.Async" />
+    <PackageReference Include="Serilog.Sinks.File" />
+    <PackageReference Include="TickerQ" />
+    <PackageReference Include="TickerQ.Dashboard" />
+    <PackageReference Include="TickerQ.EntityFrameworkCore" />
+    <PackageReference Include="TickerQ.Instrumentation.OpenTelemetry" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\DotNetModulith.ServiceDefaults\DotNetModulith.ServiceDefaults.csproj" />
+    <ProjectReference Include="..\DotNetModulith.Modules.Inventory\DotNetModulith.Modules.Inventory.csproj" />
+  </ItemGroup>
+</Project>

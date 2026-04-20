@@ -21,9 +21,9 @@ public sealed class NotificationsModule : IModule
     public string BaseNamespace => "DotNetModulith.Modules.Notifications";
 
     /// <summary>
-    /// 模块依赖列表（依赖订单和支付模块）
+    /// 模块依赖列表（依赖订单、支付和库存模块）
     /// </summary>
-    public IReadOnlyList<string> Dependencies => ["Orders", "Payments"];
+    public IReadOnlyList<string> Dependencies => ["Orders", "Payments", "Inventory"];
 
     /// <summary>
     /// 模块发布的集成事件列表（通知模块不发布事件）
@@ -37,7 +37,8 @@ public sealed class NotificationsModule : IModule
     [
         "modulith.orders.OrderCreatedIntegrationEvent",
         "modulith.payments.PaymentCompletedIntegrationEvent",
-        "modulith.orders.OrderCancelledIntegrationEvent"
+        "modulith.orders.OrderCancelledIntegrationEvent",
+        "modulith.inventory.LowStockDetectedIntegrationEvent"
     ];
 
     /// <summary>

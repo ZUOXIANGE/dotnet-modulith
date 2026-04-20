@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Diagnostics.Metrics;
 using DotNetCore.CAP;
+using DotNetModulith.Abstractions.Contracts.Inventory;
 using DotNetModulith.Abstractions.Contracts.Orders;
 using DotNetModulith.Abstractions.Contracts.Payments;
 using Microsoft.Extensions.Logging;
@@ -85,6 +86,31 @@ public sealed class NotificationEventSubscriber : ICapSubscribe
         NotificationsSent.Add(1,
             new KeyValuePair<string, object?>("modulith.notification_type", "order_cancelled"),
             new KeyValuePair<string, object?>("modulith.channel", "email"));
+
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// 处理低库存预警事件，发送库存告警通知
+    /// </summary>
+    [CapSubscribe("modulith.inventory.LowStockDetectedIntegrationEvent", Group = "notifications")]
+    public Task HandleLowStockDetectedAsync(LowStockDetectedIntegrationEvent @event, CancellationToken ct = default)
+    {
+        using var activity = ActivitySource.StartActivity("SendLowStockAlertNotification", ActivityKind.Consumer);
+        activity?.SetTag("modulith.event_type", "LowStockDetectedIntegrationEvent");
+        activity?.SetTag("modulith.threshold", @event.Threshold);
+        activity?.SetTag("modulith.item_count", @event.Items.Count);
+
+        _logger.LogWarning(
+            "Low stock alert notification: {ItemCount} products are below threshold {Threshold}. Products: {Products}",
+            @event.Items.Count,
+            @event.Threshold,
+            string.Join(", ", @event.Items.Select(item => $"{item.ProductId}:{item.AvailableQuantity}")));
+
+        NotificationsSent.Add(
+            @event.Items.Count,
+            new KeyValuePair<string, object?>("modulith.notification_type", "low_stock_alert"),
+            new KeyValuePair<string, object?>("modulith.channel", "message"));
 
         return Task.CompletedTask;
     }

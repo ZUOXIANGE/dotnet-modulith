@@ -11,14 +11,20 @@ Environment.SetEnvironmentVariable(
 
 var builder = DistributedApplication.CreateBuilder(args);
 
-var postgres = builder.AddPostgres("postgres")
-    .WithDataVolume("modulith-postgres-data")
+var postgresUser = builder.AddParameter("postgres-username", "postgres", publishValueAsDefault: true, secret: false);
+var postgresPassword = builder.AddParameter("postgres-password", "postgres", publishValueAsDefault: false, secret: true);
+var rabbitMqUser = builder.AddParameter("rabbitmq-username", "guest", publishValueAsDefault: true, secret: false);
+var rabbitMqPassword = builder.AddParameter("rabbitmq-password", "guest", publishValueAsDefault: false, secret: true);
+
+var postgres = builder.AddPostgres("postgres", postgresUser, postgresPassword, port: 5432)
+    .WithDataVolume("modulith-postgres-data-v2")
     .WithPgAdmin();
 
 var modulithDb = postgres.AddDatabase("modulithdb", "modulith");
+var tickerQDb = postgres.AddDatabase("tickerqdb", "tickerq");
 
-var rabbitmq = builder.AddRabbitMQ("rabbitmq")
-    .WithDataVolume("modulith-rabbitmq-data")
+var rabbitmq = builder.AddRabbitMQ("rabbitmq", rabbitMqUser, rabbitMqPassword, port: 5672)
+    .WithDataVolume("modulith-rabbitmq-data-v2")
     .WithManagementPlugin();
 
 var redis = builder.AddRedis("redis")
@@ -43,9 +49,13 @@ var otelCollector = builder.AddContainer("otel-collector", "otel/opentelemetry-c
 
 var migrations = builder.AddProject<DotNetModulith_MigrationService>("migrations")
     .WithReference(modulithDb)
+    .WithReference(tickerQDb)
     .WithEnvironment("OTEL_EXPORTER_OTLP_ENDPOINT", otelCollector.GetEndpoint("otlp-http"))
     .WithEnvironment("OpenObserve__Enabled", "false")
-    .WaitFor(modulithDb);
+    .WithEnvironment("OpenObserve__UserEmail", "admin@modulith.local")
+    .WithEnvironment("OpenObserve__UserPassword", "Modulith@2026")
+    .WaitFor(modulithDb)
+    .WaitFor(tickerQDb);
 
 var api = builder.AddProject<DotNetModulith_Api>("api")
     .WithReference(modulithDb)
@@ -53,8 +63,21 @@ var api = builder.AddProject<DotNetModulith_Api>("api")
     .WithReference(redis)
     .WithEnvironment("OTEL_EXPORTER_OTLP_ENDPOINT", otelCollector.GetEndpoint("otlp-http"))
     .WithEnvironment("OpenObserve__Enabled", "false")
+    .WithEnvironment("OpenObserve__UserEmail", "admin@modulith.local")
+    .WithEnvironment("OpenObserve__UserPassword", "Modulith@2026")
     .WaitForCompletion(migrations)
     .WaitFor(rabbitmq)
     .WaitFor(redis);
+
+var jobhost = builder.AddProject<DotNetModulith_JobHost>("jobhost")
+    .WithReference(modulithDb)
+    .WithReference(tickerQDb)
+    .WithReference(rabbitmq)
+    .WithEnvironment("OTEL_EXPORTER_OTLP_ENDPOINT", otelCollector.GetEndpoint("otlp-http"))
+    .WithEnvironment("OpenObserve__Enabled", "false")
+    .WithEnvironment("OpenObserve__UserEmail", "admin@modulith.local")
+    .WithEnvironment("OpenObserve__UserPassword", "Modulith@2026")
+    .WaitForCompletion(migrations)
+    .WaitFor(rabbitmq);
 
 builder.Build().Run();

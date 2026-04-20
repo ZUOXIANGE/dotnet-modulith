@@ -15,5 +15,6 @@
   <ItemGroup>
     <ProjectReference Include="..\DotNetModulith.Api\DotNetModulith.Api.csproj" />
     <ProjectReference Include="..\DotNetModulith.MigrationService\DotNetModulith.MigrationService.csproj" />
+    <ProjectReference Include="..\DotNetModulith.JobHost\DotNetModulith.JobHost.csproj" />
   </ItemGroup>
 </Project>

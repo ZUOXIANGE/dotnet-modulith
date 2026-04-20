@@ -10,6 +10,7 @@
 - 模块化单体：模块边界清晰，支持运行时与架构测试校验
 - DDD + CQRS：聚合根、值对象、领域事件与命令/查询分离
 - 事件驱动：基于 CAP + RabbitMQ 的可靠事件发布订阅（含 Outbox）
+- 定时调度：基于 TickerQ 的持久化任务与 Dashboard
 - 多级缓存：FusionCache（L1 内存 + L2 Redis）
 - 统一可观测：OpenTelemetry + OpenObserve，支持 Logs/Traces/Metrics
 - 结构化日志：Serilog JSON（控制台 + 文件），并异步写入
@@ -21,6 +22,7 @@
 | Web    | ASP.NET Core Controllers + OpenAPI                         |
 | 数据库 | PostgreSQL + EF Core 10                                    |
 | 消息   | RabbitMQ + DotNetCore.CAP                                  |
+| 调度   | TickerQ + TickerQ.EntityFrameworkCore + TickerQ.Dashboard  |
 | 缓存   | FusionCache + Redis                                        |
 | 观测   | OpenTelemetry + OpenObserve + OTEL Collector               |
 | 日志   | Serilog（Async + JSON）                                    |
@@ -44,6 +46,17 @@ tests/
   DotNetModulith.ArchitectureTests/
 ```
 
+## 数据库拓扑
+- 业务数据库：`modulithdb`
+- 调度数据库：`tickerqdb`
+- 设计原则：TickerQ 使用独立数据库，不与订单、库存、支付等业务表混放
+- 部署建议：生产环境可使用同一 PostgreSQL 实例下的不同数据库，也可完全拆分为独立实例
+
+当前实现中：
+- CAP Outbox、业务模块实体和读写模型使用 `modulithdb`
+- TickerQ 的时间任务、Cron 任务和执行状态使用 `tickerqdb`
+- `MigrationService` 会同时迁移业务库与调度库
+
 ## 快速启动（推荐：Aspire）
 ### 前置条件
 - .NET 10 SDK
@@ -57,45 +70,46 @@ dotnet run --project src/DotNetModulith.AppHost
 
 启动后可在 Aspire Dashboard 查看各服务与端点（默认 `http://localhost:15000`）。
 
+Aspire 启动后会自动准备：
+- `modulithdb`：业务数据库
+- `tickerqdb`：TickerQ 调度数据库
+- `rabbitmq`、`redis`、`openobserve`、`otel-collector`
+
+推荐做法：
+- 统一通过 `DotNetModulith.AppHost` 启动应用与全部依赖
+- 通过 Aspire Dashboard 查看 `api`、`jobhost`、数据库、消息队列、缓存与可观测组件状态
+- 不再维护独立启动脚本，避免本地手工环境与实际编排环境不一致
+- `api`、`jobhost`、`openobserve`、`pgadmin`、`rabbitmq-management` 等访问地址以 Aspire Dashboard 中显示的实际端点为准
+
+常用入口：
+- `Aspire Dashboard`：默认 `http://localhost:15000`
+- `API Base URL`：在 Aspire Dashboard 的 `api` 资源详情中查看
+- `JobHost Base URL`：在 Aspire Dashboard 的 `jobhost` 资源详情中查看
+- `OpenObserve`：在 Aspire Dashboard 的 `openobserve` 资源详情中查看
+- `RabbitMQ Management`：在 Aspire Dashboard 的 `rabbitmq-management` 端点中查看
+- `PgAdmin`：在 Aspire Dashboard 的 `pgadmin` 资源详情中查看
+
 ## API 文档
-- Scalar UI：`http://localhost:5000/scalar/v1`
-- OpenAPI JSON：`http://localhost:5000/openapi/v1.json`
+- Scalar UI：`{api-base-url}/scalar/v1`
+- OpenAPI JSON：`{api-base-url}/openapi/v1.json`
 - 接口说明来自 XML 注释（Controller、Action、请求/响应模型）
 
-## 独立启动（不通过 AppHost）
-当你需要单独调试 API 时，可使用以下方式：
-
-### 1) 启动基础依赖
-```bash
-docker run --name modulith-postgres -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=modulith -p 5432:5432 -d postgres:16
-docker run --name modulith-rabbitmq -p 5672:5672 -p 15672:15672 -d rabbitmq:3-management
-docker run --name modulith-redis -p 6379:6379 -d redis:7
-docker run --name modulith-openobserve -p 5080:5080 -e ZO_ROOT_USER_EMAIL=admin@modulith.local -e ZO_ROOT_USER_PASSWORD=Modulith@2026 -d public.ecr.aws/zinclabs/openobserve:latest
-```
-
-### 2) 启动 API
-```powershell
-$env:OpenObserve__Enabled='true'
-$env:OpenObserve__Endpoint='http://localhost:5080'
-$env:OpenObserve__Organization='default'
-$env:OpenObserve__StreamName='dotnet-modulith'
-$env:OpenObserve__UserEmail='<your-openobserve-email>'
-$env:OpenObserve__UserPassword='<your-openobserve-password>'
-$env:ConnectionStrings__modulithdb='Host=localhost;Port=5432;Database=modulith;Username=postgres;Password=postgres'
-$env:ConnectionStrings__redis='localhost:6379'
-dotnet run --no-launch-profile --urls http://localhost:5000 --project src/DotNetModulith.Api
-```
+其中：
+- `{api-base-url}` 表示 Aspire Dashboard 中 `api` 资源暴露出来的 HTTP 地址
+- `{jobhost-base-url}` 表示 Aspire Dashboard 中 `jobhost` 资源暴露出来的 HTTP 地址
+- `TickerQ Dashboard`：`{jobhost-base-url}/tickerq-dashboard`
+- `CAP Dashboard`：`{api-base-url}/cap-dashboard`
 
 ## 可观测性验证（Logs + Traces）
 ### 触发请求
 ```bash
-curl http://localhost:5000/alive
-curl http://localhost:5000/ready
-curl http://localhost:5000/startup
-curl http://localhost:5000/health
-curl http://localhost:5000/api/modules
-curl http://localhost:5000/api/modules/graph
-curl http://localhost:5000/api/modules/verify
+curl {api-base-url}/alive
+curl {api-base-url}/ready
+curl {api-base-url}/startup
+curl {api-base-url}/health
+curl {api-base-url}/api/modules
+curl {api-base-url}/api/modules/graph
+curl {api-base-url}/api/modules/verify
 ```
 
 ### 健康探针说明（K8S 推荐）
@@ -105,10 +119,15 @@ curl http://localhost:5000/api/modules/verify
 - `/health`：`/ready` 的别名，便于兼容现有脚本
 
 ### 在 OpenObserve 查看
-- 地址：`http://localhost:5080`
+- 地址：在 Aspire Dashboard 的 `openobserve` 资源详情中查看
 - 账号/密码：使用你本地环境变量中配置的凭据
 - `Logs` 页面选择 stream：`dotnet_modulith`
 - `Traces` 页面选择 stream：`dotnet_modulith`
+
+你可以重点观察这些信号：
+- `DotNetModulith.Modules.Inventory` 的低库存扫描 Span 与指标
+- `DotNetModulith.Modules.Notifications` 的库存预警通知日志与通知计数
+- `TickerQ` 的调度执行链路
 
 ## 主要 API
 ### Orders
@@ -125,6 +144,15 @@ curl http://localhost:5000/api/modules/verify
 | GET  | `/api/inventory/stocks/{productId}`           | 查询库存 |
 | POST | `/api/inventory/stocks`                       | 创建库存 |
 | POST | `/api/inventory/stocks/{productId}/replenish` | 补充库存 |
+
+### 定时任务
+- `Inventory.LowStockAlertScan`：每 5 分钟扫描一次低库存
+- 配置节点：`InventoryAlert`
+- `Threshold`：低库存阈值，默认 `10`
+- `BatchSize`：单次扫描最大处理数，默认 `100`
+- 宿主进程：`jobhost`
+- 任务看板：`{jobhost-base-url}/tickerq-dashboard`
+- 事件链路：`TickerQ` 扫描 -> `modulith.inventory.LowStockDetectedIntegrationEvent` -> `Notifications` 模块发送消息通知
 
 ### Modules
 | 方法 | 路径                  | 说明         |

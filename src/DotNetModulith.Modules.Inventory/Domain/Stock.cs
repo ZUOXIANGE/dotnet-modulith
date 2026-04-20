@@ -63,6 +63,16 @@ public sealed class Stock : AggregateRoot, IEntity<StockId>
     /// </summary>
     public DateTimeOffset? UpdatedAt { get; private set; }
 
+    /// <summary>
+    /// 最近一次发送低库存预警的时间
+    /// </summary>
+    public DateTimeOffset? LowStockAlertSentAt { get; private set; }
+
+    /// <summary>
+    /// 最近一次发送低库存预警时的可用库存快照
+    /// </summary>
+    public int? LastAlertedAvailableQuantity { get; private set; }
+
     private Stock() { }
 
     /// <summary>
@@ -115,6 +125,31 @@ public sealed class Stock : AggregateRoot, IEntity<StockId>
     }
 
     /// <summary>
+    /// 判断当前库存是否需要再次发送低库存预警
+    /// </summary>
+    /// <param name="threshold">低库存阈值</param>
+    /// <returns>需要发送时返回true</returns>
+    public bool ShouldSendLowStockAlert(int threshold)
+    {
+        if (AvailableQuantity > threshold)
+        {
+            return false;
+        }
+
+        return LowStockAlertSentAt is null || LastAlertedAvailableQuantity != AvailableQuantity;
+    }
+
+    /// <summary>
+    /// 标记当前库存已经发送过低库存预警
+    /// </summary>
+    public void MarkLowStockAlertSent()
+    {
+        LowStockAlertSentAt = DateTimeOffset.UtcNow;
+        LastAlertedAvailableQuantity = AvailableQuantity;
+        UpdatedAt = DateTimeOffset.UtcNow;
+    }
+
+    /// <summary>
     /// 释放已预留的库存（如订单取消时）
     /// </summary>
     /// <param name="quantity">释放数量</param>
@@ -145,6 +180,8 @@ public sealed class Stock : AggregateRoot, IEntity<StockId>
     {
         AvailableQuantity += quantity;
         UpdatedAt = DateTimeOffset.UtcNow;
+        LowStockAlertSentAt = null;
+        LastAlertedAvailableQuantity = null;
 
         AddDomainEvent(new StockReplenishedDomainEvent(Id, ProductId, quantity));
     }

@@ -77,6 +77,12 @@ internal sealed class StockConfiguration : IEntityTypeConfiguration<Stock>
         builder.Property(s => s.UpdatedAt)
             .HasColumnName("updated_at");
 
+        builder.Property(s => s.LowStockAlertSentAt)
+            .HasColumnName("low_stock_alert_sent_at");
+
+        builder.Property(s => s.LastAlertedAvailableQuantity)
+            .HasColumnName("last_alerted_available_quantity");
+
         builder.Ignore(s => s.DomainEvents);
 
         builder.HasIndex(s => s.ProductId).IsUnique();

@@ -46,3 +46,27 @@ public sealed record StockInsufficientIntegrationEvent(
     [property: JsonPropertyName("productId")] string ProductId,
     [property: JsonPropertyName("requested")] int Requested,
     [property: JsonPropertyName("available")] int Available) : IntegrationEvent;
+
+/// <summary>
+/// 低库存预警集成事件
+/// </summary>
+/// <param name="Threshold">触发预警的库存阈值</param>
+/// <param name="DetectedAt">检测时间（UTC）</param>
+/// <param name="Items">命中的低库存明细</param>
+public sealed record LowStockDetectedIntegrationEvent(
+    [property: JsonPropertyName("threshold")] int Threshold,
+    [property: JsonPropertyName("detectedAt")] DateTimeOffset DetectedAt,
+    [property: JsonPropertyName("items")] IReadOnlyList<LowStockAlertItem> Items) : IntegrationEvent;
+
+/// <summary>
+/// 低库存预警明细
+/// </summary>
+/// <param name="ProductId">产品ID</param>
+/// <param name="ProductName">产品名称</param>
+/// <param name="AvailableQuantity">当前可用库存</param>
+/// <param name="ReservedQuantity">当前已预留库存</param>
+public sealed record LowStockAlertItem(
+    [property: JsonPropertyName("productId")] string ProductId,
+    [property: JsonPropertyName("productName")] string ProductName,
+    [property: JsonPropertyName("availableQuantity")] int AvailableQuantity,
+    [property: JsonPropertyName("reservedQuantity")] int ReservedQuantity);

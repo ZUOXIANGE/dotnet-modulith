@@ -27,6 +27,10 @@
     <PackageVersion Include="Serilog.Formatting.Compact" Version="3.0.0" />
     <PackageVersion Include="Serilog.Sinks.Async" Version="2.1.0" />
     <PackageVersion Include="Serilog.Sinks.File" Version="7.0.0" />
+    <PackageVersion Include="TickerQ" Version="10.3.0" />
+    <PackageVersion Include="TickerQ.Dashboard" Version="10.3.0" />
+    <PackageVersion Include="TickerQ.EntityFrameworkCore" Version="10.3.0" />
+    <PackageVersion Include="TickerQ.Instrumentation.OpenTelemetry" Version="10.3.0" />
     <PackageVersion Include="ZiggyCreatures.FusionCache" Version="2.6.0" />
     <PackageVersion Include="ZiggyCreatures.FusionCache.OpenTelemetry" Version="2.6.0" />
     <PackageVersion Include="ZiggyCreatures.FusionCache.Serialization.SystemTextJson" Version="2.6.0" />

@@ -19,6 +19,7 @@
   <Folder Name="/src/Host/">
     <Project Path="src/DotNetModulith.Api/DotNetModulith.Api.csproj" />
     <Project Path="src/DotNetModulith.AppHost/DotNetModulith.AppHost.csproj" />
+    <Project Path="src/DotNetModulith.JobHost/DotNetModulith.JobHost.csproj" />
     <Project Path="src/DotNetModulith.MigrationService/DotNetModulith.MigrationService.csproj" />
   </Folder>
   <Folder Name="/tests/">
@@ -29,5 +30,6 @@
   <Folder Name="/docs/">
     <File Path="docs/api-error-codes.md" />
     <File Path="docs/development-standards.md" />
+    <File Path="docs/scheduled-jobs.md" />
   </Folder>
 </Solution>

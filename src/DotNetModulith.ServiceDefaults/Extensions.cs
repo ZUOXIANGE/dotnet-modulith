@@ -121,7 +121,8 @@ public static class Extensions
                     .AddNpgsqlInstrumentation()
                     .AddFusionCacheInstrumentation()
                     .AddMeter("DotNetModulith")
-                    .AddMeter("DotNetCore.CAP");
+                    .AddMeter("DotNetCore.CAP")
+                    .AddMeter("TickerQ");
 
                 if (openObserveEnabled)
                 {
@@ -138,6 +139,7 @@ public static class Extensions
                 // 链路信号：接入 Web 请求、HttpClient、Npgsql、EF Core 及各业务模块 ActivitySource。
                 tracing
                     .SetResourceBuilder(resourceBuilder)
+                    .SetSampler(new AlwaysOnSampler()) //设置采样为全采样,生产环境在otel collector中配置尾采样策略
                     .AddSource(builder.Environment.ApplicationName)
                     .AddSource("DotNetCore.CAP")
                     .AddAspNetCoreInstrumentation(options =>
@@ -149,6 +151,7 @@ public static class Extensions
                     .AddFusionCacheInstrumentation()
                     .AddEntityFrameworkCoreInstrumentation(options =>
                         options.SetDbStatementForText = true)
+                    .AddSource("TickerQ")
                     .AddSource("DotNetModulith.Modules.Orders")
                     .AddSource("DotNetModulith.Modules.Inventory")
                     .AddSource("DotNetModulith.Modules.Payments")

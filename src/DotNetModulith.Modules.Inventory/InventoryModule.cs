@@ -1,8 +1,7 @@
+using DotNetModulith.Modules.Inventory.Application.Jobs;
 using DotNetModulith.Modules.Inventory.Application.Subscribers;
 using DotNetModulith.Modules.Inventory.Domain;
-using DotNetModulith.Modules.Inventory.Infrastructure;
 using DotNetModulith.ModulithCore;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -35,7 +34,8 @@ public sealed class InventoryModule : IModule
     [
         "modulith.inventory.StockReservedIntegrationEvent",
         "modulith.inventory.StockInsufficientIntegrationEvent",
-        "modulith.inventory.StockReplenishedIntegrationEvent"
+        "modulith.inventory.StockReplenishedIntegrationEvent",
+        "modulith.inventory.LowStockDetectedIntegrationEvent"
     ];
 
     /// <summary>
@@ -53,19 +53,7 @@ public sealed class InventoryModule : IModule
     /// </summary>
     public IServiceCollection AddModuleServices(IServiceCollection services, IConfiguration configuration)
     {
-        var connectionString = configuration.GetConnectionString("modulithdb")
-            ?? throw new InvalidOperationException("Connection string 'modulithdb' not found.");
-
-        services.AddDbContext<InventoryDbContext>(options =>
-        {
-            options.UseNpgsql(connectionString, npgsqlOptions =>
-            {
-                npgsqlOptions.MigrationsAssembly(typeof(InventoryDbContext).Assembly.FullName);
-                npgsqlOptions.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery);
-            });
-        });
-
-        services.AddScoped<IStockRepository, StockRepository>();
+        services.AddInventoryJobServices(configuration);
         services.AddTransient<OrderEventSubscriber>();
 
         return services;

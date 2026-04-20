@@ -32,6 +32,7 @@ internal sealed class StockRepository : IStockRepository
     public async Task<IReadOnlyList<Stock>> GetLowStockAsync(int threshold, int limit, CancellationToken ct = default)
     {
         return await _context.Stocks
+            .AsTracking()
             .Where(s => s.AvailableQuantity <= threshold)
             .OrderBy(s => s.AvailableQuantity)
             .Take(limit)

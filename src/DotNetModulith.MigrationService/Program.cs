@@ -1,3 +1,4 @@
+using DotNetModulith.JobHost.Infrastructure;
 using DotNetModulith.Modules.Inventory.Infrastructure;
 using DotNetModulith.Modules.Orders.Infrastructure;
 using DotNetModulith.Modules.Payments.Infrastructure;
@@ -13,6 +14,8 @@ builder.AddServiceDefaults();
 
 var connectionString = builder.Configuration.GetConnectionString("modulithdb")
     ?? throw new InvalidOperationException("modulithdb connection string not found.");
+var tickerQConnectionString = builder.Configuration.GetConnectionString("tickerqdb")
+    ?? throw new InvalidOperationException("tickerqdb connection string not found.");
 
 builder.Services.AddDbContext<OrdersDbContext>(options =>
     options.UseNpgsql(connectionString));
@@ -20,6 +23,10 @@ builder.Services.AddDbContext<InventoryDbContext>(options =>
     options.UseNpgsql(connectionString));
 builder.Services.AddDbContext<PaymentsDbContext>(options =>
     options.UseNpgsql(connectionString));
+builder.Services.AddDbContext<TickerQSchedulerDbContext>(options =>
+    options.UseNpgsql(
+        tickerQConnectionString,
+        npgsql => npgsql.MigrationsAssembly(typeof(TickerQSchedulerDbContext).Assembly.FullName)));
 
 builder.Services.AddHostedService<MigrationWorker>();
 
@@ -56,12 +63,14 @@ internal sealed class MigrationWorker : BackgroundService
             var ordersDb = scope.ServiceProvider.GetRequiredService<OrdersDbContext>();
             var inventoryDb = scope.ServiceProvider.GetRequiredService<InventoryDbContext>();
             var paymentsDb = scope.ServiceProvider.GetRequiredService<PaymentsDbContext>();
+            var tickerQDb = scope.ServiceProvider.GetRequiredService<TickerQSchedulerDbContext>();
 
             await MigrateAsync(ordersDb, "Orders", stoppingToken);
             await MigrateAsync(inventoryDb, "Inventory", stoppingToken);
             await MigrateAsync(paymentsDb, "Payments", stoppingToken);
+            await MigrateAsync(tickerQDb, "TickerQ", stoppingToken);
 
-            _logger.LogInformation("All migrations applied successfully for {ModuleCount} modules", 3);
+            _logger.LogInformation("All migrations applied successfully for {ModuleCount} modules", 4);
         }
         catch (Exception ex)
         {

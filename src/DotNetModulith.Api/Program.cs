@@ -31,7 +31,7 @@ builder.Host.UseSerilog((context, _, loggerConfiguration) =>
         .WriteTo.Async(writeTo => writeTo.Console(new RenderedCompactJsonFormatter()))
         .WriteTo.Async(writeTo => writeTo.File(
             formatter: new RenderedCompactJsonFormatter(),
-            path: "logs/log-.json",
+            path: "logs/log-.log",
             rollingInterval: RollingInterval.Day,
             retainedFileCountLimit: 14,
             shared: true));

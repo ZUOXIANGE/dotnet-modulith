@@ -14,5 +14,6 @@
     <ProjectReference Include="..\DotNetModulith.Modules.Orders\DotNetModulith.Modules.Orders.csproj" />
     <ProjectReference Include="..\DotNetModulith.Modules.Inventory\DotNetModulith.Modules.Inventory.csproj" />
     <ProjectReference Include="..\DotNetModulith.Modules.Payments\DotNetModulith.Modules.Payments.csproj" />
+    <ProjectReference Include="..\DotNetModulith.JobHost\DotNetModulith.JobHost.csproj" />
   </ItemGroup>
 </Project>

@@ -40,6 +40,8 @@ src/
   DotNetModulith.Abstractions/        # 共享抽象与事件契约
   DotNetModulith.ModulithCore/        # 模块注册与边界验证核心
   DotNetModulith.Modules.*            # 业务模块（Orders/Inventory/Payments/Notifications）
+scripts/
+  test-api.ps1                        # 常用 API 联调与链路验证脚本
 tests/
   DotNetModulith.Modules.Orders.Tests/
   DotNetModulith.IntegrationTests/
@@ -88,6 +90,9 @@ Aspire 启动后会自动准备：
 - `OpenObserve`：在 Aspire Dashboard 的 `openobserve` 资源详情中查看
 - `RabbitMQ Management`：在 Aspire Dashboard 的 `rabbitmq-management` 端点中查看
 - `PgAdmin`：在 Aspire Dashboard 的 `pgadmin` 资源详情中查看
+
+常用脚本：
+- API 联调脚本：`pwsh ./scripts/test-api.ps1`
 
 ## API 文档
 - Scalar UI：`{api-base-url}/scalar/v1`

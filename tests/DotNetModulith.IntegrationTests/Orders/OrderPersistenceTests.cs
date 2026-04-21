@@ -92,3 +92,4 @@ public class OrderPersistenceTests(PostgreSqlFixture dbFixture) : IAsyncLifetime
 /// </summary>
 [CollectionDefinition("Database collection")]
 public class DatabaseCollection : ICollectionFixture<PostgreSqlFixture>;
+

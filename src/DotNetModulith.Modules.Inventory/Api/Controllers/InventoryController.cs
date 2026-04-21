@@ -1,3 +1,4 @@
+using DotNetModulith.Abstractions.Authorization;
 using DotNetModulith.Abstractions.Exceptions;
 using DotNetModulith.Abstractions.Results;
 using DotNetModulith.Modules.Inventory.Api.Contracts.Requests;
@@ -7,6 +8,7 @@ using DotNetModulith.Modules.Inventory.Application.Commands.ReplenishStock;
 using DotNetModulith.Modules.Inventory.Application.Mappings;
 using DotNetModulith.Modules.Inventory.Application.Queries.GetStock;
 using Mediator;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
@@ -32,6 +34,7 @@ public sealed class InventoryController : ControllerBase
     /// <param name="productId">产品标识。</param>
     /// <param name="ct">取消令牌。</param>
     /// <returns>库存详情。</returns>
+    [Authorize(Policy = PermissionCodes.InventoryView)]
     [HttpGet("stocks/{productId}")]
     public async Task<ApiResponse<StockDetail>> GetStock(string productId, CancellationToken ct)
     {
@@ -55,6 +58,7 @@ public sealed class InventoryController : ControllerBase
     /// <param name="request">创建库存请求。</param>
     /// <param name="ct">取消令牌。</param>
     /// <returns>创建后的库存标识。</returns>
+    [Authorize(Policy = PermissionCodes.InventoryManage)]
     [HttpPost("stocks")]
     public async Task<ApiResponse<CreateStockResponse>> CreateStock([FromBody] CreateStockRequest request, CancellationToken ct)
     {
@@ -70,6 +74,7 @@ public sealed class InventoryController : ControllerBase
     /// <param name="request">补充库存请求。</param>
     /// <param name="ct">取消令牌。</param>
     /// <returns>统一成功响应。</returns>
+    [Authorize(Policy = PermissionCodes.InventoryManage)]
     [HttpPost("stocks/{productId}/replenish")]
     public async Task<ApiResponse<object?>> ReplenishStock(string productId, [FromBody] ReplenishStockRequest request, CancellationToken ct)
     {

@@ -199,3 +199,4 @@ public sealed class UsersApiTests : IClassFixture<ApiWebApplicationFactory>
             TestContext.Current.CancellationToken);
     }
 }
+

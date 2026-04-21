@@ -3,7 +3,6 @@ using DotNetModulith.Modules.Users;
 using DotNetModulith.Modules.Users.Infrastructure;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -44,8 +43,6 @@ public sealed class ApiWebApplicationFactory : TestWebApplicationFactoryBase
         }
 
         using var scope = Services.CreateScope();
-        var usersDb = scope.ServiceProvider.GetRequiredService<UsersDbContext>();
-        await usersDb.Database.MigrateAsync();
         await scope.ServiceProvider.SeedUsersModuleAsync();
         _usersModuleInitialized = true;
     }

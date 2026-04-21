@@ -17,14 +17,14 @@ var rabbitMqUser = builder.AddParameter("rabbitmq-username", "guest", publishVal
 var rabbitMqPassword = builder.AddParameter("rabbitmq-password", "guest", publishValueAsDefault: false, secret: true);
 
 var postgres = builder.AddPostgres("postgres", postgresUser, postgresPassword, port: 5432)
-    .WithDataVolume("modulith-postgres-data-v2")
+    .WithDataVolume("modulith-postgres-data-v1")
     .WithPgAdmin();
 
 var modulithDb = postgres.AddDatabase("modulithdb", "modulith");
 var tickerQDb = postgres.AddDatabase("tickerqdb", "tickerq");
 
 var rabbitmq = builder.AddRabbitMQ("rabbitmq", rabbitMqUser, rabbitMqPassword, port: 5672)
-    .WithDataVolume("modulith-rabbitmq-data-v2")
+    .WithDataVolume("modulith-rabbitmq-data-v1")
     .WithManagementPlugin();
 
 var redis = builder.AddRedis("redis")

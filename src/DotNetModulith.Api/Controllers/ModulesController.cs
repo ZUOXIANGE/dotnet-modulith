@@ -1,5 +1,7 @@
+using DotNetModulith.Abstractions.Authorization;
 using DotNetModulith.Abstractions.Results;
 using DotNetModulith.ModulithCore;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace DotNetModulith.Api.Controllers;
@@ -24,6 +26,7 @@ public sealed class ModulesController : ControllerBase
     /// 获取已注册模块列表
     /// </summary>
     /// <returns>模块列表信息。</returns>
+    [Authorize(Policy = PermissionCodes.ModulesView)]
     [HttpGet]
     public ApiResponse<object> GetModules()
     {
@@ -43,6 +46,7 @@ public sealed class ModulesController : ControllerBase
     /// 获取模块依赖图
     /// </summary>
     /// <returns>包含 Mermaid 与 PlantUML 的依赖图文本。</returns>
+    [Authorize(Policy = PermissionCodes.ModulesView)]
     [HttpGet("graph")]
     public ApiResponse<object> GetModuleGraph()
     {
@@ -58,6 +62,7 @@ public sealed class ModulesController : ControllerBase
     /// 执行模块边界校验
     /// </summary>
     /// <returns>边界校验结果。</returns>
+    [Authorize(Policy = PermissionCodes.ModulesView)]
     [HttpGet("verify")]
     public ApiResponse<object> VerifyModuleBoundaries()
     {

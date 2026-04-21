@@ -175,6 +175,7 @@ curl {api-base-url}/api/modules/verify
 ```
 
 ## 规范与文档
+- 认证鉴权与 RBAC 说明见：[docs/auth-rbac.md](docs/auth-rbac.md)
 - 对外错误码与统一响应约定见：[docs/api-error-codes.md](docs/api-error-codes.md)
 - 开发规范与命名约定见：[docs/development-standards.md](docs/development-standards.md)
 

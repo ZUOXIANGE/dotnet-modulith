@@ -1,3 +1,4 @@
+using DotNetModulith.Modules.Users;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.Caching.Distributed;
@@ -13,6 +14,7 @@ public sealed class MessagingApiWebApplicationFactory : TestWebApplicationFactor
 {
     private readonly RabbitMqFixture _rabbitMqFixture = new();
     private TestEnvironmentVariables? _runtimeEnvironmentVariables;
+    private bool _usersModuleInitialized;
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
@@ -34,7 +36,23 @@ public sealed class MessagingApiWebApplicationFactory : TestWebApplicationFactor
         _runtimeEnvironmentVariables.Apply();
     }
 
-    public Task ResetDatabaseAsync() => DbFixture.ResetAsync();
+    public async Task ResetDatabaseAsync()
+    {
+        await DbFixture.ResetAsync();
+        _usersModuleInitialized = false;
+    }
+
+    public async Task InitializeUsersModuleAsync()
+    {
+        if (_usersModuleInitialized)
+        {
+            return;
+        }
+
+        using var scope = Services.CreateScope();
+        await scope.ServiceProvider.SeedUsersModuleAsync();
+        _usersModuleInitialized = true;
+    }
 
     public override async ValueTask DisposeAsync()
     {

@@ -1,6 +1,8 @@
 using System.Net;
+using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using DotNetCore.CAP;
 using DotNetModulith.Abstractions.Contracts.Inventory;
 using DotNetModulith.Abstractions.Contracts.Orders;
@@ -33,6 +35,7 @@ public sealed class OrderFlowEndToEndTests : IClassFixture<MessagingApiWebApplic
     public async Task CreateOrder_WithSufficientStock_ShouldEventuallyBecomePaid()
     {
         await _factory.ResetDatabaseAsync();
+        await AuthorizeAsAdminAsync();
         var ct = TestContext.Current.CancellationToken;
         var productId = $"PROD-{Guid.NewGuid():N}"[..12];
 
@@ -131,6 +134,7 @@ public sealed class OrderFlowEndToEndTests : IClassFixture<MessagingApiWebApplic
     public async Task CreateOrder_WithInsufficientStock_ShouldEventuallyBecomeCancelled()
     {
         await _factory.ResetDatabaseAsync();
+        await AuthorizeAsAdminAsync();
         var ct = TestContext.Current.CancellationToken;
         var productId = $"PROD-{Guid.NewGuid():N}"[..12];
 
@@ -210,6 +214,7 @@ public sealed class OrderFlowEndToEndTests : IClassFixture<MessagingApiWebApplic
     public async Task DuplicatePaymentCompletedEvent_ShouldKeepOrderAndStockStable()
     {
         await _factory.ResetDatabaseAsync();
+        await AuthorizeAsAdminAsync();
         var ct = TestContext.Current.CancellationToken;
         var productId = $"PROD-{Guid.NewGuid():N}"[..12];
 
@@ -243,6 +248,7 @@ public sealed class OrderFlowEndToEndTests : IClassFixture<MessagingApiWebApplic
     public async Task DuplicateStockReservedEvent_ShouldNotCreateSecondPaymentOrReprocessOrder()
     {
         await _factory.ResetDatabaseAsync();
+        await AuthorizeAsAdminAsync();
         var ct = TestContext.Current.CancellationToken;
         var productId = $"PROD-{Guid.NewGuid():N}"[..12];
 
@@ -283,6 +289,7 @@ public sealed class OrderFlowEndToEndTests : IClassFixture<MessagingApiWebApplic
     public async Task PaymentCompletedEvent_ArrivingBeforeOrderConfirmation_ShouldBeIgnored()
     {
         await _factory.ResetDatabaseAsync();
+        await AuthorizeAsAdminAsync();
         var ct = TestContext.Current.CancellationToken;
 
         var orderId = await CreatePendingOrderAsync(
@@ -306,6 +313,7 @@ public sealed class OrderFlowEndToEndTests : IClassFixture<MessagingApiWebApplic
     public async Task PaymentFailedEvent_AfterOrderPaid_ShouldNotRollbackOrderOrStock()
     {
         await _factory.ResetDatabaseAsync();
+        await AuthorizeAsAdminAsync();
         var ct = TestContext.Current.CancellationToken;
         var productId = $"PROD-{Guid.NewGuid():N}"[..12];
 
@@ -401,6 +409,33 @@ public sealed class OrderFlowEndToEndTests : IClassFixture<MessagingApiWebApplic
         orderCreation.Data.Should().NotBeNull();
 
         return orderCreation.Data!.OrderId;
+    }
+
+    private async Task AuthorizeAsAdminAsync()
+    {
+        await _factory.InitializeUsersModuleAsync();
+        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", await LoginAsAdminAsync());
+    }
+
+    private async Task<string> LoginAsAdminAsync()
+    {
+        _client.DefaultRequestHeaders.Authorization = null;
+
+        var response = await _client.PostAsJsonAsync(
+            "/api/auth/login",
+            new
+            {
+                UserName = "admin",
+                Password = "Admin@123456"
+            },
+            TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var body = await response.Content.ReadFromJsonAsync<JsonObject>(TestContext.Current.CancellationToken);
+        body.Should().NotBeNull();
+        body!["code"]!.GetValue<int>().Should().Be(ApiCodes.Common.Success);
+        return body["data"]!["accessToken"]!.GetValue<string>();
     }
 
     private async Task<string> CreatePendingOrderAsync(
@@ -539,3 +574,4 @@ public sealed class OrderFlowEndToEndTests : IClassFixture<MessagingApiWebApplic
 
     private sealed record PaymentDetailRecord(Guid Id, string OrderId, string Status);
 }
+

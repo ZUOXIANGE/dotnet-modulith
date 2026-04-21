@@ -294,3 +294,4 @@ public class InventoryReservationTests(PostgreSqlFixture dbFixture) : IAsyncLife
         }
     }
 }
+

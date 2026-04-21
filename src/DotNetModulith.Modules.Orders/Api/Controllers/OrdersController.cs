@@ -1,3 +1,4 @@
+using DotNetModulith.Abstractions.Authorization;
 using DotNetModulith.Abstractions.Exceptions;
 using DotNetModulith.Abstractions.Results;
 using DotNetModulith.Modules.Orders.Api.Contracts.Requests;
@@ -8,6 +9,7 @@ using DotNetModulith.Modules.Orders.Application.Commands.ConfirmOrder;
 using DotNetModulith.Modules.Orders.Application.Queries.GetOrder;
 using DotNetModulith.Modules.Orders.Domain;
 using Mediator;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using ZiggyCreatures.Caching.Fusion;
@@ -36,6 +38,7 @@ public sealed class OrdersController : ControllerBase
     /// <param name="request">创建订单请求。</param>
     /// <param name="ct">取消令牌。</param>
     /// <returns>创建后的订单标识。</returns>
+    [Authorize(Policy = PermissionCodes.OrdersManage)]
     [HttpPost]
     public async Task<ApiResponse<CreateOrderResponse>> CreateOrder([FromBody] CreateOrderRequest request, CancellationToken ct)
     {
@@ -50,6 +53,7 @@ public sealed class OrdersController : ControllerBase
     /// <param name="orderId">订单标识。</param>
     /// <param name="ct">取消令牌。</param>
     /// <returns>统一成功响应。</returns>
+    [Authorize(Policy = PermissionCodes.OrdersManage)]
     [HttpPost("{orderId:guid}/confirm")]
     public async Task<ApiResponse<object?>> ConfirmOrder(Guid orderId, CancellationToken ct)
     {
@@ -64,6 +68,7 @@ public sealed class OrdersController : ControllerBase
     /// <param name="orderId">订单标识。</param>
     /// <param name="ct">取消令牌。</param>
     /// <returns>订单详情。</returns>
+    [Authorize(Policy = PermissionCodes.OrdersView)]
     [HttpGet("{orderId:guid}")]
     public async Task<ApiResponse<OrderDetail>> GetOrder(Guid orderId, CancellationToken ct)
     {
@@ -87,6 +92,7 @@ public sealed class OrdersController : ControllerBase
     /// <param name="orderId">订单标识。</param>
     /// <param name="ct">取消令牌。</param>
     /// <returns>统一成功响应。</returns>
+    [Authorize(Policy = PermissionCodes.OrdersManage)]
     [HttpDelete("{orderId:guid}/cache")]
     public async Task<ApiResponse<object?>> ClearOrderCache(Guid orderId, CancellationToken ct)
     {

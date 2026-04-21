@@ -6,6 +6,9 @@ Environment.SetEnvironmentVariable(
     "ASPNETCORE_URLS",
     Environment.GetEnvironmentVariable("ASPNETCORE_URLS") ?? "http://localhost:15000");
 Environment.SetEnvironmentVariable(
+    "ASPIRE_ALLOW_UNSECURED_TRANSPORT",
+    Environment.GetEnvironmentVariable("ASPIRE_ALLOW_UNSECURED_TRANSPORT") ?? "true");
+Environment.SetEnvironmentVariable(
     "ASPIRE_DASHBOARD_OTLP_HTTP_ENDPOINT_URL",
     Environment.GetEnvironmentVariable("ASPIRE_DASHBOARD_OTLP_HTTP_ENDPOINT_URL") ?? "http://localhost:18889");
 

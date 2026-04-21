@@ -63,7 +63,8 @@ tests/
 ### 前置条件
 - .NET 10 SDK
 - Docker Desktop
-- Aspire workload：`dotnet workload install aspire`
+- 执行 `dotnet restore` 还原 NuGet 包
+- 无需安装 Aspire workload；Aspire 现已通过 `Aspire.AppHost.Sdk` 和相关 NuGet 包直接随项目还原
 
 ### 启动
 ```bash
@@ -80,6 +81,7 @@ Aspire 启动后会自动准备：
 推荐做法：
 - 统一通过 `DotNetModulith.AppHost` 启动应用与全部依赖
 - 通过 Aspire Dashboard 查看 `api`、`jobhost`、数据库、消息队列、缓存与可观测组件状态
+- 仅使用项目内的 NuGet 包版本管理 Aspire；升级时保持 `Aspire.AppHost.Sdk` 与 `Directory.Packages.props` 中的 Aspire 包版本一致
 - 不再维护独立启动脚本，避免本地手工环境与实际编排环境不一致
 - `api`、`jobhost`、`openobserve`、`pgadmin`、`rabbitmq-management` 等访问地址以 Aspire Dashboard 中显示的实际端点为准
 

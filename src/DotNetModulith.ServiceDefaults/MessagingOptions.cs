@@ -1,7 +1,10 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace DotNetModulith.Api.Configuration;
+namespace DotNetModulith.ServiceDefaults;
 
+/// <summary>
+/// CAP 消息系统配置
+/// </summary>
 public sealed class CapMessagingOptions
 {
     public const string SectionName = "Cap";
@@ -19,6 +22,9 @@ public sealed class CapMessagingOptions
     public string Version { get; set; } = "v1";
 }
 
+/// <summary>
+/// RabbitMQ 连接配置
+/// </summary>
 public sealed class RabbitMqOptions
 {
     public const string SectionName = "RabbitMQ";

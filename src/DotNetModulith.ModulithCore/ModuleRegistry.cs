@@ -1,5 +1,4 @@
 using System.Collections.Concurrent;
-using System.Text;
 
 namespace DotNetModulith.ModulithCore;
 
@@ -108,74 +107,4 @@ public sealed class ModuleRegistry
     /// <returns>模块依赖关系图</returns>
     public ModuleDependencyGraph BuildDependencyGraph() =>
         new(_modules.Values.ToList().AsReadOnly(), _dependencyEdges.AsReadOnly());
-}
-
-/// <summary>
-/// 模块依赖边，表示从源模块到目标模块的依赖关系
-/// </summary>
-/// <param name="From">依赖方模块名称</param>
-/// <param name="To">被依赖模块名称</param>
-public sealed record ModuleDependencyEdge(string From, string To);
-
-/// <summary>
-/// 模块依赖关系图，支持导出为PlantUML和Mermaid格式
-/// </summary>
-public sealed class ModuleDependencyGraph
-{
-    /// <summary>
-    /// 图中的模块列表
-    /// </summary>
-    public IReadOnlyList<ModuleDescriptor> Modules { get; }
-
-    /// <summary>
-    /// 图中的依赖边列表
-    /// </summary>
-    public IReadOnlyList<ModuleDependencyEdge> Edges { get; }
-
-    public ModuleDependencyGraph(IReadOnlyList<ModuleDescriptor> modules, IReadOnlyList<ModuleDependencyEdge> edges)
-    {
-        Modules = modules;
-        Edges = edges;
-    }
-
-    /// <summary>
-    /// 导出为PlantUML格式
-    /// </summary>
-    /// <returns>PlantUML格式的依赖关系图</returns>
-    public string ToPlantUml()
-    {
-        var sb = new StringBuilder();
-        sb.AppendLine("@startuml");
-        sb.AppendLine("skinparam componentStyle rectangle");
-
-        foreach (var module in Modules)
-        {
-            sb.AppendLine($"component [{module.Name}] as {module.Name}");
-        }
-
-        foreach (var edge in Edges)
-        {
-            sb.AppendLine($"{edge.From} --> {edge.To}");
-        }
-
-        sb.AppendLine("@enduml");
-        return sb.ToString();
-    }
-
-    /// <summary>
-    /// 导出为Mermaid格式
-    /// </summary>
-    /// <returns>Mermaid格式的依赖关系图</returns>
-    public string ToMermaid()
-    {
-        var sb = new StringBuilder();
-        sb.AppendLine("graph TD");
-
-        foreach (var edge in Edges)
-        {
-            sb.AppendLine($"    {edge.From} --> {edge.To}");
-        }
-
-        return sb.ToString();
-    }
 }

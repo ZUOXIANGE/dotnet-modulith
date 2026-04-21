@@ -1,6 +1,5 @@
 using DotNetModulith.Abstractions.Exceptions;
 using DotNetModulith.Abstractions.Results;
-using DotNetModulith.Api.Configuration;
 using DotNetModulith.Api.HealthChecks;
 using DotNetModulith.Modules.Inventory;
 using DotNetModulith.Modules.Inventory.Api.Controllers;
@@ -11,6 +10,7 @@ using DotNetModulith.Modules.Payments;
 using DotNetModulith.Modules.Users;
 using DotNetModulith.Modules.Users.Api.Controllers;
 using DotNetModulith.ModulithCore;
+using DotNetModulith.ServiceDefaults;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 using Scalar.AspNetCore;

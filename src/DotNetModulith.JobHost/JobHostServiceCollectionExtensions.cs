@@ -1,7 +1,7 @@
 using DotNetCore.CAP;
-using DotNetModulith.JobHost.Configuration;
 using DotNetModulith.JobHost.Infrastructure;
 using DotNetModulith.Modules.Inventory;
+using DotNetModulith.ServiceDefaults;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;

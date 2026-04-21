@@ -29,6 +29,7 @@
     <Project Path="tests/DotNetModulith.IntegrationTests/DotNetModulith.IntegrationTests.csproj" />
   </Folder>
   <Folder Name="/docs/">
+    <File Path="README.md" />
     <File Path="docs/api-error-codes.md" />
     <File Path="docs/development-standards.md" />
     <File Path="docs/scheduled-jobs.md" />

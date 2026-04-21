@@ -8,43 +8,6 @@ using Microsoft.Extensions.Logging;
 namespace DotNetModulith.Modules.Payments.Application.Events;
 
 /// <summary>
-/// 支付完成领域事件处理器，将领域事件转换为集成事件并通过CAP发布
-/// </summary>
-public sealed class PaymentCompletedDomainEventHandler : IDomainEventHandler<PaymentCompletedDomainEvent>
-{
-    private static readonly ActivitySource ActivitySource = new("DotNetModulith.Modules.Payments");
-
-    private readonly ICapPublisher _capPublisher;
-    private readonly ILogger<PaymentCompletedDomainEventHandler> _logger;
-
-    public PaymentCompletedDomainEventHandler(
-        ICapPublisher capPublisher,
-        ILogger<PaymentCompletedDomainEventHandler> logger)
-    {
-        _capPublisher = capPublisher;
-        _logger = logger;
-    }
-
-    public async Task HandleAsync(PaymentCompletedDomainEvent domainEvent, CancellationToken ct = default)
-    {
-        using var activity = ActivitySource.StartActivity("PublishIntegrationEvent.PaymentCompletedIntegrationEvent", ActivityKind.Producer);
-
-        var integrationEvent = domainEvent.ToIntegrationEvent();
-        var topic = $"modulith.payments.{integrationEvent.EventType}";
-
-        activity?.SetTag("messaging.system", "rabbitmq");
-        activity?.SetTag("messaging.destination", topic);
-        activity?.SetTag("messaging.destination_kind", "topic");
-        activity?.SetTag("modulith.event_type", integrationEvent.EventType);
-
-        _logger.LogInformation("Publishing integration event {EventType} to topic {Topic} with EventId {EventId}",
-            integrationEvent.EventType, topic, integrationEvent.EventId);
-
-        await _capPublisher.PublishAsync(topic, integrationEvent, cancellationToken: ct);
-    }
-}
-
-/// <summary>
 /// 支付失败领域事件处理器，将领域事件转换为集成事件并通过CAP发布
 /// </summary>
 public sealed class PaymentFailedDomainEventHandler : IDomainEventHandler<PaymentFailedDomainEvent>

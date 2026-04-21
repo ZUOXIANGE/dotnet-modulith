@@ -24,7 +24,7 @@ public sealed record StockId(Guid Value)
 /// <summary>
 /// 库存聚合根，管理产品的库存数量和预留逻辑
 /// </summary>
-public sealed class Stock : AggregateRoot, IEntity<StockId>
+public sealed class StockEntity : AggregateRoot, IEntity<StockId>
 {
     private static readonly ActivitySource ActivitySource = new("DotNetModulith.Modules.Inventory");
 
@@ -73,7 +73,7 @@ public sealed class Stock : AggregateRoot, IEntity<StockId>
     /// </summary>
     public int? LastAlertedAvailableQuantity { get; private set; }
 
-    private Stock() { }
+    private StockEntity() { }
 
     /// <summary>
     /// 创建新的库存记录
@@ -82,14 +82,14 @@ public sealed class Stock : AggregateRoot, IEntity<StockId>
     /// <param name="productName">产品名称</param>
     /// <param name="initialQuantity">初始库存数量</param>
     /// <returns>新创建的库存实例</returns>
-    public static Stock Create(string productId, string productName, int initialQuantity)
+    public static StockEntity Create(string productId, string productName, int initialQuantity)
     {
-        using var activity = ActivitySource.StartActivity("Stock.Create", ActivityKind.Internal);
+        using var activity = ActivitySource.StartActivity("StockEntity.Create", ActivityKind.Internal);
 
         if (string.IsNullOrWhiteSpace(productId))
             throw new ArgumentException("Product ID is required.", nameof(productId));
 
-        var stock = new Stock
+        var stock = new StockEntity
         {
             Id = StockId.New(),
             ProductId = productId,

@@ -4,9 +4,9 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace DotNetModulith.Modules.Users.Infrastructure;
 
-internal sealed class RolePermissionConfiguration : IEntityTypeConfiguration<RolePermission>
+internal sealed class RolePermissionEntityConfiguration : IEntityTypeConfiguration<RolePermissionEntity>
 {
-    public void Configure(EntityTypeBuilder<RolePermission> builder)
+    public void Configure(EntityTypeBuilder<RolePermissionEntity> builder)
     {
         builder.ToTable("role_permissions");
         builder.HasKey(x => new { x.RoleId, x.Permission });

@@ -11,7 +11,7 @@ public sealed class OrdersDbContext : DbContext
     /// <summary>
     /// 订单数据集
     /// </summary>
-    public DbSet<Order> Orders => Set<Order>();
+    public DbSet<OrderEntity> Orders => Set<OrderEntity>();
 
     public OrdersDbContext(DbContextOptions<OrdersDbContext> options) : base(options)
     {

@@ -39,7 +39,7 @@ public sealed class ConfirmOrderCommandHandlerTests
         var dispatcher = new NoopDomainEventDispatcher();
         var sut = CreateHandler(repository, dispatcher);
 
-        var order = Order.Create("customer-1", [new OrderLineData("P001", "Product 1", 1, 10m)]);
+        var order = OrderEntity.Create("customer-1", [new OrderLineData("P001", "Product 1", 1, 10m)]);
         order.Cancel("cancelled for test");
         await repository.AddAsync(order, TestContext.Current.CancellationToken);
 
@@ -67,30 +67,30 @@ public sealed class ConfirmOrderCommandHandlerTests
 
     private sealed class InMemoryOrderRepository : IOrderRepository
     {
-        private readonly Dictionary<OrderId, Order> _orders = new();
+        private readonly Dictionary<OrderId, OrderEntity> _orders = new();
 
-        public Task<Order?> GetByIdAsync(OrderId id, CancellationToken ct = default)
+        public Task<OrderEntity?> GetByIdAsync(OrderId id, CancellationToken ct = default)
             => Task.FromResult(_orders.GetValueOrDefault(id));
 
-        public Task<IReadOnlyList<Order>> GetByCustomerIdAsync(string customerId, int limit, CancellationToken ct = default)
-            => Task.FromResult((IReadOnlyList<Order>)_orders.Values
+        public Task<IReadOnlyList<OrderEntity>> GetByCustomerIdAsync(string customerId, int limit, CancellationToken ct = default)
+            => Task.FromResult((IReadOnlyList<OrderEntity>)_orders.Values
                 .Where(x => x.CustomerId == customerId)
                 .Take(limit)
                 .ToList());
 
-        public Task<IReadOnlyList<Order>> GetPendingOrdersAsync(int limit, CancellationToken ct = default)
-            => Task.FromResult((IReadOnlyList<Order>)_orders.Values
+        public Task<IReadOnlyList<OrderEntity>> GetPendingOrdersAsync(int limit, CancellationToken ct = default)
+            => Task.FromResult((IReadOnlyList<OrderEntity>)_orders.Values
                 .Where(x => x.Status == OrderStatus.Pending)
                 .Take(limit)
                 .ToList());
 
-        public Task AddAsync(Order order, CancellationToken ct = default)
+        public Task AddAsync(OrderEntity order, CancellationToken ct = default)
         {
             _orders[order.Id] = order;
             return Task.CompletedTask;
         }
 
-        public Task UpdateAsync(Order order, CancellationToken ct = default)
+        public Task UpdateAsync(OrderEntity order, CancellationToken ct = default)
         {
             _orders[order.Id] = order;
             return Task.CompletedTask;

@@ -7,9 +7,9 @@ namespace DotNetModulith.Modules.Payments.Infrastructure;
 /// <summary>
 /// 支付实体EF Core配置
 /// </summary>
-internal sealed class PaymentConfiguration : IEntityTypeConfiguration<Payment>
+internal sealed class PaymentEntityConfiguration : IEntityTypeConfiguration<PaymentEntity>
 {
-    public void Configure(EntityTypeBuilder<Payment> builder)
+    public void Configure(EntityTypeBuilder<PaymentEntity> builder)
     {
         builder.ToTable("payments");
 

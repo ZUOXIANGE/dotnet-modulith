@@ -7,9 +7,9 @@ namespace DotNetModulith.Modules.Inventory.Infrastructure;
 /// <summary>
 /// 库存预留明细EF Core配置
 /// </summary>
-internal sealed class StockReservationConfiguration : IEntityTypeConfiguration<StockReservation>
+internal sealed class StockReservationEntityConfiguration : IEntityTypeConfiguration<StockReservationEntity>
 {
-    public void Configure(EntityTypeBuilder<StockReservation> builder)
+    public void Configure(EntityTypeBuilder<StockReservationEntity> builder)
     {
         builder.ToTable("stock_reservations");
 

@@ -78,7 +78,7 @@ public sealed class OrdersController : ControllerBase
         if (order is null)
         {
             throw new BusinessException(
-                $"Order {orderId} not found.",
+                $"OrderEntity {orderId} not found.",
                 ApiCodes.Common.NotFound,
                 StatusCodes.Status404NotFound);
         }

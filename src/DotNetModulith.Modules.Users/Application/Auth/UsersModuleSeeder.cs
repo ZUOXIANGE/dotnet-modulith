@@ -11,9 +11,9 @@ internal sealed class UsersModuleSeeder : IUsersModuleSeeder
     public const string DefaultAdminPassword = "Admin@123456";
 
     private readonly UsersDbContext _dbContext;
-    private readonly IPasswordHasher<ModuleUser> _passwordHasher;
+    private readonly IPasswordHasher<UserEntity> _passwordHasher;
 
-    public UsersModuleSeeder(UsersDbContext dbContext, IPasswordHasher<ModuleUser> passwordHasher)
+    public UsersModuleSeeder(UsersDbContext dbContext, IPasswordHasher<UserEntity> passwordHasher)
     {
         _dbContext = dbContext;
         _passwordHasher = passwordHasher;
@@ -30,7 +30,7 @@ internal sealed class UsersModuleSeeder : IUsersModuleSeeder
 
         if (adminRole is null)
         {
-            adminRole = Role.Create("Admin", "系统管理员", true, now);
+            adminRole = RoleEntity.Create("Admin", "系统管理员", true, now);
             adminRole.ReplacePermissions(UserPermissions.All, now);
             _dbContext.Roles.Add(adminRole);
         }
@@ -46,7 +46,7 @@ internal sealed class UsersModuleSeeder : IUsersModuleSeeder
 
         if (adminUser is null)
         {
-            adminUser = ModuleUser.Create(DefaultAdminUserName, "系统管理员", "admin@modulith.local", string.Empty, now);
+            adminUser = UserEntity.Create(DefaultAdminUserName, "系统管理员", "admin@modulith.local", string.Empty, now);
             adminUser.SetPassword(_passwordHasher.HashPassword(adminUser, DefaultAdminPassword), now);
             adminUser.AssignRoles([adminRole.Id], now);
             _dbContext.Users.Add(adminUser);

@@ -11,7 +11,7 @@ public interface IPaymentRepository
     /// <param name="id">支付ID</param>
     /// <param name="ct">取消令牌</param>
     /// <returns>支付实例，未找到时返回null</returns>
-    Task<Payment?> GetByIdAsync(PaymentId id, CancellationToken ct = default);
+    Task<PaymentEntity?> GetByIdAsync(PaymentId id, CancellationToken ct = default);
 
     /// <summary>
     /// 根据订单ID获取支付记录
@@ -19,21 +19,21 @@ public interface IPaymentRepository
     /// <param name="orderId">订单ID</param>
     /// <param name="ct">取消令牌</param>
     /// <returns>支付实例，未找到时返回null</returns>
-    Task<Payment?> GetByOrderIdAsync(string orderId, CancellationToken ct = default);
+    Task<PaymentEntity?> GetByOrderIdAsync(string orderId, CancellationToken ct = default);
 
     /// <summary>
     /// 添加新支付记录
     /// </summary>
     /// <param name="payment">要添加的支付</param>
     /// <param name="ct">取消令牌</param>
-    Task AddAsync(Payment payment, CancellationToken ct = default);
+    Task AddAsync(PaymentEntity payment, CancellationToken ct = default);
 
     /// <summary>
     /// 更新已有支付记录
     /// </summary>
     /// <param name="payment">要更新的支付</param>
     /// <param name="ct">取消令牌</param>
-    Task UpdateAsync(Payment payment, CancellationToken ct = default);
+    Task UpdateAsync(PaymentEntity payment, CancellationToken ct = default);
 
     /// <summary>
     /// 提交当前工作单元中的支付变更

@@ -11,12 +11,12 @@ public sealed class InventoryDbContext : DbContext
     /// <summary>
     /// 库存数据集
     /// </summary>
-    public DbSet<Stock> Stocks => Set<Stock>();
+    public DbSet<StockEntity> Stocks => Set<StockEntity>();
 
     /// <summary>
     /// 库存预留明细数据集
     /// </summary>
-    public DbSet<StockReservation> StockReservations => Set<StockReservation>();
+    public DbSet<StockReservationEntity> StockReservations => Set<StockReservationEntity>();
 
     public InventoryDbContext(DbContextOptions<InventoryDbContext> options) : base(options)
     {

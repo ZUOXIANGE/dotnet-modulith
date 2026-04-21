@@ -143,7 +143,7 @@ public sealed class OrderFlowEndToEndTests : IClassFixture<MessagingApiWebApplic
             new
             {
                 ProductId = productId,
-                ProductName = "E2E Low Stock",
+                ProductName = "E2E Low StockEntity",
                 InitialQuantity = 1
             },
             ct);
@@ -160,7 +160,7 @@ public sealed class OrderFlowEndToEndTests : IClassFixture<MessagingApiWebApplic
                     new
                     {
                         ProductId = productId,
-                        ProductName = "E2E Low Stock",
+                        ProductName = "E2E Low StockEntity",
                         Quantity = 2,
                         UnitPrice = 9.9m
                     }
@@ -294,7 +294,7 @@ public sealed class OrderFlowEndToEndTests : IClassFixture<MessagingApiWebApplic
 
         var orderId = await CreatePendingOrderAsync(
             "E2E-OUTOFORDER-01",
-            [new OrderLineData("PROD-OOO-001", "Out Of Order Widget", 2, 12.5m)],
+            [new OrderLineData("PROD-OOO-001", "Out Of OrderEntity Widget", 2, 12.5m)],
             ct);
 
         await PublishAsync(
@@ -443,7 +443,7 @@ public sealed class OrderFlowEndToEndTests : IClassFixture<MessagingApiWebApplic
         IReadOnlyList<OrderLineData> lines,
         CancellationToken ct)
     {
-        var order = Order.Create(customerId, lines);
+        var order = OrderEntity.Create(customerId, lines);
         order.ClearDomainEvents();
 
         await using var dbContext = CreateOrdersDbContext();

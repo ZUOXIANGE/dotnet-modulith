@@ -22,7 +22,7 @@ public class OrderTests
             new("PROD-002", "Gadget", 1, 25.00m)
         };
 
-        var order = Order.Create("CUST-001", lines);
+        var order = OrderEntity.Create("CUST-001", lines);
 
         order.Id.Should().NotBeNull();
         order.CustomerId.Should().Be("CUST-001");
@@ -43,7 +43,7 @@ public class OrderTests
     [Fact]
     public void Create_WithEmptyCustomerId_ShouldThrow()
     {
-        var act = () => Order.Create("", [new OrderLineData("P1", "Product", 1, 10m)]);
+        var act = () => OrderEntity.Create("", [new OrderLineData("P1", "Product", 1, 10m)]);
 
         act.Should().Throw<ArgumentException>().WithMessage("*Customer ID*");
     }
@@ -54,7 +54,7 @@ public class OrderTests
     [Fact]
     public void Create_WithNoLines_ShouldThrow()
     {
-        var act = () => Order.Create("CUST-001", []);
+        var act = () => OrderEntity.Create("CUST-001", []);
 
         act.Should().Throw<ArgumentException>().WithMessage("*at least one line*");
     }
@@ -152,6 +152,6 @@ public class OrderTests
     /// <summary>
     /// 创建测试用的订单实例
     /// </summary>
-    private static Order CreateTestOrder() =>
-        Order.Create("CUST-001", [new OrderLineData("PROD-001", "Widget", 2, 10.00m)]);
+    private static OrderEntity CreateTestOrder() =>
+        OrderEntity.Create("CUST-001", [new OrderLineData("PROD-001", "Widget", 2, 10.00m)]);
 }

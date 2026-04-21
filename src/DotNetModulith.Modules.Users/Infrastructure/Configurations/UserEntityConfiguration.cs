@@ -4,9 +4,9 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace DotNetModulith.Modules.Users.Infrastructure;
 
-internal sealed class ModuleUserConfiguration : IEntityTypeConfiguration<ModuleUser>
+internal sealed class UserEntityConfiguration : IEntityTypeConfiguration<UserEntity>
 {
-    public void Configure(EntityTypeBuilder<ModuleUser> builder)
+    public void Configure(EntityTypeBuilder<UserEntity> builder)
     {
         builder.ToTable("users");
         builder.HasKey(x => x.Id);
@@ -23,6 +23,5 @@ internal sealed class ModuleUserConfiguration : IEntityTypeConfiguration<ModuleU
         builder.HasIndex(x => x.UserName).IsUnique();
         builder.HasIndex(x => x.Email).IsUnique();
         builder.HasMany(x => x.Roles).WithOne(x => x.User).HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
-        builder.HasMany(x => x.Sessions).WithOne().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
     }
 }

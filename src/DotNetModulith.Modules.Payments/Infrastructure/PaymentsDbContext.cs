@@ -11,7 +11,7 @@ public sealed class PaymentsDbContext : DbContext
     /// <summary>
     /// 支付数据集
     /// </summary>
-    public DbSet<Payment> Payments => Set<Payment>();
+    public DbSet<PaymentEntity> Payments => Set<PaymentEntity>();
 
     public PaymentsDbContext(DbContextOptions<PaymentsDbContext> options) : base(options)
     {

@@ -51,12 +51,12 @@ public sealed class ConfirmOrderCommandHandler : ICommandHandler<ConfirmOrderCom
 
         if (order is null)
         {
-            _logger.LogWarning("Order {OrderId} not found for confirmation",
+            _logger.LogWarning("OrderEntity {OrderId} not found for confirmation",
                 command.OrderId);
 
-            activity?.SetStatus(ActivityStatusCode.Error, "Order not found");
+            activity?.SetStatus(ActivityStatusCode.Error, "OrderEntity not found");
             throw new BusinessException(
-                message: $"Order {command.OrderId} not found.",
+                message: $"OrderEntity {command.OrderId} not found.",
                 code: ApiCodes.Common.NotFound,
                 httpStatusCode: 404);
         }
@@ -75,7 +75,7 @@ public sealed class ConfirmOrderCommandHandler : ICommandHandler<ConfirmOrderCom
                 },
                 cancellationToken);
 
-            _logger.LogInformation("Order {OrderId} confirmed", order.Id);
+            _logger.LogInformation("OrderEntity {OrderId} confirmed", order.Id);
             activity?.SetStatus(ActivityStatusCode.Ok);
 
             return Result.Success();

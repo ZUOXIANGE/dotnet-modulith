@@ -14,11 +14,11 @@ public class ModuleBoundaryTests
 {
     private static readonly Architecture Architecture = new ArchLoader()
         .LoadAssemblies(
-            typeof(Modules.Orders.Domain.Order).Assembly,
-            typeof(Modules.Inventory.Domain.Stock).Assembly,
-            typeof(Modules.Payments.Domain.Payment).Assembly,
+            typeof(Modules.Orders.Domain.OrderEntity).Assembly,
+            typeof(Modules.Inventory.Domain.StockEntity).Assembly,
+            typeof(Modules.Payments.Domain.PaymentEntity).Assembly,
             typeof(Modules.Notifications.Application.Subscribers.NotificationEventSubscriber).Assembly,
-            typeof(Modules.Users.Domain.ModuleUser).Assembly)
+            typeof(Modules.Users.Domain.UserEntity).Assembly)
         .Build();
 
     private readonly IObjectProvider<IType> _ordersModule =

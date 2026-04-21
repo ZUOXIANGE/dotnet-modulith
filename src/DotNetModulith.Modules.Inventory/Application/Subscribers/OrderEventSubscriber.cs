@@ -101,7 +101,7 @@ public sealed class OrderEventSubscriber : ICapSubscribe
 
                     await _stockRepository.UpdateAsync(stock, cancellationToken);
                     await _stockRepository.AddReservationAsync(
-                        StockReservation.Create(stock.Id, @event.OrderId, line.ProductId, line.Quantity),
+                        StockReservationEntity.Create(stock.Id, @event.OrderId, line.ProductId, line.Quantity),
                         cancellationToken);
                     reservedLines.Add(new StockReservedLine(line.ProductId, line.Quantity));
                 }
@@ -119,7 +119,7 @@ public sealed class OrderEventSubscriber : ICapSubscribe
             },
             ct);
 
-        _logger.LogInformation("Stock reserved for order {OrderId}", @event.OrderId);
+        _logger.LogInformation("StockEntity reserved for order {OrderId}", @event.OrderId);
         activity?.SetStatus(ActivityStatusCode.Ok);
     }
 

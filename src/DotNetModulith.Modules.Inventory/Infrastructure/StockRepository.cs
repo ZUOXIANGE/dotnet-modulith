@@ -15,21 +15,21 @@ internal sealed class StockRepository : IStockRepository
         _context = context;
     }
 
-    public async Task<Stock?> GetByIdAsync(StockId id, CancellationToken ct = default)
+    public async Task<StockEntity?> GetByIdAsync(StockId id, CancellationToken ct = default)
     {
         return await _context.Stocks
             .AsTracking()
             .FirstOrDefaultAsync(s => s.Id == id, ct);
     }
 
-    public async Task<Stock?> GetByProductIdAsync(string productId, CancellationToken ct = default)
+    public async Task<StockEntity?> GetByProductIdAsync(string productId, CancellationToken ct = default)
     {
         return await _context.Stocks
             .AsTracking()
             .FirstOrDefaultAsync(s => s.ProductId == productId, ct);
     }
 
-    public async Task<IReadOnlyList<Stock>> GetLowStockAsync(int threshold, int limit, CancellationToken ct = default)
+    public async Task<IReadOnlyList<StockEntity>> GetLowStockAsync(int threshold, int limit, CancellationToken ct = default)
     {
         return await _context.Stocks
             .AsTracking()
@@ -39,7 +39,7 @@ internal sealed class StockRepository : IStockRepository
             .ToListAsync(ct);
     }
 
-    public async Task<IReadOnlyList<StockReservation>> GetReservationsByOrderIdAsync(string orderId, CancellationToken ct = default)
+    public async Task<IReadOnlyList<StockReservationEntity>> GetReservationsByOrderIdAsync(string orderId, CancellationToken ct = default)
     {
         return await _context.StockReservations
             .AsTracking()
@@ -48,22 +48,22 @@ internal sealed class StockRepository : IStockRepository
             .ToListAsync(ct);
     }
 
-    public async Task AddAsync(Stock stock, CancellationToken ct = default)
+    public async Task AddAsync(StockEntity stock, CancellationToken ct = default)
     {
         await _context.Stocks.AddAsync(stock, ct);
     }
 
-    public async Task UpdateAsync(Stock stock, CancellationToken ct = default)
+    public async Task UpdateAsync(StockEntity stock, CancellationToken ct = default)
     {
         _context.Stocks.Update(stock);
     }
 
-    public async Task AddReservationAsync(StockReservation reservation, CancellationToken ct = default)
+    public async Task AddReservationAsync(StockReservationEntity reservation, CancellationToken ct = default)
     {
         await _context.StockReservations.AddAsync(reservation, ct);
     }
 
-    public Task UpdateReservationAsync(StockReservation reservation, CancellationToken ct = default)
+    public Task UpdateReservationAsync(StockReservationEntity reservation, CancellationToken ct = default)
     {
         _context.StockReservations.Update(reservation);
         return Task.CompletedTask;

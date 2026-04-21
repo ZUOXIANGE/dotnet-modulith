@@ -59,7 +59,7 @@ public sealed class OrderEventSubscriber : ICapSubscribe
         var existingPayment = await _paymentRepository.GetByOrderIdAsync(@event.OrderId, ct);
         if (existingPayment is not null)
         {
-            _logger.LogInformation("Payment for order {OrderId} already exists, skip duplicate event", @event.OrderId);
+            _logger.LogInformation("PaymentEntity for order {OrderId} already exists, skip duplicate event", @event.OrderId);
             activity?.SetStatus(ActivityStatusCode.Ok);
             return;
         }
@@ -69,7 +69,7 @@ public sealed class OrderEventSubscriber : ICapSubscribe
             _capPublisher,
             async cancellationToken =>
             {
-                var payment = Payment.Create(@event.OrderId, @event.CustomerId, @event.TotalAmount);
+                var payment = PaymentEntity.Create(@event.OrderId, @event.CustomerId, @event.TotalAmount);
                 var success = SimulatePayment(@event.TotalAmount);
 
                 if (success)
@@ -78,17 +78,17 @@ public sealed class OrderEventSubscriber : ICapSubscribe
                     await _paymentRepository.AddAsync(payment, cancellationToken);
                     await _domainEventDispatcher.DispatchAsync(payment, cancellationToken);
 
-                    _logger.LogInformation("Payment completed for order {OrderId}", @event.OrderId);
+                    _logger.LogInformation("PaymentEntity completed for order {OrderId}", @event.OrderId);
                     activity?.SetStatus(ActivityStatusCode.Ok);
                     return;
                 }
 
-                payment.Fail("Payment gateway timeout");
+                payment.Fail("PaymentEntity gateway timeout");
                 await _paymentRepository.AddAsync(payment, cancellationToken);
                 await _domainEventDispatcher.DispatchAsync(payment, cancellationToken);
 
-                _logger.LogWarning("Payment failed for order {OrderId}", @event.OrderId);
-                activity?.SetStatus(ActivityStatusCode.Error, "Payment failed");
+                _logger.LogWarning("PaymentEntity failed for order {OrderId}", @event.OrderId);
+                activity?.SetStatus(ActivityStatusCode.Error, "PaymentEntity failed");
             },
             ct);
     }

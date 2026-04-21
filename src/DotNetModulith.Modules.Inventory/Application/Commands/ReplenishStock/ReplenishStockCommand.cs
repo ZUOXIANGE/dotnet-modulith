@@ -49,9 +49,9 @@ public sealed class ReplenishStockCommandHandler : ICommandHandler<ReplenishStoc
 
         if (stock is null)
         {
-            activity?.SetStatus(ActivityStatusCode.Error, "Stock not found");
+            activity?.SetStatus(ActivityStatusCode.Error, "StockEntity not found");
             throw new BusinessException(
-                message: $"Stock for product {command.ProductId} not found.",
+                message: $"StockEntity for product {command.ProductId} not found.",
                 code: ApiCodes.Common.NotFound,
                 httpStatusCode: 404);
         }

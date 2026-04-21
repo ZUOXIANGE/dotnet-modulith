@@ -7,9 +7,9 @@ namespace DotNetModulith.Modules.Inventory.Infrastructure;
 /// <summary>
 /// 库存实体EF Core配置
 /// </summary>
-internal sealed class StockConfiguration : IEntityTypeConfiguration<Stock>
+internal sealed class StockEntityConfiguration : IEntityTypeConfiguration<StockEntity>
 {
-    public void Configure(EntityTypeBuilder<Stock> builder)
+    public void Configure(EntityTypeBuilder<StockEntity> builder)
     {
         builder.ToTable("stocks");
 

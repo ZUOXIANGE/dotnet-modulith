@@ -1,19 +1,19 @@
 using System.Globalization;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
-using DotNetModulith.Modules.Users.Infrastructure;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.EntityFrameworkCore;
 
 namespace DotNetModulith.Modules.Users.Application;
 
 internal sealed class JwtSessionValidator : IJwtSessionValidator
 {
-    private readonly UsersDbContext _dbContext;
+    private readonly IUserAuthCache _userAuthCache;
+    private readonly ITokenBlacklistStore _tokenBlacklistStore;
 
-    public JwtSessionValidator(UsersDbContext dbContext)
+    public JwtSessionValidator(IUserAuthCache userAuthCache, ITokenBlacklistStore tokenBlacklistStore)
     {
-        _dbContext = dbContext;
+        _userAuthCache = userAuthCache;
+        _tokenBlacklistStore = tokenBlacklistStore;
     }
 
     public async Task<ClaimsPrincipal?> ValidateAsync(ClaimsPrincipal principal, CancellationToken cancellationToken)
@@ -31,46 +31,34 @@ internal sealed class JwtSessionValidator : IJwtSessionValidator
             return null;
         }
 
-        var user = await _dbContext.Users
-            .AsNoTracking()
-            .Where(x => x.Id == userId)
-            .Select(x => new
-            {
-                x.Id,
-                x.UserName,
-                x.DisplayName,
-                x.Email,
-                x.IsActive,
-                x.TokenVersion,
-                Roles = x.Roles.Select(role => role.Role.Name).ToArray(),
-                Permissions = x.Roles.SelectMany(role => role.Role.Permissions.Select(permission => permission.Permission)).ToArray()
-            })
-            .SingleOrDefaultAsync(cancellationToken);
-
-        if (user is null || !user.IsActive || user.TokenVersion != tokenVersion)
+        if (await _tokenBlacklistStore.IsBlacklistedAsync(sessionId, cancellationToken))
         {
             return null;
         }
 
-        var session = await _dbContext.UserSessions
-            .AsNoTracking()
-            .SingleOrDefaultAsync(x => x.UserId == userId && x.TokenId == sessionId, cancellationToken);
-
-        if (session is null || session.RevokedAt is not null)
+        var user = await _userAuthCache.GetAsync(userId, cancellationToken);
+        if (user is null || !user.IsActive || user.TokenVersion != tokenVersion)
         {
             return null;
         }
 
         var claims = new List<Claim>
         {
-            new(ClaimTypes.NameIdentifier, user.Id.ToString()),
-            new(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
+            new(ClaimTypes.NameIdentifier, user.UserId.ToString()),
+            new(JwtRegisteredClaimNames.Sub, user.UserId.ToString()),
             new(JwtRegisteredClaimNames.UniqueName, user.UserName),
             new(ClaimTypes.Name, user.DisplayName),
             new(JwtRegisteredClaimNames.Email, user.Email),
+            new(JwtRegisteredClaimNames.Jti, sessionId),
             new(TokenClaimTypes.SessionId, sessionId),
             new(TokenClaimTypes.TokenVersion, tokenVersion.ToString(CultureInfo.InvariantCulture))
         };
+
+        var expClaim = principal.FindFirstValue(JwtRegisteredClaimNames.Exp);
+        if (!string.IsNullOrWhiteSpace(expClaim))
+        {
+            claims.Add(new Claim(JwtRegisteredClaimNames.Exp, expClaim));
+        }
 
         claims.AddRange(user.Roles.Distinct(StringComparer.OrdinalIgnoreCase).Select(role => new Claim(ClaimTypes.Role, role)));
         claims.AddRange(user.Permissions.Distinct(StringComparer.OrdinalIgnoreCase).Select(permission => new Claim(TokenClaimTypes.Permission, permission)));

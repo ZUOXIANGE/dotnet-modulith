@@ -50,7 +50,7 @@ public enum PaymentStatus
 /// <summary>
 /// 支付聚合根，管理支付的生命周期和状态流转
 /// </summary>
-public sealed class Payment : AggregateRoot, IEntity<PaymentId>
+public sealed class PaymentEntity : AggregateRoot, IEntity<PaymentId>
 {
     private static readonly ActivitySource ActivitySource = new("DotNetModulith.Modules.Payments");
 
@@ -94,7 +94,7 @@ public sealed class Payment : AggregateRoot, IEntity<PaymentId>
     /// </summary>
     public DateTimeOffset? CompletedAt { get; private set; }
 
-    private Payment() { }
+    private PaymentEntity() { }
 
     /// <summary>
     /// 创建新的支付记录
@@ -103,11 +103,11 @@ public sealed class Payment : AggregateRoot, IEntity<PaymentId>
     /// <param name="customerId">客户ID</param>
     /// <param name="amount">支付金额</param>
     /// <returns>新创建的支付实例</returns>
-    public static Payment Create(string orderId, string customerId, decimal amount)
+    public static PaymentEntity Create(string orderId, string customerId, decimal amount)
     {
-        using var activity = ActivitySource.StartActivity("Payment.Create", ActivityKind.Internal);
+        using var activity = ActivitySource.StartActivity("PaymentEntity.Create", ActivityKind.Internal);
 
-        var payment = new Payment
+        var payment = new PaymentEntity
         {
             Id = PaymentId.New(),
             OrderId = orderId,

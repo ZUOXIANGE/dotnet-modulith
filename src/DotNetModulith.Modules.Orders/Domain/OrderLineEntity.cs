@@ -3,7 +3,7 @@ namespace DotNetModulith.Modules.Orders.Domain;
 /// <summary>
 /// 订单行项目实体
 /// </summary>
-public sealed class OrderLine
+public sealed class OrderLineEntity
 {
     /// <summary>
     /// 行项目唯一标识
@@ -35,7 +35,7 @@ public sealed class OrderLine
     /// </summary>
     public decimal LineTotal => Quantity * UnitPrice;
 
-    public OrderLine(string productId, string productName, int quantity, decimal unitPrice)
+    public OrderLineEntity(string productId, string productName, int quantity, decimal unitPrice)
     {
         Id = Guid.NewGuid();
         ProductId = productId;

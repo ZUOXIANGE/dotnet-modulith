@@ -15,9 +15,9 @@ public static partial class PaymentMapper
     /// <summary>
     /// 将支付聚合根映射为支付详情DTO
     /// </summary>
-    [MapProperty(nameof(Payment.Id), nameof(PaymentDetail.PaymentId))]
-    [MapProperty(nameof(Payment.Status), nameof(PaymentDetail.Status))]
-    public static partial PaymentDetail ToDetail(this Payment payment);
+    [MapProperty(nameof(PaymentEntity.Id), nameof(PaymentDetail.PaymentId))]
+    [MapProperty(nameof(PaymentEntity.Status), nameof(PaymentDetail.Status))]
+    public static partial PaymentDetail ToDetail(this PaymentEntity payment);
 
     /// <summary>
     /// 将支付ID转换为字符串

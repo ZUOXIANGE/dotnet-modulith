@@ -13,5 +13,5 @@ public static partial class InventoryMapper
     /// <summary>
     /// 将库存聚合根映射为库存详情DTO
     /// </summary>
-    public static partial StockDetail ToDetail(this Stock stock);
+    public static partial StockDetail ToDetail(this StockEntity stock);
 }

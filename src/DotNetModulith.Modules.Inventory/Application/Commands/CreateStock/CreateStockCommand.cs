@@ -47,7 +47,7 @@ public sealed class CreateStockCommandHandler : ICommandHandler<CreateStockComma
         using var activity = ActivitySource.StartActivity("CreateStock", ActivityKind.Internal);
         activity?.SetTag("modulith.product_id", command.ProductId);
 
-        var stock = Stock.Create(command.ProductId, command.ProductName, command.InitialQuantity);
+        var stock = StockEntity.Create(command.ProductId, command.ProductName, command.InitialQuantity);
 
         await CapTransactionScope.ExecuteAsync(
             _dbContext,

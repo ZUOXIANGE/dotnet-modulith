@@ -62,14 +62,14 @@ public sealed class InventoryEventSubscriber : ICapSubscribe
         var order = await _orderRepository.GetByIdAsync(orderId, ct);
         if (order is null)
         {
-            _logger.LogWarning("Order {OrderId} not found while handling reserved stock event", @event.OrderId);
-            activity?.SetStatus(ActivityStatusCode.Error, "Order not found");
+            _logger.LogWarning("OrderEntity {OrderId} not found while handling reserved stock event", @event.OrderId);
+            activity?.SetStatus(ActivityStatusCode.Error, "OrderEntity not found");
             return;
         }
 
         if (order.Status is OrderStatus.Confirmed or OrderStatus.Paid)
         {
-            _logger.LogInformation("Order {OrderId} already advanced to {Status}, skip duplicate stock reserved event",
+            _logger.LogInformation("OrderEntity {OrderId} already advanced to {Status}, skip duplicate stock reserved event",
                 order.Id, order.Status);
             activity?.SetStatus(ActivityStatusCode.Ok);
             return;
@@ -77,7 +77,7 @@ public sealed class InventoryEventSubscriber : ICapSubscribe
 
         if (order.Status == OrderStatus.Cancelled)
         {
-            _logger.LogWarning("Order {OrderId} is already cancelled, skip stock reserved event", order.Id);
+            _logger.LogWarning("OrderEntity {OrderId} is already cancelled, skip stock reserved event", order.Id);
             activity?.SetStatus(ActivityStatusCode.Ok);
             return;
         }
@@ -115,14 +115,14 @@ public sealed class InventoryEventSubscriber : ICapSubscribe
         var order = await _orderRepository.GetByIdAsync(orderId, ct);
         if (order is null)
         {
-            _logger.LogWarning("Order {OrderId} not found while handling insufficient stock event", @event.OrderId);
-            activity?.SetStatus(ActivityStatusCode.Error, "Order not found");
+            _logger.LogWarning("OrderEntity {OrderId} not found while handling insufficient stock event", @event.OrderId);
+            activity?.SetStatus(ActivityStatusCode.Error, "OrderEntity not found");
             return;
         }
 
         if (order.Status == OrderStatus.Cancelled)
         {
-            _logger.LogInformation("Order {OrderId} already cancelled, skip duplicate insufficient stock event", order.Id);
+            _logger.LogInformation("OrderEntity {OrderId} already cancelled, skip duplicate insufficient stock event", order.Id);
             activity?.SetStatus(ActivityStatusCode.Ok);
             return;
         }
@@ -130,7 +130,7 @@ public sealed class InventoryEventSubscriber : ICapSubscribe
         if (order.Status == OrderStatus.Paid)
         {
             _logger.LogError("Received insufficient stock for paid order {OrderId}", order.Id);
-            activity?.SetStatus(ActivityStatusCode.Error, "Order already paid");
+            activity?.SetStatus(ActivityStatusCode.Error, "OrderEntity already paid");
             return;
         }
 
@@ -146,7 +146,7 @@ public sealed class InventoryEventSubscriber : ICapSubscribe
             },
             ct);
 
-        _logger.LogWarning("Order {OrderId} cancelled due to insufficient stock for product {ProductId}",
+        _logger.LogWarning("OrderEntity {OrderId} cancelled due to insufficient stock for product {ProductId}",
             order.Id, @event.ProductId);
         activity?.SetStatus(ActivityStatusCode.Ok);
     }

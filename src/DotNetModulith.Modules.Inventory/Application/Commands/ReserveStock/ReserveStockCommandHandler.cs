@@ -44,7 +44,7 @@ public sealed class ReserveStockCommandHandler : ICommandHandler<ReserveStockCom
                     .GroupBy(line => line.ProductId, StringComparer.Ordinal)
                     .ToDictionary(group => group.Key, group => group.Sum(item => item.Quantity), StringComparer.Ordinal);
 
-                var stocksToReserve = new List<(Stock Stock, int Quantity)>();
+                var stocksToReserve = new List<(StockEntity StockEntity, int Quantity)>();
 
                 foreach (var request in requestedQuantities)
                 {
@@ -52,7 +52,7 @@ public sealed class ReserveStockCommandHandler : ICommandHandler<ReserveStockCom
 
                     if (stock is null)
                     {
-                        result = Result.Failure($"Stock for product {request.Key} not found.", "STOCK_NOT_FOUND");
+                        result = Result.Failure($"StockEntity for product {request.Key} not found.", "STOCK_NOT_FOUND");
                         return;
                     }
 

@@ -11,7 +11,7 @@ public interface IOrderRepository
     /// <param name="id">订单ID</param>
     /// <param name="ct">取消令牌</param>
     /// <returns>订单实例，未找到时返回null</returns>
-    Task<Order?> GetByIdAsync(OrderId id, CancellationToken ct = default);
+    Task<OrderEntity?> GetByIdAsync(OrderId id, CancellationToken ct = default);
 
     /// <summary>
     /// 根据客户ID获取订单列表
@@ -20,7 +20,7 @@ public interface IOrderRepository
     /// <param name="limit">返回行数上限</param>
     /// <param name="ct">取消令牌</param>
     /// <returns>该客户的订单列表</returns>
-    Task<IReadOnlyList<Order>> GetByCustomerIdAsync(string customerId, int limit, CancellationToken ct = default);
+    Task<IReadOnlyList<OrderEntity>> GetByCustomerIdAsync(string customerId, int limit, CancellationToken ct = default);
 
     /// <summary>
     /// 获取所有待确认的订单
@@ -28,21 +28,21 @@ public interface IOrderRepository
     /// <param name="limit">返回行数上限</param>
     /// <param name="ct">取消令牌</param>
     /// <returns>待确认订单列表</returns>
-    Task<IReadOnlyList<Order>> GetPendingOrdersAsync(int limit, CancellationToken ct = default);
+    Task<IReadOnlyList<OrderEntity>> GetPendingOrdersAsync(int limit, CancellationToken ct = default);
 
     /// <summary>
     /// 添加新订单
     /// </summary>
     /// <param name="order">要添加的订单</param>
     /// <param name="ct">取消令牌</param>
-    Task AddAsync(Order order, CancellationToken ct = default);
+    Task AddAsync(OrderEntity order, CancellationToken ct = default);
 
     /// <summary>
     /// 更新已有订单
     /// </summary>
     /// <param name="order">要更新的订单</param>
     /// <param name="ct">取消令牌</param>
-    Task UpdateAsync(Order order, CancellationToken ct = default);
+    Task UpdateAsync(OrderEntity order, CancellationToken ct = default);
 
     /// <summary>
     /// 提交当前工作单元中的订单变更

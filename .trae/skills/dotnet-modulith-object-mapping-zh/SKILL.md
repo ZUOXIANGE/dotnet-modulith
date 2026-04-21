@@ -46,6 +46,7 @@ description: "规范 DotNetModulith 项目的对象映射、DTO 放置与 Mapper
 - `ToCommand()` 用于请求到命令
 - `ToDetail()` / `ToContract()` 用于领域对象到 DTO/契约
 - 一个映射器文件只承载“映射器本身”，不要同时承载 DTO 定义、配置常量、业务逻辑
+- 数据库实体类型统一使用 `*Entity` 后缀；映射目标若为实体需明确使用 `XxxEntity`
 
 ## 本仓库的推荐目录模式
 

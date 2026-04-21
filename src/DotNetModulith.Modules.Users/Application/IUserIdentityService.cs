@@ -4,7 +4,7 @@ public interface IUserIdentityService
 {
     Task<LoginResult> LoginAsync(LoginInput input, CancellationToken cancellationToken);
 
-    Task LogoutAsync(Guid userId, string sessionId, CancellationToken cancellationToken);
+    Task LogoutAsync(Guid userId, string sessionId, DateTimeOffset expiresAt, CancellationToken cancellationToken);
 
     Task<CurrentUserDetails> GetCurrentUserAsync(Guid userId, CancellationToken cancellationToken);
 

@@ -1,3 +1,4 @@
+using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using DotNetModulith.Abstractions.Exceptions;
 using DotNetModulith.Abstractions.Results;
@@ -53,8 +54,9 @@ public sealed class AuthController : ControllerBase
         var userId = GetCurrentUserId();
         var sessionId = User.FindFirstValue(TokenClaimTypes.SessionId)
             ?? throw new BusinessException("invalid token", ApiCodes.Auth.InvalidToken, StatusCodes.Status401Unauthorized);
+        var expiresAt = GetTokenExpiresAt();
 
-        await _identityService.LogoutAsync(userId, sessionId, ct);
+        await _identityService.LogoutAsync(userId, sessionId, expiresAt, ct);
         return ApiResponse.Success();
     }
 
@@ -91,5 +93,16 @@ public sealed class AuthController : ControllerBase
         return Guid.TryParse(value, out var userId)
             ? userId
             : throw new BusinessException("invalid token", ApiCodes.Auth.InvalidToken, StatusCodes.Status401Unauthorized);
+    }
+
+    private DateTimeOffset GetTokenExpiresAt()
+    {
+        var expClaim = User.FindFirstValue(JwtRegisteredClaimNames.Exp);
+        if (!long.TryParse(expClaim, out var expUnix))
+        {
+            throw new BusinessException("invalid token", ApiCodes.Auth.InvalidToken, StatusCodes.Status401Unauthorized);
+        }
+
+        return DateTimeOffset.FromUnixTimeSeconds(expUnix);
     }
 }

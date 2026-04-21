@@ -38,7 +38,7 @@ public sealed class NotificationEventSubscriber : ICapSubscribe
         activity?.SetTag("modulith.order_id", @event.OrderId);
 
         _logger.LogInformation(
-            "Order confirmation: Order {OrderId} created for customer {CustomerId}, total {Amount}",
+            "OrderEntity confirmation: OrderEntity {OrderId} created for customer {CustomerId}, total {Amount}",
             @event.OrderId, @event.CustomerId, @event.TotalAmount);
 
         NotificationsSent.Add(1,
@@ -59,7 +59,7 @@ public sealed class NotificationEventSubscriber : ICapSubscribe
         activity?.SetTag("modulith.order_id", @event.OrderId);
 
         _logger.LogInformation(
-            "Payment receipt: Payment {PaymentId} of {Amount} completed for order {OrderId}",
+            "PaymentEntity receipt: PaymentEntity {PaymentId} of {Amount} completed for order {OrderId}",
             @event.PaymentId, @event.Amount, @event.OrderId);
 
         NotificationsSent.Add(1,
@@ -80,7 +80,7 @@ public sealed class NotificationEventSubscriber : ICapSubscribe
         activity?.SetTag("modulith.order_id", @event.OrderId);
 
         _logger.LogInformation(
-            "Order cancellation: Order {OrderId} cancelled for customer {CustomerId}. Reason: {Reason}",
+            "OrderEntity cancellation: OrderEntity {OrderId} cancelled for customer {CustomerId}. Reason: {Reason}",
             @event.OrderId, @event.CustomerId, @event.Reason);
 
         NotificationsSent.Add(1,

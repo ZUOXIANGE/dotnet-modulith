@@ -7,9 +7,9 @@ namespace DotNetModulith.Modules.Orders.Infrastructure;
 /// <summary>
 /// 订单行项目实体EF Core配置
 /// </summary>
-internal sealed class OrderLineConfiguration : IEntityTypeConfiguration<OrderLine>
+internal sealed class OrderLineEntityConfiguration : IEntityTypeConfiguration<OrderLineEntity>
 {
-    public void Configure(EntityTypeBuilder<OrderLine> builder)
+    public void Configure(EntityTypeBuilder<OrderLineEntity> builder)
     {
         builder.ToTable("order_lines");
 

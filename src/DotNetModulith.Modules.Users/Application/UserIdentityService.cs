@@ -11,17 +11,23 @@ namespace DotNetModulith.Modules.Users.Application;
 internal sealed class UserIdentityService : IUserIdentityService
 {
     private readonly UsersDbContext _dbContext;
-    private readonly IPasswordHasher<ModuleUser> _passwordHasher;
+    private readonly IPasswordHasher<UserEntity> _passwordHasher;
     private readonly JwtTokenFactory _jwtTokenFactory;
+    private readonly IUserAuthCache _userAuthCache;
+    private readonly ITokenBlacklistStore _tokenBlacklistStore;
 
     public UserIdentityService(
         UsersDbContext dbContext,
-        IPasswordHasher<ModuleUser> passwordHasher,
-        JwtTokenFactory jwtTokenFactory)
+        IPasswordHasher<UserEntity> passwordHasher,
+        JwtTokenFactory jwtTokenFactory,
+        IUserAuthCache userAuthCache,
+        ITokenBlacklistStore tokenBlacklistStore)
     {
         _dbContext = dbContext;
         _passwordHasher = passwordHasher;
         _jwtTokenFactory = jwtTokenFactory;
+        _userAuthCache = userAuthCache;
+        _tokenBlacklistStore = tokenBlacklistStore;
     }
 
     public async Task<LoginResult> LoginAsync(LoginInput input, CancellationToken cancellationToken)
@@ -30,9 +36,8 @@ internal sealed class UserIdentityService : IUserIdentityService
         var user = await _dbContext.Users
             .AsTracking()
             .Include(x => x.Roles)
-            .ThenInclude(x => x.Role)
+            .ThenInclude(x => x.RoleEntity)
             .ThenInclude(x => x.Permissions)
-            .Include(x => x.Sessions)
             .SingleOrDefaultAsync(x => x.UserName == normalizedUserName, cancellationToken);
 
         if (user is null)
@@ -65,25 +70,23 @@ internal sealed class UserIdentityService : IUserIdentityService
         var token = _jwtTokenFactory.CreateAccessToken(user, sessionId);
 
         user.RecordLogin(now);
-        user.Sessions.Add(UserSession.Create(user.Id, sessionId, input.RemoteIp, input.UserAgent, now, token.ExpiresAt));
 
         await _dbContext.SaveChangesAsync(cancellationToken);
+        await RefreshUserAuthCacheAsync(user.Id, cancellationToken);
         return new LoginResult(token.AccessToken, token.ExpiresAt, MapCurrentUser(user));
     }
 
-    public async Task LogoutAsync(Guid userId, string sessionId, CancellationToken cancellationToken)
+    public async Task LogoutAsync(
+        Guid userId,
+        string sessionId,
+        DateTimeOffset expiresAt,
+        CancellationToken cancellationToken)
     {
-        var session = await _dbContext.UserSessions
-            .AsTracking()
-            .SingleOrDefaultAsync(x => x.UserId == userId && x.TokenId == sessionId, cancellationToken);
-
-        if (session is null)
-        {
-            return;
-        }
-
-        session.Revoke("logout", DateTimeOffset.UtcNow);
-        await _dbContext.SaveChangesAsync(cancellationToken);
+        _ = userId;
+        await _tokenBlacklistStore.BlacklistAsync(
+            sessionId,
+            expiresAt,
+            cancellationToken);
     }
 
     public async Task<CurrentUserDetails> GetCurrentUserAsync(Guid userId, CancellationToken cancellationToken)
@@ -97,7 +100,6 @@ internal sealed class UserIdentityService : IUserIdentityService
     {
         var user = await _dbContext.Users
             .AsTracking()
-            .Include(x => x.Sessions)
             .SingleOrDefaultAsync(x => x.Id == userId, cancellationToken)
             ?? throw new BusinessException(
                 "user not found",
@@ -115,8 +117,8 @@ internal sealed class UserIdentityService : IUserIdentityService
 
         var now = DateTimeOffset.UtcNow;
         user.SetPassword(_passwordHasher.HashPassword(user, newPassword), now);
-        RevokeActiveSessions(user, "password changed", now);
         await _dbContext.SaveChangesAsync(cancellationToken);
+        await RefreshUserAuthCacheAsync(user.Id, cancellationToken);
     }
 
     public async Task<IReadOnlyList<UserListItem>> GetUsersAsync(CancellationToken cancellationToken)
@@ -124,7 +126,7 @@ internal sealed class UserIdentityService : IUserIdentityService
         return await _dbContext.Users
             .AsNoTracking()
             .Include(x => x.Roles)
-            .ThenInclude(x => x.Role)
+            .ThenInclude(x => x.RoleEntity)
             .OrderBy(x => x.UserName)
             .Select(x => new UserListItem(
                 x.Id,
@@ -134,7 +136,7 @@ internal sealed class UserIdentityService : IUserIdentityService
                 x.IsActive,
                 x.CreatedAt,
                 x.LastLoginAt,
-                x.Roles.Select(role => role.Role.Name).OrderBy(name => name).ToArray()))
+                x.Roles.Select(role => role.RoleEntity.Name).OrderBy(name => name).ToArray()))
             .ToListAsync(cancellationToken);
     }
 
@@ -165,12 +167,13 @@ internal sealed class UserIdentityService : IUserIdentityService
         await EnsureRolesExistAsync(input.RoleIds, cancellationToken);
 
         var now = DateTimeOffset.UtcNow;
-        var user = ModuleUser.Create(normalizedUserName, input.DisplayName.Trim(), normalizedEmail, string.Empty, now);
+        var user = UserEntity.Create(normalizedUserName, input.DisplayName.Trim(), normalizedEmail, string.Empty, now);
         user.SetPassword(_passwordHasher.HashPassword(user, input.Password), now);
         user.AssignRoles(input.RoleIds, now);
 
         _dbContext.Users.Add(user);
         await _dbContext.SaveChangesAsync(cancellationToken);
+        await RefreshUserAuthCacheAsync(user.Id, cancellationToken);
 
         return await GetCurrentUserAsync(user.Id, cancellationToken);
     }
@@ -201,6 +204,7 @@ internal sealed class UserIdentityService : IUserIdentityService
 
         user.UpdateProfile(input.DisplayName.Trim(), normalizedEmail, DateTimeOffset.UtcNow);
         await _dbContext.SaveChangesAsync(cancellationToken);
+        await RefreshUserAuthCacheAsync(user.Id, cancellationToken);
         return await GetUserDetailsAsync(userId, cancellationToken);
     }
 
@@ -218,13 +222,13 @@ internal sealed class UserIdentityService : IUserIdentityService
         await EnsureRolesExistAsync(roleIds, cancellationToken);
         user.AssignRoles(roleIds, DateTimeOffset.UtcNow);
         await _dbContext.SaveChangesAsync(cancellationToken);
+        await RefreshUserAuthCacheAsync(user.Id, cancellationToken);
     }
 
     public async Task SetUserStatusAsync(Guid userId, bool isActive, CancellationToken cancellationToken)
     {
         var user = await _dbContext.Users
             .AsTracking()
-            .Include(x => x.Sessions)
             .SingleOrDefaultAsync(x => x.Id == userId, cancellationToken)
             ?? throw new BusinessException(
                 "user not found",
@@ -236,17 +240,16 @@ internal sealed class UserIdentityService : IUserIdentityService
         if (!isActive)
         {
             user.IncrementTokenVersion(now);
-            RevokeActiveSessions(user, "user disabled", now);
         }
 
         await _dbContext.SaveChangesAsync(cancellationToken);
+        await RefreshUserAuthCacheAsync(user.Id, cancellationToken);
     }
 
     public async Task ForceLogoutAsync(Guid userId, string? reason, CancellationToken cancellationToken)
     {
         var user = await _dbContext.Users
             .AsTracking()
-            .Include(x => x.Sessions)
             .SingleOrDefaultAsync(x => x.Id == userId, cancellationToken)
             ?? throw new BusinessException(
                 "user not found",
@@ -255,15 +258,14 @@ internal sealed class UserIdentityService : IUserIdentityService
 
         var now = DateTimeOffset.UtcNow;
         user.IncrementTokenVersion(now);
-        RevokeActiveSessions(user, string.IsNullOrWhiteSpace(reason) ? "force logout" : reason.Trim(), now);
         await _dbContext.SaveChangesAsync(cancellationToken);
+        await RefreshUserAuthCacheAsync(user.Id, cancellationToken);
     }
 
     public async Task ResetPasswordAsync(Guid userId, string newPassword, CancellationToken cancellationToken)
     {
         var user = await _dbContext.Users
             .AsTracking()
-            .Include(x => x.Sessions)
             .SingleOrDefaultAsync(x => x.Id == userId, cancellationToken)
             ?? throw new BusinessException(
                 "user not found",
@@ -272,8 +274,8 @@ internal sealed class UserIdentityService : IUserIdentityService
 
         var now = DateTimeOffset.UtcNow;
         user.SetPassword(_passwordHasher.HashPassword(user, newPassword), now);
-        RevokeActiveSessions(user, "password reset", now);
         await _dbContext.SaveChangesAsync(cancellationToken);
+        await RefreshUserAuthCacheAsync(user.Id, cancellationToken);
     }
 
     public async Task<IReadOnlyList<RoleDetails>> GetRolesAsync(CancellationToken cancellationToken)
@@ -307,7 +309,7 @@ internal sealed class UserIdentityService : IUserIdentityService
         EnsurePermissionsExist(permissions);
 
         var now = DateTimeOffset.UtcNow;
-        var role = Role.Create(
+        var role = RoleEntity.Create(
             roleName,
             string.IsNullOrWhiteSpace(input.Description) ? null : input.Description.Trim(),
             false,
@@ -343,6 +345,17 @@ internal sealed class UserIdentityService : IUserIdentityService
         EnsurePermissionsExist(normalizedPermissions);
         role.ReplacePermissions(normalizedPermissions, DateTimeOffset.UtcNow);
         await _dbContext.SaveChangesAsync(cancellationToken);
+
+        var userIds = await _dbContext.Users
+            .AsNoTracking()
+            .Where(x => x.Roles.Any(userRole => userRole.RoleId == roleId))
+            .Select(x => x.Id)
+            .ToArrayAsync(cancellationToken);
+
+        foreach (var userId in userIds)
+        {
+            await RefreshUserAuthCacheAsync(userId, cancellationToken);
+        }
     }
 
     public Task<IReadOnlyList<PermissionDetails>> GetPermissionsAsync(CancellationToken cancellationToken)
@@ -383,24 +396,16 @@ internal sealed class UserIdentityService : IUserIdentityService
         }
     }
 
-    private static void RevokeActiveSessions(ModuleUser user, string reason, DateTimeOffset now)
-    {
-        foreach (var session in user.Sessions.Where(x => x.RevokedAt is null))
-        {
-            session.Revoke(reason, now);
-        }
-    }
-
-    private static CurrentUserDetails MapCurrentUser(ModuleUser user)
+    private static CurrentUserDetails MapCurrentUser(UserEntity user)
     {
         var roles = user.Roles
-            .Select(x => x.Role.Name)
+            .Select(x => x.RoleEntity.Name)
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .OrderBy(x => x)
             .ToArray();
 
         var permissions = user.Roles
-            .SelectMany(x => x.Role.Permissions.Select(permission => permission.Permission))
+            .SelectMany(x => x.RoleEntity.Permissions.Select(permission => permission.Permission))
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .OrderBy(x => x)
             .ToArray();
@@ -420,7 +425,7 @@ internal sealed class UserIdentityService : IUserIdentityService
         var user = await _dbContext.Users
             .AsNoTracking()
             .Include(x => x.Roles)
-            .ThenInclude(x => x.Role)
+            .ThenInclude(x => x.RoleEntity)
             .ThenInclude(x => x.Permissions)
             .SingleOrDefaultAsync(x => x.Id == userId, cancellationToken)
             ?? throw new BusinessException(
@@ -441,4 +446,41 @@ internal sealed class UserIdentityService : IUserIdentityService
     private static string NormalizeUserName(string userName) => userName.Trim().ToLowerInvariant();
 
     private static string NormalizeEmail(string email) => email.Trim().ToLowerInvariant();
+
+    private async Task RefreshUserAuthCacheAsync(Guid userId, CancellationToken cancellationToken)
+    {
+        var data = await _dbContext.Users
+            .AsNoTracking()
+            .Where(x => x.Id == userId)
+            .Select(x => new
+            {
+                x.Id,
+                x.UserName,
+                x.DisplayName,
+                x.Email,
+                x.IsActive,
+                x.TokenVersion,
+                Roles = x.Roles.Select(role => role.RoleEntity.Name).ToArray(),
+                Permissions = x.Roles.SelectMany(role => role.RoleEntity.Permissions.Select(permission => permission.Permission)).ToArray()
+            })
+            .SingleOrDefaultAsync(cancellationToken);
+
+        if (data is null)
+        {
+            await _userAuthCache.RemoveAsync(userId, cancellationToken);
+            return;
+        }
+
+        var snapshot = new UserAuthSnapshot(
+            data.Id,
+            data.UserName,
+            data.DisplayName,
+            data.Email,
+            data.IsActive,
+            data.TokenVersion,
+            data.Roles,
+            data.Permissions);
+
+        await _userAuthCache.SetAsync(snapshot, cancellationToken);
+    }
 }

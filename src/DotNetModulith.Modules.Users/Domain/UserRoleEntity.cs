@@ -3,18 +3,18 @@ namespace DotNetModulith.Modules.Users.Domain;
 /// <summary>
 /// 用户角色关系
 /// </summary>
-public sealed class UserRole
+public sealed class UserRoleEntity
 {
     public Guid UserId { get; private set; }
     public Guid RoleId { get; private set; }
-    public ModuleUser User { get; private set; } = default!;
-    public Role Role { get; private set; } = default!;
+    public UserEntity User { get; private set; } = default!;
+    public RoleEntity RoleEntity { get; private set; } = default!;
 
-    private UserRole()
+    private UserRoleEntity()
     {
     }
 
-    public UserRole(Guid userId, Guid roleId)
+    public UserRoleEntity(Guid userId, Guid roleId)
     {
         UserId = userId;
         RoleId = roleId;

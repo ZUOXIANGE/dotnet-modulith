@@ -20,7 +20,7 @@ public sealed class JwtTokenFactory
         _options = options.Value;
     }
 
-    public IssuedToken CreateAccessToken(ModuleUser user, string sessionId)
+    public IssuedToken CreateAccessToken(UserEntity user, string sessionId)
     {
         var now = DateTimeOffset.UtcNow;
         var expiresAt = now.AddMinutes(_options.AccessTokenLifetimeMinutes);
@@ -31,9 +31,6 @@ public sealed class JwtTokenFactory
         {
             new(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
             new(ClaimTypes.NameIdentifier, user.Id.ToString()),
-            new(JwtRegisteredClaimNames.UniqueName, user.UserName),
-            new(ClaimTypes.Name, user.DisplayName),
-            new(JwtRegisteredClaimNames.Email, user.Email),
             new(JwtRegisteredClaimNames.Jti, sessionId),
             new(TokenClaimTypes.SessionId, sessionId),
             new(TokenClaimTypes.TokenVersion, user.TokenVersion.ToString(CultureInfo.InvariantCulture))

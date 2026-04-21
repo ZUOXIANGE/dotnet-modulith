@@ -8,9 +8,8 @@ namespace DotNetModulith.Modules.Users.Infrastructure;
 /// </summary>
 public sealed class UsersDbContext : DbContext
 {
-    public DbSet<ModuleUser> Users => Set<ModuleUser>();
-    public DbSet<Role> Roles => Set<Role>();
-    public DbSet<UserSession> UserSessions => Set<UserSession>();
+    public DbSet<UserEntity> Users => Set<UserEntity>();
+    public DbSet<RoleEntity> Roles => Set<RoleEntity>();
 
     public UsersDbContext(DbContextOptions<UsersDbContext> options) : base(options)
     {

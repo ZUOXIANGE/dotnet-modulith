@@ -43,6 +43,7 @@ Infrastructure/
 - 异步方法后缀：`Async`（框架签名已有约定时可例外）。
 - 请求模型：`*Request`；响应模型：`*Response`。
 - 命令/查询：`*Command`、`*Query`；处理器：`*Handler`。
+- 数据库实体（被 `DbSet<T>` 或 `IEntityTypeConfiguration<T>` 映射）：统一使用 `*Entity` 后缀（如 `OrderEntity`、`UserEntity`）。
 - 控制器：`*Controller`，按资源命名，避免语义不清。
 - XML 注释（`summary`、`param`、`returns`）末尾不使用句号（中文 `。` 与英文 `.` 都禁止）。
 

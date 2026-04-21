@@ -44,7 +44,7 @@ public sealed class InventoryController : ControllerBase
         if (stock is null)
         {
             throw new BusinessException(
-                $"Stock for product {productId} not found.",
+                $"StockEntity for product {productId} not found.",
                 ApiCodes.Common.NotFound,
                 StatusCodes.Status404NotFound);
         }

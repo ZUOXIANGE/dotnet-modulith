@@ -39,7 +39,7 @@ public class OrderPersistenceTests(PostgreSqlFixture dbFixture) : IAsyncLifetime
 
         await dbFixture.ResetAsync();
 
-        var order = Order.Create("CUST-001",
+        var order = OrderEntity.Create("CUST-001",
         [
             new OrderLineData("PROD-001", "Widget", 2, 10.00m),
             new OrderLineData("PROD-002", "Gadget", 1, 25.00m)
@@ -67,7 +67,7 @@ public class OrderPersistenceTests(PostgreSqlFixture dbFixture) : IAsyncLifetime
 
         await dbFixture.ResetAsync();
 
-        var order = Order.Create("CUST-002", [new OrderLineData("PROD-003", "Bolt", 5, 3.50m)]);
+        var order = OrderEntity.Create("CUST-002", [new OrderLineData("PROD-003", "Bolt", 5, 3.50m)]);
 
         _dbContext.Orders.Add(order);
         await _dbContext.SaveChangesAsync(ct);

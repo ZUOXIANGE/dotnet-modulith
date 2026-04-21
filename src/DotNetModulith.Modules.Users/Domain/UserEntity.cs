@@ -3,7 +3,7 @@ namespace DotNetModulith.Modules.Users.Domain;
 /// <summary>
 /// 用户聚合
 /// </summary>
-public sealed class ModuleUser
+public sealed class UserEntity
 {
     public Guid Id { get; private set; }
     public string UserName { get; private set; } = string.Empty;
@@ -15,14 +15,13 @@ public sealed class ModuleUser
     public DateTimeOffset CreatedAt { get; private set; }
     public DateTimeOffset UpdatedAt { get; private set; }
     public DateTimeOffset? LastLoginAt { get; private set; }
-    public ICollection<UserRole> Roles { get; } = [];
-    public ICollection<UserSession> Sessions { get; } = [];
+    public ICollection<UserRoleEntity> Roles { get; } = [];
 
-    private ModuleUser()
+    private UserEntity()
     {
     }
 
-    public static ModuleUser Create(string userName, string displayName, string email, string passwordHash, DateTimeOffset now)
+    public static UserEntity Create(string userName, string displayName, string email, string passwordHash, DateTimeOffset now)
         => new()
         {
             Id = Guid.NewGuid(),
@@ -41,7 +40,7 @@ public sealed class ModuleUser
         Roles.Clear();
         foreach (var roleId in roleIds.Distinct())
         {
-            Roles.Add(new UserRole(Id, roleId));
+            Roles.Add(new UserRoleEntity(Id, roleId));
         }
 
         UpdatedAt = now;

@@ -4,9 +4,9 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace DotNetModulith.Modules.Users.Infrastructure;
 
-internal sealed class RoleConfiguration : IEntityTypeConfiguration<Role>
+internal sealed class RoleEntityConfiguration : IEntityTypeConfiguration<RoleEntity>
 {
-    public void Configure(EntityTypeBuilder<Role> builder)
+    public void Configure(EntityTypeBuilder<RoleEntity> builder)
     {
         builder.ToTable("roles");
         builder.HasKey(x => x.Id);
@@ -17,6 +17,6 @@ internal sealed class RoleConfiguration : IEntityTypeConfiguration<Role>
         builder.Property(x => x.CreatedAt).HasColumnName("created_at").IsRequired();
         builder.Property(x => x.UpdatedAt).HasColumnName("updated_at").IsRequired();
         builder.HasIndex(x => x.Name).IsUnique();
-        builder.HasMany(x => x.Permissions).WithOne(x => x.Role).HasForeignKey(x => x.RoleId).OnDelete(DeleteBehavior.Cascade);
+        builder.HasMany(x => x.Permissions).WithOne(x => x.RoleEntity).HasForeignKey(x => x.RoleId).OnDelete(DeleteBehavior.Cascade);
     }
 }

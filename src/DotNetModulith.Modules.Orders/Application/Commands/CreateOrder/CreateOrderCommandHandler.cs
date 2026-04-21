@@ -56,7 +56,7 @@ public sealed class CreateOrderCommandHandler : ICommandHandler<CreateOrderComma
 
         try
         {
-            var order = Order.Create(command.CustomerId, command.Lines);
+            var order = OrderEntity.Create(command.CustomerId, command.Lines);
 
             await CapTransactionScope.ExecuteAsync(
                 _dbContext,
@@ -69,7 +69,7 @@ public sealed class CreateOrderCommandHandler : ICommandHandler<CreateOrderComma
                 },
                 cancellationToken);
 
-            _logger.LogInformation("Order {OrderId} created for customer {CustomerId} with total {TotalAmount}",
+            _logger.LogInformation("OrderEntity {OrderId} created for customer {CustomerId} with total {TotalAmount}",
                 order.Id, order.CustomerId, order.TotalAmount);
 
             activity?.SetTag("modulith.order_id", order.Id.ToString());

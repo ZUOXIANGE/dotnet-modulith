@@ -7,7 +7,7 @@ namespace DotNetModulith.Modules.Orders.Domain;
 /// <summary>
 /// 订单聚合根，管理订单的生命周期和业务规则
 /// </summary>
-public sealed class Order : AggregateRoot, IEntity<OrderId>
+public sealed class OrderEntity : AggregateRoot, IEntity<OrderId>
 {
     private static readonly ActivitySource ActivitySource = new("DotNetModulith.Modules.Orders");
 
@@ -24,7 +24,7 @@ public sealed class Order : AggregateRoot, IEntity<OrderId>
     /// <summary>
     /// 订单行项目列表
     /// </summary>
-    public IReadOnlyList<OrderLine> Lines => _lines.AsReadOnly();
+    public IReadOnlyList<OrderLineEntity> Lines => _lines.AsReadOnly();
 
     /// <summary>
     /// 订单状态
@@ -46,9 +46,9 @@ public sealed class Order : AggregateRoot, IEntity<OrderId>
     /// </summary>
     public DateTimeOffset? UpdatedAt { get; private set; }
 
-    private readonly List<OrderLine> _lines = [];
+    private readonly List<OrderLineEntity> _lines = [];
 
-    private Order() { }
+    private OrderEntity() { }
 
     /// <summary>
     /// 创建新订单
@@ -56,17 +56,17 @@ public sealed class Order : AggregateRoot, IEntity<OrderId>
     /// <param name="customerId">客户ID</param>
     /// <param name="lines">订单行项目数据列表</param>
     /// <returns>新创建的订单实例</returns>
-    public static Order Create(string customerId, IReadOnlyList<OrderLineData> lines)
+    public static OrderEntity Create(string customerId, IReadOnlyList<OrderLineData> lines)
     {
-        using var activity = ActivitySource.StartActivity("Order.Create", ActivityKind.Internal);
+        using var activity = ActivitySource.StartActivity("OrderEntity.Create", ActivityKind.Internal);
 
         if (string.IsNullOrWhiteSpace(customerId))
             throw new ArgumentException("Customer ID is required.", nameof(customerId));
 
         if (lines.Count == 0)
-            throw new ArgumentException("Order must have at least one line.", nameof(lines));
+            throw new ArgumentException("OrderEntity must have at least one line.", nameof(lines));
 
-        var order = new Order
+        var order = new OrderEntity
         {
             Id = OrderId.New(),
             CustomerId = customerId,
@@ -76,7 +76,7 @@ public sealed class Order : AggregateRoot, IEntity<OrderId>
 
         foreach (var line in lines)
         {
-            var orderLine = new OrderLine(line.ProductId, line.ProductName, line.Quantity, line.UnitPrice);
+            var orderLine = new OrderLineEntity(line.ProductId, line.ProductName, line.Quantity, line.UnitPrice);
             order._lines.Add(orderLine);
         }
 

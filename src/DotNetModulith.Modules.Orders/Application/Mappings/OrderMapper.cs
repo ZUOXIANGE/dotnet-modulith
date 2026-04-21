@@ -15,14 +15,14 @@ public static partial class OrderMapper
     /// <summary>
     /// 将订单聚合根映射为订单详情DTO
     /// </summary>
-    [MapProperty(nameof(Order.Id), nameof(OrderDetail.OrderId))]
-    [MapProperty(nameof(Order.Status), nameof(OrderDetail.Status))]
-    public static partial OrderDetail ToDetail(this Order order);
+    [MapProperty(nameof(OrderEntity.Id), nameof(OrderDetail.OrderId))]
+    [MapProperty(nameof(OrderEntity.Status), nameof(OrderDetail.Status))]
+    public static partial OrderDetail ToDetail(this OrderEntity order);
 
     /// <summary>
     /// 将订单行项目映射为订单行详情DTO
     /// </summary>
-    private static partial OrderLineDetail MapToDetail(OrderLine line);
+    private static partial OrderLineDetail MapToDetail(OrderLineEntity line);
 
     /// <summary>
     /// 将订单ID转换为字符串

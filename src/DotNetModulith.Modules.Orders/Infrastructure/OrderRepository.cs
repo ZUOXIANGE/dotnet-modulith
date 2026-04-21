@@ -15,7 +15,7 @@ internal sealed class OrderRepository : IOrderRepository
         _context = context;
     }
 
-    public async Task<Order?> GetByIdAsync(OrderId id, CancellationToken ct = default)
+    public async Task<OrderEntity?> GetByIdAsync(OrderId id, CancellationToken ct = default)
     {
         return await _context.Orders
             .AsTracking()
@@ -23,7 +23,7 @@ internal sealed class OrderRepository : IOrderRepository
             .FirstOrDefaultAsync(o => o.Id == id, ct);
     }
 
-    public async Task<IReadOnlyList<Order>> GetByCustomerIdAsync(string customerId, int limit, CancellationToken ct = default)
+    public async Task<IReadOnlyList<OrderEntity>> GetByCustomerIdAsync(string customerId, int limit, CancellationToken ct = default)
     {
         return await _context.Orders
             .Include("_lines")
@@ -33,7 +33,7 @@ internal sealed class OrderRepository : IOrderRepository
             .ToListAsync(ct);
     }
 
-    public async Task<IReadOnlyList<Order>> GetPendingOrdersAsync(int limit, CancellationToken ct = default)
+    public async Task<IReadOnlyList<OrderEntity>> GetPendingOrdersAsync(int limit, CancellationToken ct = default)
     {
         return await _context.Orders
             .Include("_lines")
@@ -43,12 +43,12 @@ internal sealed class OrderRepository : IOrderRepository
             .ToListAsync(ct);
     }
 
-    public async Task AddAsync(Order order, CancellationToken ct = default)
+    public async Task AddAsync(OrderEntity order, CancellationToken ct = default)
     {
         await _context.Orders.AddAsync(order, ct);
     }
 
-    public async Task UpdateAsync(Order order, CancellationToken ct = default)
+    public async Task UpdateAsync(OrderEntity order, CancellationToken ct = default)
     {
         _context.Orders.Update(order);
     }

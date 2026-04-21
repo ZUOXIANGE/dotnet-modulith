@@ -42,6 +42,10 @@ description: "规范 DotNetModulith 项目的 Controller、ApiResponse、DataAnn
 - 仅 `record` 允许主构造函数
 - `class/struct` 禁止主构造函数（用显式构造函数 + 字段注入）
 
+6. 实体命名
+- 任何数据库实体（`DbSet<T>`、`IEntityTypeConfiguration<T>`）必须使用 `*Entity` 后缀
+- API 契约与 DTO 不使用 `*Entity` 后缀，避免与持久化模型混淆
+
 ## 实施步骤模板
 
 1. 先读取并对齐以下文件

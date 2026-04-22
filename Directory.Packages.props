@@ -4,7 +4,7 @@
   </PropertyGroup>
   <PropertyGroup>
     <CapVersion>8.3.0</CapVersion>
-    <AspireVersion>13.2.2</AspireVersion>
+    <AspireVersion>13.2.3</AspireVersion>
     <EfCoreVersion>10.0.0</EfCoreVersion>
     <OpenTelemetryVersion>1.11.0</OpenTelemetryVersion>
     <MediatorVersion>3.0.2</MediatorVersion>

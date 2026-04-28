@@ -12,7 +12,9 @@
     <PackageReference Include="DotNetCore.CAP.OpenTelemetry" />
     <PackageReference Include="DotNetCore.CAP.PostgreSql" />
     <PackageReference Include="Mediator.Abstractions" />
+    <PackageReference Include="OpenTelemetry.Api" />
     <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" />
+    <PackageReference Include="ModelContextProtocol.AspNetCore" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" PrivateAssets="All" />

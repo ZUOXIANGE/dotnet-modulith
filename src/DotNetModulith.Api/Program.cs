@@ -10,9 +10,11 @@ using DotNetModulith.Modules.Payments;
 using DotNetModulith.Modules.Users;
 using DotNetModulith.Modules.Users.Api.Controllers;
 using DotNetModulith.ModulithCore;
+using DotNetModulith.Modules.Orders.Mcp.Tools;
 using DotNetModulith.ServiceDefaults;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
+using ModelContextProtocol.Server;
 using Scalar.AspNetCore;
 using Serilog;
 using Serilog.Events;
@@ -61,6 +63,10 @@ builder.Services.AddOpenApi(options =>
 });
 
 builder.Services.AddProblemDetails();
+builder.Services.AddMcpServer()
+    .WithHttpTransport()
+    .WithTools<OrdersMcpTools>();
+
 builder.Services
     .AddControllers()
     .AddApplicationPart(typeof(OrdersController).Assembly)
@@ -235,6 +241,7 @@ app.UseWhen(
 app.UseAuthentication();
 app.UseAuthorization();
 
+app.MapMcp("/mcp").RequireAuthorization();
 app.MapControllers();
 
 if (app.Environment.IsDevelopment())

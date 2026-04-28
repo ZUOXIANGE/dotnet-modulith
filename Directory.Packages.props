@@ -6,7 +6,7 @@
     <CapVersion>8.3.0</CapVersion>
     <AspireVersion>13.2.3</AspireVersion>
     <EfCoreVersion>10.0.0</EfCoreVersion>
-    <OpenTelemetryVersion>1.11.0</OpenTelemetryVersion>
+    <OpenTelemetryVersion>1.15.3</OpenTelemetryVersion>
     <MediatorVersion>3.0.2</MediatorVersion>
     <ScalarVersion>2.13.22</ScalarVersion>
     <MapperlyVersion>4.3.1</MapperlyVersion>
@@ -23,6 +23,7 @@
     <PackageVersion Include="Microsoft.Extensions.Options" Version="10.0.7" />
     <PackageVersion Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="10.0.7" />
     <PackageVersion Include="Microsoft.OpenApi" Version="3.5.2" />
+    <PackageVersion Include="ModelContextProtocol.AspNetCore" Version="0.3.0-preview.1" />
     <PackageVersion Include="Npgsql.OpenTelemetry" Version="10.0.2" />
     <PackageVersion Include="Serilog.AspNetCore" Version="10.0.0" />
     <PackageVersion Include="Serilog.Formatting.Compact" Version="3.0.0" />
@@ -69,6 +70,7 @@
   <!-- OpenTelemetry 可观测性相关包版本 -->
   <ItemGroup>
     <PackageVersion Include="OpenTelemetry" Version="$(OpenTelemetryVersion)" />
+    <PackageVersion Include="OpenTelemetry.Api" Version="1.15.3" />
     <PackageVersion Include="OpenTelemetry.Extensions.Hosting" Version="1.15.3" />
     <PackageVersion Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.15.3" />
     <PackageVersion Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.15.2" />

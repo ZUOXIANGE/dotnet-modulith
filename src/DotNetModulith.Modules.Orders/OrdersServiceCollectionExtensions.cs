@@ -5,6 +5,8 @@ using DotNetModulith.Modules.Orders.Application.Subscribers;
 using DotNetModulith.Modules.Orders.Domain;
 using DotNetModulith.Modules.Orders.Domain.Events;
 using DotNetModulith.Modules.Orders.Infrastructure;
+using DotNetModulith.Modules.Orders.Mcp;
+using DotNetModulith.Modules.Orders.Mcp.Tools;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -74,6 +76,9 @@ internal static class OrdersServiceCollectionExtensions
         services.AddTransient<IDomainEventHandler<OrderCancelledDomainEvent>, OrderCancelledDomainEventHandler>();
         services.AddTransient<InventoryEventSubscriber>();
         services.AddTransient<PaymentEventSubscriber>();
+        services.AddHttpContextAccessor();
+        services.AddScoped<OrdersMcpAuthorizationService>();
+        services.AddScoped<OrdersMcpTools>();
 
         return services;
     }

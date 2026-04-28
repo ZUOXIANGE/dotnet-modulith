@@ -10,6 +10,7 @@
   <ItemGroup>
     <PackageReference Include="DotNetCore.CAP" />
     <PackageReference Include="DotNetCore.CAP.OpenTelemetry" />
+    <PackageReference Include="OpenTelemetry.Api" />
   </ItemGroup>
 
   <ItemGroup>

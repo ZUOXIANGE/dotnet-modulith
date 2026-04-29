@@ -1,5 +1,6 @@
 using System.Text;
 using DotNetModulith.Modules.Users.Application;
+using DotNetModulith.Modules.Users.Application.Auth;
 using DotNetModulith.Modules.Users.Domain;
 using DotNetModulith.Modules.Users.Infrastructure;
 using DotNetModulith.Modules.Users.Infrastructure.Caching;

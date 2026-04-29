@@ -189,7 +189,9 @@ builder.Services.AddHealthChecks()
 
 var app = builder.Build();
 
-app.UseExceptionHandler(errorApp =>
+app.UseWhen(
+    context => !context.Request.Path.StartsWithSegments("/mcp"),
+    appBuilder => appBuilder.UseExceptionHandler(errorApp =>
 {
     errorApp.Run(async context =>
     {
@@ -220,7 +222,7 @@ app.UseExceptionHandler(errorApp =>
             ApiResponse.Failure("internal server error", ApiCodes.Common.InternalError),
             context.RequestAborted);
     });
-});
+}));
 
 app.UseWhen(
     context =>

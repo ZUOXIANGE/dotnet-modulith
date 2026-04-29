@@ -12,6 +12,7 @@
 - 事件驱动：基于 CAP + RabbitMQ 的可靠事件发布订阅（含 Outbox）
 - 定时调度：基于 TickerQ 的持久化任务与 Dashboard
 - 多级缓存：FusionCache（L1 内存 + L2 Redis）
+- 文件存储：RustFS（S3 兼容）+ 直传/签名上传
 - 统一可观测：OpenTelemetry + OpenObserve，支持 Logs/Traces/Metrics
 - 结构化日志：Serilog JSON（控制台 + 文件），并异步写入
 
@@ -24,6 +25,7 @@
 | 消息   | RabbitMQ + DotNetCore.CAP                                  |
 | 调度   | TickerQ + TickerQ.EntityFrameworkCore + TickerQ.Dashboard  |
 | 缓存   | FusionCache + Redis                                        |
+| 对象存储 | RustFS（S3-compatible） + AWS SDK for .NET                |
 | 观测   | OpenTelemetry + OpenObserve + OTEL Collector               |
 | 日志   | Serilog（Async + JSON）                                    |
 | 文档   | Scalar.AspNetCore                                          |
@@ -39,7 +41,7 @@ src/
   DotNetModulith.MigrationService/    # 迁移服务
   DotNetModulith.Abstractions/        # 共享抽象与事件契约
   DotNetModulith.ModulithCore/        # 模块注册与边界验证核心
-  DotNetModulith.Modules.*            # 业务模块（Orders/Inventory/Payments/Notifications）
+  DotNetModulith.Modules.*            # 业务模块（Orders/Inventory/Payments/Notifications/Storage）
 scripts/
   test-api.ps1                        # 常用 API 联调与链路验证脚本
 tests/
@@ -76,7 +78,7 @@ dotnet run --project src/DotNetModulith.AppHost
 Aspire 启动后会自动准备：
 - `modulithdb`：业务数据库
 - `tickerqdb`：TickerQ 调度数据库
-- `rabbitmq`、`redis`、`openobserve`、`otel-collector`
+- `rabbitmq`、`redis`、`rustfs`、`openobserve`、`otel-collector`
 
 推荐做法：
 - 统一通过 `DotNetModulith.AppHost` 启动应用与全部依赖
@@ -89,6 +91,8 @@ Aspire 启动后会自动准备：
 - `Aspire Dashboard`：默认 `http://localhost:15000`
 - `API Base URL`：在 Aspire Dashboard 的 `api` 资源详情中查看
 - `JobHost Base URL`：在 Aspire Dashboard 的 `jobhost` 资源详情中查看
+- `RustFS S3 Endpoint`：在 Aspire Dashboard 的 `rustfs` 资源 `s3` 端点中查看
+- `RustFS Console`：在 Aspire Dashboard 的 `rustfs` 资源 `console` 端点中查看
 - `OpenObserve`：在 Aspire Dashboard 的 `openobserve` 资源详情中查看
 - `RabbitMQ Management`：在 Aspire Dashboard 的 `rabbitmq-management` 端点中查看
 - `PgAdmin`：在 Aspire Dashboard 的 `pgadmin` 资源详情中查看

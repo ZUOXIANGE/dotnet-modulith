@@ -5,6 +5,9 @@
     <File Path="global.json" />
     <File Path="NuGet.Config" />
   </Folder>
+  <Folder Name="/src/">
+    <Project Path="src/DotNetModulith.Modules.Storage/DotNetModulith.Modules.Storage.csproj" />
+  </Folder>
   <Folder Name="/src/Core/">
     <Project Path="src/DotNetModulith.Abstractions/DotNetModulith.Abstractions.csproj" />
     <Project Path="src/DotNetModulith.ModulithCore/DotNetModulith.ModulithCore.csproj" />

@@ -7,6 +7,8 @@ using DotNetModulith.Modules.Notifications;
 using DotNetModulith.Modules.Orders;
 using DotNetModulith.Modules.Orders.Api.Controllers;
 using DotNetModulith.Modules.Payments;
+using DotNetModulith.Modules.Storage;
+using DotNetModulith.Modules.Storage.Api.Controllers;
 using DotNetModulith.Modules.Users;
 using DotNetModulith.Modules.Users.Api.Controllers;
 using DotNetModulith.ModulithCore;
@@ -66,6 +68,7 @@ builder.Services
     .AddApplicationPart(typeof(OrdersController).Assembly)
     .AddApplicationPart(typeof(InventoryController).Assembly)
     .AddApplicationPart(typeof(AuthController).Assembly)
+    .AddApplicationPart(typeof(StorageController).Assembly)
     .ConfigureApiBehaviorOptions(options =>
     {
         options.InvalidModelStateResponseFactory = context =>
@@ -119,6 +122,7 @@ builder.Services.RegisterModule<OrdersModule>(builder.Configuration);
 builder.Services.RegisterModule<PaymentsModule>(builder.Configuration);
 builder.Services.RegisterModule<NotificationsModule>(builder.Configuration);
 builder.Services.RegisterModule<UsersModule>(builder.Configuration);
+builder.Services.RegisterModule<StorageModule>(builder.Configuration);
 
 if (!isTesting)
 {

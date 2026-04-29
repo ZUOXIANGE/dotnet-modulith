@@ -13,5 +13,6 @@ public static class PermissionCodes
     public const string OrdersManage = "orders.manage";
     public const string InventoryView = "inventory.view";
     public const string InventoryManage = "inventory.manage";
+    public const string StorageManage = "storage.manage";
     public const string ModulesView = "modules.view";
 }

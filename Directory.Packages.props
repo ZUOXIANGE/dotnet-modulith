@@ -6,7 +6,7 @@
     <CapVersion>8.3.0</CapVersion>
     <AspireVersion>13.2.3</AspireVersion>
     <EfCoreVersion>10.0.0</EfCoreVersion>
-    <OpenTelemetryVersion>1.11.0</OpenTelemetryVersion>
+    <OpenTelemetryVersion>1.15.3</OpenTelemetryVersion>
     <MediatorVersion>3.0.2</MediatorVersion>
     <ScalarVersion>2.13.22</ScalarVersion>
     <MapperlyVersion>4.3.1</MapperlyVersion>
@@ -14,6 +14,7 @@
   <!-- 基础设施与缓存相关包版本 -->
   <ItemGroup>
     <PackageVersion Include="Aspire.Hosting.Redis" Version="13.2.4" />
+    <PackageVersion Include="AWSSDK.S3" Version="4.0.18.1" />
     <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.7" />
     <PackageVersion Include="Microsoft.Extensions.Configuration.Abstractions" Version="10.0.7" />
     <PackageVersion Include="Microsoft.Extensions.Configuration.Binder" Version="10.0.0" />
@@ -69,6 +70,8 @@
   <!-- OpenTelemetry 可观测性相关包版本 -->
   <ItemGroup>
     <PackageVersion Include="OpenTelemetry" Version="$(OpenTelemetryVersion)" />
+    <PackageVersion Include="OpenTelemetry.Api" Version="$(OpenTelemetryVersion)" />
+    <PackageVersion Include="OpenTelemetry.Extensions.Propagators" Version="$(OpenTelemetryVersion)" />
     <PackageVersion Include="OpenTelemetry.Extensions.Hosting" Version="1.15.3" />
     <PackageVersion Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.15.3" />
     <PackageVersion Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.15.2" />

@@ -15,6 +15,7 @@ public static class UserPermissions
     public const string OrdersManage = PermissionCodes.OrdersManage;
     public const string InventoryView = PermissionCodes.InventoryView;
     public const string InventoryManage = PermissionCodes.InventoryManage;
+    public const string StorageManage = PermissionCodes.StorageManage;
     public const string ModulesView = PermissionCodes.ModulesView;
 
     public static readonly IReadOnlyList<PermissionDefinition> Definitions =
@@ -27,6 +28,7 @@ public static class UserPermissions
         new(OrdersManage, "管理订单", "允许创建订单、确认订单和清理订单缓存"),
         new(InventoryView, "查看库存", "允许查看库存详情"),
         new(InventoryManage, "管理库存", "允许创建库存和补充库存"),
+        new(StorageManage, "管理文件存储", "允许通过直传或签名上传写入对象存储"),
         new(ModulesView, "查看模块", "允许查看模块列表、依赖图和边界校验结果")
     ];
 

@@ -18,6 +18,8 @@ var postgresUser = builder.AddParameter("postgres-username", "postgres", publish
 var postgresPassword = builder.AddParameter("postgres-password", "postgres", publishValueAsDefault: false, secret: true);
 var rabbitMqUser = builder.AddParameter("rabbitmq-username", "guest", publishValueAsDefault: true, secret: false);
 var rabbitMqPassword = builder.AddParameter("rabbitmq-password", "guest", publishValueAsDefault: false, secret: true);
+var rustfsAccessKey = builder.AddParameter("rustfs-access-key", "rustfsadmin", publishValueAsDefault: true, secret: false);
+var rustfsSecretKey = builder.AddParameter("rustfs-secret-key", "rustfsadmin", publishValueAsDefault: false, secret: true);
 const string openObserveUserEmail = "admin@modulith.local";
 const string openObserveUserPassword = "Modulith@2026";
 var openObserveBasicAuth = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes($"{openObserveUserEmail}:{openObserveUserPassword}"));
@@ -36,6 +38,17 @@ var rabbitmq = builder.AddRabbitMQ("rabbitmq", rabbitMqUser, rabbitMqPassword, p
 var redis = builder.AddRedis("redis")
     .WithDataVolume("modulith-redis-data")
     .WithRedisInsight();
+
+var rustfs = builder.AddContainer("rustfs", "rustfs/rustfs", "latest")
+    .WithHttpEndpoint(port: 9000, targetPort: 9000, name: "s3")
+    .WithHttpEndpoint(port: 9001, targetPort: 9001, name: "console")
+    .WithVolume("modulith-rustfs-data", "/data")
+    .WithEnvironment("AWS_ACCESS_KEY_ID", rustfsAccessKey)
+    .WithEnvironment("AWS_SECRET_ACCESS_KEY", rustfsSecretKey)
+    .WithEnvironment("MINIO_ROOT_USER", rustfsAccessKey)
+    .WithEnvironment("MINIO_ROOT_PASSWORD", rustfsSecretKey)
+    .WithEnvironment("RUSTFS_ACCESS_KEY_ID", rustfsAccessKey)
+    .WithEnvironment("RUSTFS_SECRET_ACCESS_KEY", rustfsSecretKey);
 
 var oo = builder.AddContainer("openobserve", "public.ecr.aws/zinclabs/openobserve")
     .WithHttpEndpoint(targetPort: 5080, name: "http")
@@ -67,13 +80,20 @@ var api = builder.AddProject<DotNetModulith_Api>("api")
     .WithReference(modulithDb)
     .WithReference(rabbitmq)
     .WithReference(redis)
+    .WithEnvironment("Storage__Endpoint", rustfs.GetEndpoint("s3"))
+    .WithEnvironment("Storage__AccessKey", rustfsAccessKey)
+    .WithEnvironment("Storage__SecretKey", rustfsSecretKey)
+    .WithEnvironment("Storage__BucketName", "modulith-files")
+    .WithEnvironment("Storage__ForcePathStyle", "true")
+    .WithEnvironment("Storage__UseSsl", "false")
     .WithEnvironment("OTEL_EXPORTER_OTLP_ENDPOINT", otelCollector.GetEndpoint("otlp-http"))
     .WithEnvironment("OpenObserve__Enabled", "false")
     .WithEnvironment("OpenObserve__UserEmail", openObserveUserEmail)
     .WithEnvironment("OpenObserve__UserPassword", openObserveUserPassword)
     .WaitForCompletion(migrations)
     .WaitFor(rabbitmq)
-    .WaitFor(redis);
+    .WaitFor(redis)
+    .WaitFor(rustfs);
 
 var jobHost = builder.AddProject<DotNetModulith_JobHost>("job")
     .WithReference(modulithDb)

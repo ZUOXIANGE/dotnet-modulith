@@ -32,7 +32,7 @@
     <PackageVersion Include="TickerQ" Version="10.3.0" />
     <PackageVersion Include="TickerQ.Dashboard" Version="10.3.0" />
     <PackageVersion Include="TickerQ.EntityFrameworkCore" Version="10.3.0" />
-    <PackageVersion Include="TickerQ.Instrumentation.OpenTelemetry" Version="10.3.0" />
+    <PackageVersion Include="TickerQ.Instrumentation.OpenTelemetry" Version="10.4.0" />
     <PackageVersion Include="ZiggyCreatures.FusionCache" Version="2.6.0" />
     <PackageVersion Include="ZiggyCreatures.FusionCache.OpenTelemetry" Version="2.6.0" />
     <PackageVersion Include="ZiggyCreatures.FusionCache.Serialization.SystemTextJson" Version="2.6.0" />

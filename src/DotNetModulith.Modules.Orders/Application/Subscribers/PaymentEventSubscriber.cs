@@ -4,6 +4,7 @@ using DotNetModulith.Abstractions.Contracts.Payments;
 using DotNetModulith.Abstractions.Events;
 using DotNetModulith.Modules.Orders.Application.Caching;
 using DotNetModulith.Modules.Orders.Domain;
+using DotNetModulith.Modules.Orders.Domain.Events;
 using DotNetModulith.Modules.Orders.Infrastructure;
 using Microsoft.Extensions.Logging;
 using ZiggyCreatures.Caching.Fusion;
@@ -11,7 +12,7 @@ using ZiggyCreatures.Caching.Fusion;
 namespace DotNetModulith.Modules.Orders.Application.Subscribers;
 
 /// <summary>
-/// 支付事件订阅者，监听支付模块发布的集成事件
+/// 支付事件订阅者，监听支付完成和支付失败事件以更新订单状态
 /// </summary>
 public sealed class PaymentEventSubscriber : ICapSubscribe
 {
@@ -41,7 +42,7 @@ public sealed class PaymentEventSubscriber : ICapSubscribe
     }
 
     /// <summary>
-    /// 处理支付完成事件，更新订单状态为已支付
+    /// 处理支付完成事件，将订单标记为已支付
     /// </summary>
     [CapSubscribe("modulith.payments.PaymentCompletedIntegrationEvent", Group = "orders")]
     public async Task HandlePaymentCompletedAsync(PaymentCompletedIntegrationEvent @event, CancellationToken ct = default)
@@ -50,49 +51,53 @@ public sealed class PaymentEventSubscriber : ICapSubscribe
         activity?.SetTag("modulith.event_type", "PaymentCompletedIntegrationEvent");
         activity?.SetTag("modulith.order_id", @event.OrderId);
 
-        var orderId = new OrderId(Guid.Parse(@event.OrderId));
+        var orderId = Guid.Parse(@event.OrderId);
         var order = await _orderRepository.GetByIdAsync(orderId, ct);
         if (order is null)
         {
-            _logger.LogWarning("OrderEntity {OrderId} not found while handling payment completed event", @event.OrderId);
-            activity?.SetStatus(ActivityStatusCode.Error, "OrderEntity not found");
+            _logger.LogWarning("Order {OrderId} not found while handling payment completed event", @event.OrderId);
+            activity?.SetStatus(ActivityStatusCode.Error, "Order not found");
             return;
         }
 
         if (order.Status == OrderStatus.Paid)
         {
-            _logger.LogInformation("OrderEntity {OrderId} already paid, skip duplicate payment completed event", order.Id);
+            _logger.LogInformation("Order {OrderId} already paid, skip duplicate payment completed event", order.Id);
             activity?.SetStatus(ActivityStatusCode.Ok);
             return;
         }
 
         if (order.Status == OrderStatus.Cancelled)
         {
-            _logger.LogWarning("OrderEntity {OrderId} is cancelled, ignore payment completed event", order.Id);
+            _logger.LogWarning("Order {OrderId} is cancelled, ignore payment completed event", order.Id);
             activity?.SetStatus(ActivityStatusCode.Ok);
             return;
         }
 
         if (order.Status == OrderStatus.Pending)
         {
-            _logger.LogWarning("OrderEntity {OrderId} is still pending, ignore out-of-order payment completed event", order.Id);
+            _logger.LogWarning("Order {OrderId} is still pending, ignore out-of-order payment completed event", order.Id);
             activity?.SetStatus(ActivityStatusCode.Ok);
             return;
         }
+
+        order.Status = OrderStatus.Paid;
+        order.UpdatedAt = DateTimeOffset.UtcNow;
+
+        var domainEvent = new OrderPaidDomainEvent(order.Id, order.CustomerId, order.TotalAmount);
 
         await CapTransactionScope.ExecuteAsync(
             _dbContext,
             _capPublisher,
             async cancellationToken =>
             {
-                order.MarkAsPaid();
                 await _orderRepository.UpdateAsync(order, cancellationToken);
                 await _cache.RemoveAsync(OrderCacheKeys.OrderDetail(order.Id.ToString()), null, cancellationToken);
-                await _domainEventDispatcher.DispatchAsync(order, cancellationToken);
+                await _domainEventDispatcher.DispatchAsync([domainEvent], cancellationToken);
             },
             ct);
 
-        _logger.LogInformation("PaymentEntity completed for order {OrderId}, amount {Amount}",
+        _logger.LogInformation("Payment completed for order {OrderId}, amount {Amount}",
             @event.OrderId, @event.Amount);
         activity?.SetStatus(ActivityStatusCode.Ok);
     }
@@ -107,42 +112,51 @@ public sealed class PaymentEventSubscriber : ICapSubscribe
         activity?.SetTag("modulith.event_type", "PaymentFailedIntegrationEvent");
         activity?.SetTag("modulith.order_id", @event.OrderId);
 
-        var orderId = new OrderId(Guid.Parse(@event.OrderId));
+        var orderId = Guid.Parse(@event.OrderId);
         var order = await _orderRepository.GetByIdAsync(orderId, ct);
         if (order is null)
         {
-            _logger.LogWarning("OrderEntity {OrderId} not found while handling payment failed event", @event.OrderId);
-            activity?.SetStatus(ActivityStatusCode.Error, "OrderEntity not found");
+            _logger.LogWarning("Order {OrderId} not found while handling payment failed event", @event.OrderId);
+            activity?.SetStatus(ActivityStatusCode.Error, "Order not found");
             return;
         }
 
         if (order.Status == OrderStatus.Cancelled)
         {
-            _logger.LogInformation("OrderEntity {OrderId} already cancelled, skip duplicate payment failed event", order.Id);
+            _logger.LogInformation("Order {OrderId} already cancelled, skip duplicate payment failed event", order.Id);
             activity?.SetStatus(ActivityStatusCode.Ok);
             return;
         }
 
         if (order.Status == OrderStatus.Paid)
         {
-            _logger.LogWarning("OrderEntity {OrderId} is already paid, ignore payment failed event", order.Id);
+            _logger.LogWarning("Order {OrderId} is already paid, ignore payment failed event", order.Id);
             activity?.SetStatus(ActivityStatusCode.Ok);
             return;
         }
+
+        var reason = $"Payment failed: {@event.Reason}";
+        order.Status = OrderStatus.Cancelled;
+        order.UpdatedAt = DateTimeOffset.UtcNow;
+
+        var lines = order.Lines
+            .Select(line => new OrderLineData(line.ProductId, line.ProductName, line.Quantity, line.UnitPrice))
+            .ToList();
+
+        var domainEvent = new OrderCancelledDomainEvent(order.Id, order.CustomerId, reason, lines);
 
         await CapTransactionScope.ExecuteAsync(
             _dbContext,
             _capPublisher,
             async cancellationToken =>
             {
-                order.Cancel($"PaymentEntity failed: {@event.Reason}");
                 await _orderRepository.UpdateAsync(order, cancellationToken);
                 await _cache.RemoveAsync(OrderCacheKeys.OrderDetail(order.Id.ToString()), null, cancellationToken);
-                await _domainEventDispatcher.DispatchAsync(order, cancellationToken);
+                await _domainEventDispatcher.DispatchAsync([domainEvent], cancellationToken);
             },
             ct);
 
-        _logger.LogWarning("PaymentEntity failed for order {OrderId}, order cancelled", @event.OrderId);
+        _logger.LogWarning("Payment failed for order {OrderId}, order cancelled", @event.OrderId);
         activity?.SetStatus(ActivityStatusCode.Ok);
     }
 }

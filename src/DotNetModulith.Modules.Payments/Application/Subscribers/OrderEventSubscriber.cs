@@ -4,13 +4,14 @@ using DotNetCore.CAP;
 using DotNetModulith.Abstractions.Contracts.Inventory;
 using DotNetModulith.Abstractions.Events;
 using DotNetModulith.Modules.Payments.Domain;
+using DotNetModulith.Modules.Payments.Domain.Events;
 using DotNetModulith.Modules.Payments.Infrastructure;
 using Microsoft.Extensions.Logging;
 
 namespace DotNetModulith.Modules.Payments.Application.Subscribers;
 
 /// <summary>
-/// 订单事件订阅者，监听订单创建事件以发起支付处理
+/// 订单事件订阅者，监听库存预留事件以处理支付
 /// </summary>
 public sealed class OrderEventSubscriber : ICapSubscribe
 {
@@ -42,7 +43,7 @@ public sealed class OrderEventSubscriber : ICapSubscribe
     }
 
     /// <summary>
-    /// 处理库存预留成功事件，为订单创建支付记录并模拟支付处理
+    /// 处理库存预留完成事件，执行支付流程
     /// </summary>
     [CapSubscribe("modulith.inventory.StockReservedIntegrationEvent", Group = "payments")]
     public async Task HandleOrderCreatedAsync(StockReservedIntegrationEvent @event, CancellationToken ct = default)
@@ -59,7 +60,7 @@ public sealed class OrderEventSubscriber : ICapSubscribe
         var existingPayment = await _paymentRepository.GetByOrderIdAsync(@event.OrderId, ct);
         if (existingPayment is not null)
         {
-            _logger.LogInformation("PaymentEntity for order {OrderId} already exists, skip duplicate event", @event.OrderId);
+            _logger.LogInformation("Payment for order {OrderId} already exists, skip duplicate event", @event.OrderId);
             activity?.SetStatus(ActivityStatusCode.Ok);
             return;
         }
@@ -69,34 +70,50 @@ public sealed class OrderEventSubscriber : ICapSubscribe
             _capPublisher,
             async cancellationToken =>
             {
-                var payment = PaymentEntity.Create(@event.OrderId, @event.CustomerId, @event.TotalAmount);
+                var paymentId = Guid.NewGuid();
+                var payment = new PaymentEntity
+                {
+                    Id = paymentId,
+                    OrderId = @event.OrderId,
+                    CustomerId = @event.CustomerId,
+                    Amount = @event.TotalAmount,
+                    Status = PaymentStatus.Pending,
+                    CreatedAt = DateTimeOffset.UtcNow
+                };
+
                 var success = SimulatePayment(@event.TotalAmount);
 
                 if (success)
                 {
-                    payment.Complete($"TXN-{Guid.NewGuid():N}"[..20]);
-                    await _paymentRepository.AddAsync(payment, cancellationToken);
-                    await _domainEventDispatcher.DispatchAsync(payment, cancellationToken);
+                    payment.Status = PaymentStatus.Completed;
+                    payment.TransactionId = $"TXN-{Guid.NewGuid():N}"[..20];
+                    payment.CompletedAt = DateTimeOffset.UtcNow;
 
-                    _logger.LogInformation("PaymentEntity completed for order {OrderId}", @event.OrderId);
+                    var domainEvent = new PaymentCompletedDomainEvent(
+                        payment.Id, payment.OrderId, payment.CustomerId, payment.Amount);
+
+                    await _paymentRepository.AddAsync(payment, cancellationToken);
+                    await _domainEventDispatcher.DispatchAsync([domainEvent], cancellationToken);
+
+                    _logger.LogInformation("Payment completed for order {OrderId}", @event.OrderId);
                     activity?.SetStatus(ActivityStatusCode.Ok);
                     return;
                 }
 
-                payment.Fail("PaymentEntity gateway timeout");
-                await _paymentRepository.AddAsync(payment, cancellationToken);
-                await _domainEventDispatcher.DispatchAsync(payment, cancellationToken);
+                payment.Status = PaymentStatus.Failed;
+                payment.CompletedAt = DateTimeOffset.UtcNow;
 
-                _logger.LogWarning("PaymentEntity failed for order {OrderId}", @event.OrderId);
-                activity?.SetStatus(ActivityStatusCode.Error, "PaymentEntity failed");
+                var failedDomainEvent = new PaymentFailedDomainEvent(
+                    payment.Id, payment.OrderId, payment.CustomerId, "Payment gateway timeout");
+
+                await _paymentRepository.AddAsync(payment, cancellationToken);
+                await _domainEventDispatcher.DispatchAsync([failedDomainEvent], cancellationToken);
+
+                _logger.LogWarning("Payment failed for order {OrderId}", @event.OrderId);
+                activity?.SetStatus(ActivityStatusCode.Error, "Payment failed");
             },
             ct);
     }
 
-    /// <summary>
-    /// 模拟支付网关处理（金额大于0即视为成功）
-    /// </summary>
-    /// <param name="amount">支付金额</param>
-    /// <returns>支付是否成功</returns>
     private static bool SimulatePayment(decimal amount) => amount > 0;
 }

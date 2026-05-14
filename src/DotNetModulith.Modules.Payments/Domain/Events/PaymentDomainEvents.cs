@@ -10,7 +10,7 @@ namespace DotNetModulith.Modules.Payments.Domain.Events;
 /// <param name="CustomerId">客户ID</param>
 /// <param name="Amount">支付金额</param>
 public sealed record PaymentCompletedDomainEvent(
-    PaymentId PaymentId,
+    Guid PaymentId,
     string OrderId,
     string CustomerId,
     decimal Amount) : DomainEvent;
@@ -23,7 +23,7 @@ public sealed record PaymentCompletedDomainEvent(
 /// <param name="CustomerId">客户ID</param>
 /// <param name="Reason">失败原因</param>
 public sealed record PaymentFailedDomainEvent(
-    PaymentId PaymentId,
+    Guid PaymentId,
     string OrderId,
     string CustomerId,
     string Reason) : DomainEvent;

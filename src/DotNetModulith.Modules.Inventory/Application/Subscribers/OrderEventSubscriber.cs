@@ -10,7 +10,7 @@ using Microsoft.Extensions.Logging;
 namespace DotNetModulith.Modules.Inventory.Application.Subscribers;
 
 /// <summary>
-/// 订单事件订阅者，监听订单创建事件以预留库存
+/// 订单事件订阅者，监听订单创建和取消事件以管理库存预留
 /// </summary>
 public sealed class OrderEventSubscriber : ICapSubscribe
 {
@@ -39,7 +39,7 @@ public sealed class OrderEventSubscriber : ICapSubscribe
     }
 
     /// <summary>
-    /// 处理订单创建事件，为订单中的产品预留库存
+    /// 处理订单创建事件，预留库存
     /// </summary>
     [CapSubscribe("modulith.orders.OrderCreatedIntegrationEvent", Group = "inventory")]
     public async Task HandleOrderCreatedAsync(OrderCreatedIntegrationEvent @event, CancellationToken ct = default)
@@ -72,7 +72,7 @@ public sealed class OrderEventSubscriber : ICapSubscribe
                 {
                     var stock = await _stockRepository.GetByProductIdAsync(line.ProductId, cancellationToken);
 
-                    if (stock is null || !stock.TryReserve(line.Quantity))
+                    if (stock is null || stock.AvailableQuantity < line.Quantity)
                     {
                         _logger.LogWarning("Insufficient stock for product {ProductId} in order {OrderId}",
                             line.ProductId, @event.OrderId);
@@ -82,7 +82,9 @@ public sealed class OrderEventSubscriber : ICapSubscribe
                             var reservedStock = await _stockRepository.GetByProductIdAsync(reserved.ProductId, cancellationToken);
                             if (reservedStock is not null)
                             {
-                                reservedStock.Release(reserved.Quantity);
+                                reservedStock.ReservedQuantity -= reserved.Quantity;
+                                reservedStock.AvailableQuantity += reserved.Quantity;
+                                reservedStock.UpdatedAt = DateTimeOffset.UtcNow;
                                 await _stockRepository.UpdateAsync(reservedStock, cancellationToken);
                             }
                         }
@@ -99,10 +101,22 @@ public sealed class OrderEventSubscriber : ICapSubscribe
                         return;
                     }
 
+                    stock.AvailableQuantity -= line.Quantity;
+                    stock.ReservedQuantity += line.Quantity;
+                    stock.UpdatedAt = DateTimeOffset.UtcNow;
                     await _stockRepository.UpdateAsync(stock, cancellationToken);
-                    await _stockRepository.AddReservationAsync(
-                        StockReservationEntity.Create(stock.Id, @event.OrderId, line.ProductId, line.Quantity),
-                        cancellationToken);
+
+                    var reservation = new StockReservationEntity
+                    {
+                        Id = Guid.NewGuid(),
+                        StockId = stock.Id,
+                        OrderId = @event.OrderId,
+                        ProductId = line.ProductId,
+                        Quantity = line.Quantity,
+                        Status = StockReservationStatus.Pending,
+                        CreatedAt = DateTimeOffset.UtcNow
+                    };
+                    await _stockRepository.AddReservationAsync(reservation, cancellationToken);
                     reservedLines.Add(new StockReservedLine(line.ProductId, line.Quantity));
                 }
 
@@ -119,12 +133,12 @@ public sealed class OrderEventSubscriber : ICapSubscribe
             },
             ct);
 
-        _logger.LogInformation("StockEntity reserved for order {OrderId}", @event.OrderId);
+        _logger.LogInformation("Stock reserved for order {OrderId}", @event.OrderId);
         activity?.SetStatus(ActivityStatusCode.Ok);
     }
 
     /// <summary>
-    /// 处理订单取消事件，释放此前已预留的库存
+    /// 处理订单取消事件，释放已预留的库存
     /// </summary>
     [CapSubscribe("modulith.orders.OrderCancelledIntegrationEvent", Group = "inventory")]
     public async Task HandleOrderCancelledAsync(OrderCancelledIntegrationEvent @event, CancellationToken ct = default)
@@ -158,8 +172,13 @@ public sealed class OrderEventSubscriber : ICapSubscribe
                         continue;
                     }
 
-                    stock.Release(reservation.Quantity);
-                    reservation.Release();
+                    stock.ReservedQuantity -= reservation.Quantity;
+                    stock.AvailableQuantity += reservation.Quantity;
+                    stock.UpdatedAt = DateTimeOffset.UtcNow;
+
+                    reservation.Status = StockReservationStatus.Released;
+                    reservation.CompletedAt = DateTimeOffset.UtcNow;
+
                     await _stockRepository.UpdateAsync(stock, cancellationToken);
                     await _stockRepository.UpdateReservationAsync(reservation, cancellationToken);
                 }
@@ -171,7 +190,7 @@ public sealed class OrderEventSubscriber : ICapSubscribe
     }
 
     /// <summary>
-    /// 处理订单支付完成事件，确认库存预留并结束占用
+    /// 处理订单支付完成事件，确认库存预留
     /// </summary>
     [CapSubscribe("modulith.orders.OrderPaidIntegrationEvent", Group = "inventory")]
     public async Task HandleOrderPaidAsync(OrderPaidIntegrationEvent @event, CancellationToken ct = default)
@@ -205,8 +224,12 @@ public sealed class OrderEventSubscriber : ICapSubscribe
                         continue;
                     }
 
-                    stock.ConfirmReservation(reservation.Quantity);
-                    reservation.Confirm();
+                    stock.ReservedQuantity -= reservation.Quantity;
+                    stock.UpdatedAt = DateTimeOffset.UtcNow;
+
+                    reservation.Status = StockReservationStatus.Confirmed;
+                    reservation.CompletedAt = DateTimeOffset.UtcNow;
+
                     await _stockRepository.UpdateAsync(stock, cancellationToken);
                     await _stockRepository.UpdateReservationAsync(reservation, cancellationToken);
                 }

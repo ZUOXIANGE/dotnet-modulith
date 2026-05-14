@@ -6,63 +6,63 @@ namespace DotNetModulith.Modules.Inventory.Domain;
 public interface IStockRepository
 {
     /// <summary>
-    /// 根据库存ID获取库存记录（用于写操作，需要跟踪）
+    /// 根据库存ID获取库存
     /// </summary>
     /// <param name="id">库存ID</param>
     /// <param name="ct">取消令牌</param>
-    /// <returns>库存实例，未找到时返回null</returns>
-    Task<StockEntity?> GetByIdAsync(StockId id, CancellationToken ct = default);
+    /// <returns>库存实体，未找到时返回null</returns>
+    Task<StockEntity?> GetByIdAsync(Guid id, CancellationToken ct = default);
 
     /// <summary>
-    /// 根据产品ID获取库存记录（用于写操作，需要跟踪）
+    /// 根据产品ID获取库存
     /// </summary>
     /// <param name="productId">产品ID</param>
     /// <param name="ct">取消令牌</param>
-    /// <returns>库存实例，未找到时返回null</returns>
+    /// <returns>库存实体，未找到时返回null</returns>
     Task<StockEntity?> GetByProductIdAsync(string productId, CancellationToken ct = default);
 
     /// <summary>
-    /// 获取低库存记录列表
+    /// 获取低库存商品列表
     /// </summary>
-    /// <param name="threshold">低库存阈值</param>
-    /// <param name="limit">返回行数上限</param>
+    /// <param name="threshold">库存阈值</param>
+    /// <param name="limit">最大返回数量</param>
     /// <param name="ct">取消令牌</param>
-    /// <returns>可用数量低于阈值的库存列表</returns>
+    /// <returns>低库存实体列表</returns>
     Task<IReadOnlyList<StockEntity>> GetLowStockAsync(int threshold, int limit, CancellationToken ct = default);
 
     /// <summary>
-    /// 根据订单ID获取库存预留明细
+    /// 根据订单ID获取库存预留记录
     /// </summary>
     /// <param name="orderId">订单ID</param>
     /// <param name="ct">取消令牌</param>
-    /// <returns>该订单关联的库存预留明细</returns>
+    /// <returns>库存预留实体列表</returns>
     Task<IReadOnlyList<StockReservationEntity>> GetReservationsByOrderIdAsync(string orderId, CancellationToken ct = default);
 
     /// <summary>
-    /// 添加新库存记录
+    /// 添加新库存
     /// </summary>
     /// <param name="stock">要添加的库存</param>
     /// <param name="ct">取消令牌</param>
     Task AddAsync(StockEntity stock, CancellationToken ct = default);
 
     /// <summary>
-    /// 更新已有库存记录
+    /// 更新已有库存
     /// </summary>
     /// <param name="stock">要更新的库存</param>
     /// <param name="ct">取消令牌</param>
     Task UpdateAsync(StockEntity stock, CancellationToken ct = default);
 
     /// <summary>
-    /// 添加库存预留明细
+    /// 添加库存预留记录
     /// </summary>
-    /// <param name="reservation">预留明细</param>
+    /// <param name="reservation">要添加的预留记录</param>
     /// <param name="ct">取消令牌</param>
     Task AddReservationAsync(StockReservationEntity reservation, CancellationToken ct = default);
 
     /// <summary>
-    /// 更新库存预留明细
+    /// 更新库存预留记录
     /// </summary>
-    /// <param name="reservation">预留明细</param>
+    /// <param name="reservation">要更新的预留记录</param>
     /// <param name="ct">取消令牌</param>
     Task UpdateReservationAsync(StockReservationEntity reservation, CancellationToken ct = default);
 

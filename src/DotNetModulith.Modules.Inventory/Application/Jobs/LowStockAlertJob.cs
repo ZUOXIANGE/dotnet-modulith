@@ -10,7 +10,7 @@ using TickerQ.Utilities.Base;
 namespace DotNetModulith.Modules.Inventory.Application.Jobs;
 
 /// <summary>
-/// 周期性扫描低库存并发布预警事件
+/// 低库存告警后台任务
 /// </summary>
 public sealed class LowStockAlertJob
 {
@@ -45,9 +45,6 @@ public sealed class LowStockAlertJob
         _logger = logger;
     }
 
-    /// <summary>
-    /// 每 5 分钟执行一次低库存扫描
-    /// </summary>
     [TickerFunction("Inventory.LowStockAlertScan", cronExpression: "*/5 * * * *")]
     public async Task ExecuteAsync(TickerFunctionContext context, CancellationToken cancellationToken)
     {
@@ -73,7 +70,12 @@ public sealed class LowStockAlertJob
                 cancellationToken);
 
             var alertCandidates = lowStocks
-                .Where(stock => stock.ShouldSendLowStockAlert(options.Threshold))
+                .Where(stock =>
+                {
+                    if (stock.AvailableQuantity > options.Threshold)
+                        return false;
+                    return stock.LowStockAlertSentAt is null || stock.LastAlertedAvailableQuantity != stock.AvailableQuantity;
+                })
                 .ToList();
 
             activity?.SetTag("modulith.low_stock_matches", lowStocks.Count);
@@ -105,7 +107,9 @@ public sealed class LowStockAlertJob
                 {
                     foreach (var stock in alertCandidates)
                     {
-                        stock.MarkLowStockAlertSent();
+                        stock.LowStockAlertSentAt = DateTimeOffset.UtcNow;
+                        stock.LastAlertedAvailableQuantity = stock.AvailableQuantity;
+                        stock.UpdatedAt = DateTimeOffset.UtcNow;
                         await _stockRepository.UpdateAsync(stock, ct);
                     }
 

@@ -15,7 +15,7 @@ internal sealed class StockRepository : IStockRepository
         _context = context;
     }
 
-    public async Task<StockEntity?> GetByIdAsync(StockId id, CancellationToken ct = default)
+    public async Task<StockEntity?> GetByIdAsync(Guid id, CancellationToken ct = default)
     {
         return await _context.Stocks
             .AsTracking()

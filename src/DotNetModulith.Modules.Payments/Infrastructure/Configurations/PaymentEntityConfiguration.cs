@@ -17,9 +17,7 @@ internal sealed class PaymentEntityConfiguration : IEntityTypeConfiguration<Paym
 
         builder.Property(p => p.Id)
             .HasColumnName("id")
-            .HasConversion(
-                id => id.Value,
-                value => new PaymentId(value));
+            .ValueGeneratedNever();
 
         builder.Property(p => p.OrderId).HasColumnName("order_id").HasMaxLength(100).IsRequired();
         builder.Property(p => p.CustomerId).HasColumnName("customer_id").HasMaxLength(100).IsRequired();
@@ -29,7 +27,9 @@ internal sealed class PaymentEntityConfiguration : IEntityTypeConfiguration<Paym
         builder.Property(p => p.CreatedAt).HasColumnName("created_at").IsRequired();
         builder.Property(p => p.CompletedAt).HasColumnName("completed_at");
 
-        builder.Ignore(p => p.DomainEvents);
+        builder.Property(p => p.RowVersion)
+            .HasColumnName("row_version")
+            .IsRowVersion();
 
         builder.HasIndex(p => p.OrderId).IsUnique();
     }

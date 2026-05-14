@@ -17,9 +17,7 @@ internal sealed class StockEntityConfiguration : IEntityTypeConfiguration<StockE
 
         builder.Property(s => s.Id)
             .HasColumnName("id")
-            .HasConversion(
-                id => id.Value,
-                value => new StockId(value));
+            .ValueGeneratedNever();
 
         builder.Property(s => s.ProductId)
             .HasColumnName("product_id")
@@ -52,7 +50,9 @@ internal sealed class StockEntityConfiguration : IEntityTypeConfiguration<StockE
         builder.Property(s => s.LastAlertedAvailableQuantity)
             .HasColumnName("last_alerted_available_quantity");
 
-        builder.Ignore(s => s.DomainEvents);
+        builder.Property(s => s.RowVersion)
+            .HasColumnName("row_version")
+            .IsRowVersion();
 
         builder.HasIndex(s => s.ProductId).IsUnique();
     }

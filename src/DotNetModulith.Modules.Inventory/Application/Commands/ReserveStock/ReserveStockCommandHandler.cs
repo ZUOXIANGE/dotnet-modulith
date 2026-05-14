@@ -2,6 +2,7 @@ using System.Diagnostics;
 using DotNetCore.CAP;
 using DotNetModulith.Abstractions.Results;
 using DotNetModulith.Modules.Inventory.Domain;
+using DotNetModulith.Modules.Inventory.Domain.Events;
 using DotNetModulith.Modules.Inventory.Infrastructure;
 using Mediator;
 
@@ -44,7 +45,7 @@ public sealed class ReserveStockCommandHandler : ICommandHandler<ReserveStockCom
                     .GroupBy(line => line.ProductId, StringComparer.Ordinal)
                     .ToDictionary(group => group.Key, group => group.Sum(item => item.Quantity), StringComparer.Ordinal);
 
-                var stocksToReserve = new List<(StockEntity StockEntity, int Quantity)>();
+                var stocksToReserve = new List<(StockEntity Stock, int Quantity)>();
 
                 foreach (var request in requestedQuantities)
                 {
@@ -52,7 +53,7 @@ public sealed class ReserveStockCommandHandler : ICommandHandler<ReserveStockCom
 
                     if (stock is null)
                     {
-                        result = Result.Failure($"StockEntity for product {request.Key} not found.", "STOCK_NOT_FOUND");
+                        result = Result.Failure($"Stock for product {request.Key} not found.", "STOCK_NOT_FOUND");
                         return;
                     }
 
@@ -67,7 +68,9 @@ public sealed class ReserveStockCommandHandler : ICommandHandler<ReserveStockCom
 
                 foreach (var (stock, quantity) in stocksToReserve)
                 {
-                    stock.TryReserve(quantity);
+                    stock.AvailableQuantity -= quantity;
+                    stock.ReservedQuantity += quantity;
+                    stock.UpdatedAt = DateTimeOffset.UtcNow;
                     await _stockRepository.UpdateAsync(stock, ct);
                 }
             },

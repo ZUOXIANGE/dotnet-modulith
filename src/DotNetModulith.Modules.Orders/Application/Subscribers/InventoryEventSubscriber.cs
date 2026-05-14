@@ -5,6 +5,7 @@ using DotNetModulith.Abstractions.Contracts.Inventory;
 using DotNetModulith.Abstractions.Events;
 using DotNetModulith.Modules.Orders.Application.Caching;
 using DotNetModulith.Modules.Orders.Domain;
+using DotNetModulith.Modules.Orders.Domain.Events;
 using DotNetModulith.Modules.Orders.Infrastructure;
 using Microsoft.Extensions.Logging;
 using ZiggyCreatures.Caching.Fusion;
@@ -12,7 +13,7 @@ using ZiggyCreatures.Caching.Fusion;
 namespace DotNetModulith.Modules.Orders.Application.Subscribers;
 
 /// <summary>
-/// 库存事件订阅者，监听库存模块发布的集成事件
+/// 库存事件订阅者，监听库存预留事件以确认订单
 /// </summary>
 public sealed class InventoryEventSubscriber : ICapSubscribe
 {
@@ -47,7 +48,7 @@ public sealed class InventoryEventSubscriber : ICapSubscribe
     }
 
     /// <summary>
-    /// 处理库存已预留事件，确认订单
+    /// 处理库存预留完成事件，确认订单
     /// </summary>
     [CapSubscribe("modulith.inventory.StockReservedIntegrationEvent", Group = "orders")]
     public async Task HandleStockReservedAsync(StockReservedIntegrationEvent @event, CancellationToken ct = default)
@@ -58,18 +59,18 @@ public sealed class InventoryEventSubscriber : ICapSubscribe
 
         EventsConsumed.Add(1, new KeyValuePair<string, object?>("modulith.event_type", "StockReservedIntegrationEvent"));
 
-        var orderId = new OrderId(Guid.Parse(@event.OrderId));
+        var orderId = Guid.Parse(@event.OrderId);
         var order = await _orderRepository.GetByIdAsync(orderId, ct);
         if (order is null)
         {
-            _logger.LogWarning("OrderEntity {OrderId} not found while handling reserved stock event", @event.OrderId);
-            activity?.SetStatus(ActivityStatusCode.Error, "OrderEntity not found");
+            _logger.LogWarning("Order {OrderId} not found while handling reserved stock event", @event.OrderId);
+            activity?.SetStatus(ActivityStatusCode.Error, "Order not found");
             return;
         }
 
         if (order.Status is OrderStatus.Confirmed or OrderStatus.Paid)
         {
-            _logger.LogInformation("OrderEntity {OrderId} already advanced to {Status}, skip duplicate stock reserved event",
+            _logger.LogInformation("Order {OrderId} already advanced to {Status}, skip duplicate stock reserved event",
                 order.Id, order.Status);
             activity?.SetStatus(ActivityStatusCode.Ok);
             return;
@@ -77,20 +78,22 @@ public sealed class InventoryEventSubscriber : ICapSubscribe
 
         if (order.Status == OrderStatus.Cancelled)
         {
-            _logger.LogWarning("OrderEntity {OrderId} is already cancelled, skip stock reserved event", order.Id);
+            _logger.LogWarning("Order {OrderId} is already cancelled, skip stock reserved event", order.Id);
             activity?.SetStatus(ActivityStatusCode.Ok);
             return;
         }
+
+        order.Status = OrderStatus.Confirmed;
+        order.UpdatedAt = DateTimeOffset.UtcNow;
 
         await CapTransactionScope.ExecuteAsync(
             _dbContext,
             _capPublisher,
             async cancellationToken =>
             {
-                order.Confirm();
                 await _orderRepository.UpdateAsync(order, cancellationToken);
                 await _cache.RemoveAsync(OrderCacheKeys.OrderDetail(order.Id.ToString()), null, cancellationToken);
-                await _domainEventDispatcher.DispatchAsync(order, cancellationToken);
+                await _domainEventDispatcher.DispatchAsync([], cancellationToken);
             },
             ct);
 
@@ -111,18 +114,18 @@ public sealed class InventoryEventSubscriber : ICapSubscribe
         activity?.SetTag("modulith.order_id", @event.OrderId);
         activity?.SetTag("modulith.product_id", @event.ProductId);
 
-        var orderId = new OrderId(Guid.Parse(@event.OrderId));
+        var orderId = Guid.Parse(@event.OrderId);
         var order = await _orderRepository.GetByIdAsync(orderId, ct);
         if (order is null)
         {
-            _logger.LogWarning("OrderEntity {OrderId} not found while handling insufficient stock event", @event.OrderId);
-            activity?.SetStatus(ActivityStatusCode.Error, "OrderEntity not found");
+            _logger.LogWarning("Order {OrderId} not found while handling insufficient stock event", @event.OrderId);
+            activity?.SetStatus(ActivityStatusCode.Error, "Order not found");
             return;
         }
 
         if (order.Status == OrderStatus.Cancelled)
         {
-            _logger.LogInformation("OrderEntity {OrderId} already cancelled, skip duplicate insufficient stock event", order.Id);
+            _logger.LogInformation("Order {OrderId} already cancelled, skip duplicate insufficient stock event", order.Id);
             activity?.SetStatus(ActivityStatusCode.Ok);
             return;
         }
@@ -130,23 +133,32 @@ public sealed class InventoryEventSubscriber : ICapSubscribe
         if (order.Status == OrderStatus.Paid)
         {
             _logger.LogError("Received insufficient stock for paid order {OrderId}", order.Id);
-            activity?.SetStatus(ActivityStatusCode.Error, "OrderEntity already paid");
+            activity?.SetStatus(ActivityStatusCode.Error, "Order already paid");
             return;
         }
+
+        var reason = $"Insufficient stock for product {@event.ProductId}.";
+        order.Status = OrderStatus.Cancelled;
+        order.UpdatedAt = DateTimeOffset.UtcNow;
+
+        var lines = order.Lines
+            .Select(line => new OrderLineData(line.ProductId, line.ProductName, line.Quantity, line.UnitPrice))
+            .ToList();
+
+        var domainEvent = new OrderCancelledDomainEvent(order.Id, order.CustomerId, reason, lines);
 
         await CapTransactionScope.ExecuteAsync(
             _dbContext,
             _capPublisher,
             async cancellationToken =>
             {
-                order.Cancel($"Insufficient stock for product {@event.ProductId}.");
                 await _orderRepository.UpdateAsync(order, cancellationToken);
                 await _cache.RemoveAsync(OrderCacheKeys.OrderDetail(order.Id.ToString()), null, cancellationToken);
-                await _domainEventDispatcher.DispatchAsync(order, cancellationToken);
+                await _domainEventDispatcher.DispatchAsync([domainEvent], cancellationToken);
             },
             ct);
 
-        _logger.LogWarning("OrderEntity {OrderId} cancelled due to insufficient stock for product {ProductId}",
+        _logger.LogWarning("Order {OrderId} cancelled due to insufficient stock for product {ProductId}",
             order.Id, @event.ProductId);
         activity?.SetStatus(ActivityStatusCode.Ok);
     }

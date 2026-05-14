@@ -51,37 +51,19 @@ public sealed class ConfirmOrderCommandHandler : ICommandHandler<ConfirmOrderCom
 
         if (order is null)
         {
-            _logger.LogWarning("OrderEntity {OrderId} not found for confirmation",
+            _logger.LogWarning("Order {OrderId} not found for confirmation",
                 command.OrderId);
 
-            activity?.SetStatus(ActivityStatusCode.Error, "OrderEntity not found");
+            activity?.SetStatus(ActivityStatusCode.Error, "Order not found");
             throw new BusinessException(
-                message: $"OrderEntity {command.OrderId} not found.",
+                message: $"Order {command.OrderId} not found.",
                 code: ApiCodes.Common.NotFound,
                 httpStatusCode: 404);
         }
 
-        try
+        if (order.Status != OrderStatus.Pending)
         {
-            order.Confirm();
-            await CapTransactionScope.ExecuteAsync(
-                _dbContext,
-                _capPublisher,
-                async ct =>
-                {
-                    await _orderRepository.UpdateAsync(order, ct);
-                    await _cache.RemoveAsync(OrderCacheKeys.OrderDetail(order.Id.ToString()), null, ct);
-                    await _domainEventDispatcher.DispatchAsync(order, ct);
-                },
-                cancellationToken);
-
-            _logger.LogInformation("OrderEntity {OrderId} confirmed", order.Id);
-            activity?.SetStatus(ActivityStatusCode.Ok);
-
-            return Result.Success();
-        }
-        catch (InvalidOperationException ex)
-        {
+            var ex = new InvalidOperationException($"Cannot confirm order in status {order.Status}.");
             _logger.LogError(ex, "Failed to confirm order {OrderId}: {Reason}",
                 command.OrderId, ex.Message);
 
@@ -92,5 +74,24 @@ public sealed class ConfirmOrderCommandHandler : ICommandHandler<ConfirmOrderCom
                 httpStatusCode: 400,
                 innerException: ex);
         }
+
+        order.Status = OrderStatus.Confirmed;
+        order.UpdatedAt = DateTimeOffset.UtcNow;
+
+        await CapTransactionScope.ExecuteAsync(
+            _dbContext,
+            _capPublisher,
+            async ct =>
+            {
+                await _orderRepository.UpdateAsync(order, ct);
+                await _cache.RemoveAsync(OrderCacheKeys.OrderDetail(order.Id.ToString()), null, ct);
+                await _domainEventDispatcher.DispatchAsync([], ct);
+            },
+            cancellationToken);
+
+        _logger.LogInformation("Order {OrderId} confirmed", order.Id);
+        activity?.SetStatus(ActivityStatusCode.Ok);
+
+        return Result.Success();
     }
 }

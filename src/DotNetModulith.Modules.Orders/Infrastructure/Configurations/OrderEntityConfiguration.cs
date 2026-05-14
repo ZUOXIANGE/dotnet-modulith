@@ -17,9 +17,7 @@ internal sealed class OrderEntityConfiguration : IEntityTypeConfiguration<OrderE
 
         builder.Property(o => o.Id)
             .HasColumnName("id")
-            .HasConversion(
-                id => id.Value,
-                value => new OrderId(value));
+            .ValueGeneratedNever();
 
         builder.Property(o => o.CustomerId)
             .HasColumnName("customer_id")
@@ -32,6 +30,11 @@ internal sealed class OrderEntityConfiguration : IEntityTypeConfiguration<OrderE
             .HasMaxLength(20)
             .IsRequired();
 
+        builder.Property(o => o.TotalAmount)
+            .HasColumnName("total_amount")
+            .HasPrecision(18, 2)
+            .IsRequired();
+
         builder.Property(o => o.CreatedAt)
             .HasColumnName("created_at")
             .IsRequired();
@@ -39,11 +42,11 @@ internal sealed class OrderEntityConfiguration : IEntityTypeConfiguration<OrderE
         builder.Property(o => o.UpdatedAt)
             .HasColumnName("updated_at");
 
-        builder.Ignore(o => o.DomainEvents);
-        builder.Ignore(o => o.TotalAmount);
-        builder.Ignore(o => o.Lines);
+        builder.Property(o => o.RowVersion)
+            .HasColumnName("row_version")
+            .IsRowVersion();
 
-        builder.HasMany("_lines")
+        builder.HasMany(o => o.Lines)
             .WithOne()
             .HasForeignKey("order_id")
             .OnDelete(DeleteBehavior.Cascade);

@@ -15,7 +15,7 @@ internal sealed class PaymentRepository : IPaymentRepository
         _context = context;
     }
 
-    public async Task<PaymentEntity?> GetByIdAsync(PaymentId id, CancellationToken ct = default)
+    public async Task<PaymentEntity?> GetByIdAsync(Guid id, CancellationToken ct = default)
     {
         return await _context.Payments
             .AsTracking()

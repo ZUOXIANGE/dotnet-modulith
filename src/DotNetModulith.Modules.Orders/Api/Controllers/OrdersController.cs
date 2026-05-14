@@ -7,7 +7,6 @@ using DotNetModulith.Modules.Orders.Api.Mappings;
 using DotNetModulith.Modules.Orders.Application.Caching;
 using DotNetModulith.Modules.Orders.Application.Commands.ConfirmOrder;
 using DotNetModulith.Modules.Orders.Application.Queries.GetOrder;
-using DotNetModulith.Modules.Orders.Domain;
 using Mediator;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -57,7 +56,7 @@ public sealed class OrdersController : ControllerBase
     [HttpPost("{orderId:guid}/confirm")]
     public async Task<ApiResponse<object?>> ConfirmOrder(Guid orderId, CancellationToken ct)
     {
-        var command = new ConfirmOrderCommand(new OrderId(orderId));
+        var command = new ConfirmOrderCommand(orderId);
         await _mediator.Send(command, ct);
         return ApiResponse.Success();
     }
@@ -72,13 +71,13 @@ public sealed class OrdersController : ControllerBase
     [HttpGet("{orderId:guid}")]
     public async Task<ApiResponse<OrderDetail>> GetOrder(Guid orderId, CancellationToken ct)
     {
-        var query = new GetOrderQuery(new OrderId(orderId));
+        var query = new GetOrderQuery(orderId);
         var order = await _mediator.Send(query, ct);
 
         if (order is null)
         {
             throw new BusinessException(
-                $"OrderEntity {orderId} not found.",
+                $"Order {orderId} not found.",
                 ApiCodes.Common.NotFound,
                 StatusCodes.Status404NotFound);
         }

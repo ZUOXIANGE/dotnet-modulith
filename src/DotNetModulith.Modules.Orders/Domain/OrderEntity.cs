@@ -1,138 +1,47 @@
-using System.Diagnostics;
-using DotNetModulith.Abstractions.Domain;
-using DotNetModulith.Modules.Orders.Domain.Events;
-
 namespace DotNetModulith.Modules.Orders.Domain;
 
 /// <summary>
-/// 订单聚合根，管理订单的生命周期和业务规则
+/// 订单实体
 /// </summary>
-public sealed class OrderEntity : AggregateRoot, IEntity<OrderId>
+public sealed class OrderEntity
 {
-    private static readonly ActivitySource ActivitySource = new("DotNetModulith.Modules.Orders");
-
     /// <summary>
     /// 订单唯一标识
     /// </summary>
-    public OrderId Id { get; private set; } = null!;
+    public Guid Id { get; set; }
 
     /// <summary>
     /// 客户ID
     /// </summary>
-    public string CustomerId { get; private set; } = null!;
-
-    /// <summary>
-    /// 订单行项目列表
-    /// </summary>
-    public IReadOnlyList<OrderLineEntity> Lines => _lines.AsReadOnly();
+    public string CustomerId { get; set; } = null!;
 
     /// <summary>
     /// 订单状态
     /// </summary>
-    public OrderStatus Status { get; private set; }
+    public OrderStatus Status { get; set; }
 
     /// <summary>
     /// 订单总金额
     /// </summary>
-    public decimal TotalAmount => _lines.Sum(l => l.Quantity * l.UnitPrice);
+    public decimal TotalAmount { get; set; }
 
     /// <summary>
     /// 创建时间
     /// </summary>
-    public DateTimeOffset CreatedAt { get; private set; }
+    public DateTimeOffset CreatedAt { get; set; }
 
     /// <summary>
     /// 更新时间
     /// </summary>
-    public DateTimeOffset? UpdatedAt { get; private set; }
-
-    private readonly List<OrderLineEntity> _lines = [];
-
-    private OrderEntity() { }
+    public DateTimeOffset? UpdatedAt { get; set; }
 
     /// <summary>
-    /// 创建新订单
+    /// 行版本号，用于乐观并发控制
     /// </summary>
-    /// <param name="customerId">客户ID</param>
-    /// <param name="lines">订单行项目数据列表</param>
-    /// <returns>新创建的订单实例</returns>
-    public static OrderEntity Create(string customerId, IReadOnlyList<OrderLineData> lines)
-    {
-        using var activity = ActivitySource.StartActivity("OrderEntity.Create", ActivityKind.Internal);
-
-        if (string.IsNullOrWhiteSpace(customerId))
-            throw new ArgumentException("Customer ID is required.", nameof(customerId));
-
-        if (lines.Count == 0)
-            throw new ArgumentException("OrderEntity must have at least one line.", nameof(lines));
-
-        var order = new OrderEntity
-        {
-            Id = OrderId.New(),
-            CustomerId = customerId,
-            Status = OrderStatus.Pending,
-            CreatedAt = DateTimeOffset.UtcNow
-        };
-
-        foreach (var line in lines)
-        {
-            var orderLine = new OrderLineEntity(line.ProductId, line.ProductName, line.Quantity, line.UnitPrice);
-            order._lines.Add(orderLine);
-        }
-
-        var domainEvent = new OrderCreatedDomainEvent(order.Id, order.CustomerId, order.TotalAmount, lines);
-        order.AddDomainEvent(domainEvent);
-
-        activity?.SetTag("modulith.order_id", order.Id.ToString());
-        activity?.SetTag("modulith.customer_id", order.CustomerId);
-        activity?.SetTag("modulith.total_amount", order.TotalAmount);
-        activity?.SetStatus(ActivityStatusCode.Ok);
-
-        return order;
-    }
+    public byte[] RowVersion { get; set; } = null!;
 
     /// <summary>
-    /// 确认订单，状态须为待确认
+    /// 订单行项目列表
     /// </summary>
-    public void Confirm()
-    {
-        if (Status != OrderStatus.Pending)
-            throw new InvalidOperationException($"Cannot confirm order in status {Status}.");
-
-        Status = OrderStatus.Confirmed;
-        UpdatedAt = DateTimeOffset.UtcNow;
-    }
-
-    /// <summary>
-    /// 标记订单为已支付，状态须为已确认
-    /// </summary>
-    public void MarkAsPaid()
-    {
-        if (Status != OrderStatus.Confirmed)
-            throw new InvalidOperationException($"Cannot mark as paid order in status {Status}.");
-
-        Status = OrderStatus.Paid;
-        UpdatedAt = DateTimeOffset.UtcNow;
-
-        AddDomainEvent(new OrderPaidDomainEvent(Id, CustomerId, TotalAmount));
-    }
-
-    /// <summary>
-    /// 取消订单，已支付或已发货的订单不可取消
-    /// </summary>
-    /// <param name="reason">取消原因</param>
-    public void Cancel(string reason)
-    {
-        if (Status is OrderStatus.Shipped or OrderStatus.Paid)
-            throw new InvalidOperationException($"Cannot cancel order in status {Status}.");
-
-        Status = OrderStatus.Cancelled;
-        UpdatedAt = DateTimeOffset.UtcNow;
-
-        var lines = _lines
-            .Select(line => new OrderLineData(line.ProductId, line.ProductName, line.Quantity, line.UnitPrice))
-            .ToList();
-
-        AddDomainEvent(new OrderCancelledDomainEvent(Id, CustomerId, reason, lines));
-    }
+    public List<OrderLineEntity> Lines { get; set; } = [];
 }

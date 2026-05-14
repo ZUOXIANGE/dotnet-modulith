@@ -1,5 +1,4 @@
 using DotNetCore.CAP;
-using DotNetModulith.Abstractions.Domain;
 using DotNetModulith.Abstractions.Events;
 using DotNetModulith.Abstractions.Exceptions;
 using DotNetModulith.Abstractions.Results;
@@ -23,7 +22,7 @@ public sealed class ConfirmOrderCommandHandlerTests
         var dispatcher = new NoopDomainEventDispatcher();
         var sut = CreateHandler(repository, dispatcher);
 
-        var command = new ConfirmOrderCommand(OrderId.New());
+        var command = new ConfirmOrderCommand(Guid.NewGuid());
 
         Func<Task> act = async () => _ = await sut.Handle(command, TestContext.Current.CancellationToken);
 
@@ -39,8 +38,14 @@ public sealed class ConfirmOrderCommandHandlerTests
         var dispatcher = new NoopDomainEventDispatcher();
         var sut = CreateHandler(repository, dispatcher);
 
-        var order = OrderEntity.Create("customer-1", [new OrderLineData("P001", "Product 1", 1, 10m)]);
-        order.Cancel("cancelled for test");
+        var order = new OrderEntity
+        {
+            Id = Guid.NewGuid(),
+            CustomerId = "customer-1",
+            Status = OrderStatus.Cancelled,
+            TotalAmount = 10m,
+            CreatedAt = DateTimeOffset.UtcNow
+        };
         await repository.AddAsync(order, TestContext.Current.CancellationToken);
 
         var command = new ConfirmOrderCommand(order.Id);
@@ -67,9 +72,9 @@ public sealed class ConfirmOrderCommandHandlerTests
 
     private sealed class InMemoryOrderRepository : IOrderRepository
     {
-        private readonly Dictionary<OrderId, OrderEntity> _orders = new();
+        private readonly Dictionary<Guid, OrderEntity> _orders = new();
 
-        public Task<OrderEntity?> GetByIdAsync(OrderId id, CancellationToken ct = default)
+        public Task<OrderEntity?> GetByIdAsync(Guid id, CancellationToken ct = default)
             => Task.FromResult(_orders.GetValueOrDefault(id));
 
         public Task<IReadOnlyList<OrderEntity>> GetByCustomerIdAsync(string customerId, int limit, CancellationToken ct = default)
@@ -102,7 +107,7 @@ public sealed class ConfirmOrderCommandHandlerTests
 
     private sealed class NoopDomainEventDispatcher : IDomainEventDispatcher
     {
-        public Task DispatchAsync(IAggregateRoot aggregateRoot, CancellationToken ct = default)
+        public Task DispatchAsync(IEnumerable<IDomainEvent> domainEvents, CancellationToken ct = default)
             => Task.CompletedTask;
     }
 

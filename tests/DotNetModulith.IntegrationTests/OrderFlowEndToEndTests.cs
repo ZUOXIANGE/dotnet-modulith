@@ -443,8 +443,16 @@ public sealed class OrderFlowEndToEndTests : IClassFixture<MessagingApiWebApplic
         IReadOnlyList<OrderLineData> lines,
         CancellationToken ct)
     {
-        var order = OrderEntity.Create(customerId, lines);
-        order.ClearDomainEvents();
+        var orderId = Guid.NewGuid();
+        var order = new OrderEntity
+        {
+            Id = orderId,
+            CustomerId = customerId,
+            Status = OrderStatus.Pending,
+            TotalAmount = lines.Sum(l => l.Quantity * l.UnitPrice),
+            CreatedAt = DateTimeOffset.UtcNow,
+            Lines = lines.Select(l => new OrderLineEntity(l.ProductId, l.ProductName, l.Quantity, l.UnitPrice)).ToList()
+        };
 
         await using var dbContext = CreateOrdersDbContext();
         dbContext.Orders.Add(order);
@@ -466,7 +474,7 @@ public sealed class OrderFlowEndToEndTests : IClassFixture<MessagingApiWebApplic
         return await dbContext.Payments
             .AsNoTracking()
             .Where(x => x.OrderId == orderId)
-            .Select(x => new PaymentDetailRecord(x.Id.Value, x.OrderId, x.Status.ToString()))
+            .Select(x => new PaymentDetailRecord(x.Id, x.OrderId, x.Status.ToString()))
             .FirstOrDefaultAsync(ct);
     }
 

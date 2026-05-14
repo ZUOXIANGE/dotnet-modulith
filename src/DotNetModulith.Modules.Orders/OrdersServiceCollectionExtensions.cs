@@ -79,6 +79,9 @@ internal static class OrdersServiceCollectionExtensions
     }
 }
 
+/// <summary>
+/// FusionCache 选项配置器，将订单缓存选项映射到 FusionCache 配置
+/// </summary>
 internal sealed class ConfigureOrdersFusionCacheOptions : IConfigureOptions<FusionCacheOptions>
 {
     private readonly IOptions<OrdersCacheOptions> _cacheOptions;

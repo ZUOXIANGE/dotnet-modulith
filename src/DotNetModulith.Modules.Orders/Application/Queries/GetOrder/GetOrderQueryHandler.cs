@@ -8,7 +8,7 @@ using ZiggyCreatures.Caching.Fusion;
 namespace DotNetModulith.Modules.Orders.Application.Queries.GetOrder;
 
 /// <summary>
-/// 查询订单详情处理器
+/// 获取订单查询处理器
 /// </summary>
 public sealed class GetOrderQueryHandler : IQueryHandler<GetOrderQuery, OrderDetail?>
 {

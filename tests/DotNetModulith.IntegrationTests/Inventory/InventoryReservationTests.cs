@@ -37,8 +37,8 @@ public class InventoryReservationTests(PostgreSqlFixture dbFixture) : IAsyncLife
         var ct = TestContext.Current.CancellationToken;
 
         await SeedStocksAsync(
-            StockEntity.Create("PROD-001", "Widget", 10),
-            StockEntity.Create("PROD-002", "Bolt", 5));
+            CreateStock("PROD-001", "Widget", 10),
+            CreateStock("PROD-002", "Bolt", 5));
 
         await using var dbContext = new InventoryDbContext(_options);
         var subscriber = CreateSubscriber(dbContext);
@@ -77,7 +77,7 @@ public class InventoryReservationTests(PostgreSqlFixture dbFixture) : IAsyncLife
         await dbFixture.ResetAsync();
         var ct = TestContext.Current.CancellationToken;
 
-        await SeedStocksAsync(StockEntity.Create("PROD-003", "Nut", 6));
+        await SeedStocksAsync(CreateStock("PROD-003", "Nut", 6));
 
         var orderId = Guid.NewGuid().ToString();
 
@@ -120,7 +120,7 @@ public class InventoryReservationTests(PostgreSqlFixture dbFixture) : IAsyncLife
         await dbFixture.ResetAsync();
         var ct = TestContext.Current.CancellationToken;
 
-        await SeedStocksAsync(StockEntity.Create("PROD-004", "Screw", 9));
+        await SeedStocksAsync(CreateStock("PROD-004", "Screw", 9));
 
         var orderId = Guid.NewGuid().ToString();
 
@@ -160,9 +160,9 @@ public class InventoryReservationTests(PostgreSqlFixture dbFixture) : IAsyncLife
         var ct = TestContext.Current.CancellationToken;
 
         await SeedStocksAsync(
-            StockEntity.Create("PROD-LOW-001", "Sensor", 3),
-            StockEntity.Create("PROD-LOW-002", "Battery", 8),
-            StockEntity.Create("PROD-OK-001", "Cable", 20));
+            CreateStock("PROD-LOW-001", "Sensor", 3),
+            CreateStock("PROD-LOW-002", "Battery", 8),
+            CreateStock("PROD-OK-001", "Cable", 20));
 
         await using var dbContext = new InventoryDbContext(_options);
         var publisher = new CapturingCapPublisher();
@@ -196,6 +196,19 @@ public class InventoryReservationTests(PostgreSqlFixture dbFixture) : IAsyncLife
 
         alertedStocks.Should().OnlyContain(x => x.LowStockAlertSentAt != null);
         alertedStocks.Should().OnlyContain(x => x.LastAlertedAvailableQuantity == x.AvailableQuantity);
+    }
+
+    private static StockEntity CreateStock(string productId, string productName, int initialQuantity)
+    {
+        return new StockEntity
+        {
+            Id = Guid.NewGuid(),
+            ProductId = productId,
+            ProductName = productName,
+            AvailableQuantity = initialQuantity,
+            ReservedQuantity = 0,
+            CreatedAt = DateTimeOffset.UtcNow
+        };
     }
 
     private async Task SeedStocksAsync(params StockEntity[] stocks)
@@ -294,4 +307,3 @@ public class InventoryReservationTests(PostgreSqlFixture dbFixture) : IAsyncLife
         }
     }
 }
-

@@ -12,41 +12,20 @@ namespace DotNetModulith.Modules.Orders.Application.Mappings;
 [Mapper(RequiredMappingStrategy = RequiredMappingStrategy.Target)]
 public static partial class OrderMapper
 {
-    /// <summary>
-    /// 将订单聚合根映射为订单详情DTO
-    /// </summary>
     [MapProperty(nameof(OrderEntity.Id), nameof(OrderDetail.OrderId))]
     [MapProperty(nameof(OrderEntity.Status), nameof(OrderDetail.Status))]
     public static partial OrderDetail ToDetail(this OrderEntity order);
 
-    /// <summary>
-    /// 将订单行项目映射为订单行详情DTO
-    /// </summary>
     private static partial OrderLineDetail MapToDetail(OrderLineEntity line);
 
-    /// <summary>
-    /// 将订单ID转换为字符串
-    /// </summary>
-    private static string MapOrderIdToString(OrderId id) => id.ToString();
+    private static string MapOrderIdToString(Guid id) => id.ToString();
 
-    /// <summary>
-    /// 将订单状态枚举转换为字符串
-    /// </summary>
     private static string MapStatusToString(OrderStatus status) => status.ToString();
 
-    /// <summary>
-    /// 将订单行项目数据映射为订单行契约
-    /// </summary>
     public static partial OrderLineContract ToContract(this OrderLineData line);
 
-    /// <summary>
-    /// 将订单行项目数据列表映射为订单行契约列表
-    /// </summary>
     public static partial IReadOnlyList<OrderLineContract> ToContractList(this IReadOnlyList<OrderLineData> lines);
 
-    /// <summary>
-    /// 将订单创建领域事件映射为订单创建集成事件
-    /// </summary>
     public static OrderCreatedIntegrationEvent ToIntegrationEvent(
         this OrderCreatedDomainEvent domainEvent) => new(
         domainEvent.OrderId.ToString(),
@@ -54,18 +33,12 @@ public static partial class OrderMapper
         domainEvent.TotalAmount,
         domainEvent.Lines.ToContractList());
 
-    /// <summary>
-    /// 将订单支付领域事件映射为订单支付集成事件
-    /// </summary>
     public static OrderPaidIntegrationEvent ToIntegrationEvent(
         this OrderPaidDomainEvent domainEvent) => new(
         domainEvent.OrderId.ToString(),
         domainEvent.CustomerId,
         domainEvent.TotalAmount);
 
-    /// <summary>
-    /// 将订单取消领域事件映射为订单取消集成事件
-    /// </summary>
     public static OrderCancelledIntegrationEvent ToIntegrationEvent(
         this OrderCancelledDomainEvent domainEvent) => new(
         domainEvent.OrderId.ToString(),

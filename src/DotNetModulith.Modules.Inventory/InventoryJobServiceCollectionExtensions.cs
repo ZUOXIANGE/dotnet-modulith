@@ -7,8 +7,14 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace DotNetModulith.Modules.Inventory;
 
+/// <summary>
+/// 库存模块后台任务服务注册扩展方法
+/// </summary>
 public static class InventoryJobServiceCollectionExtensions
 {
+    /// <summary>
+    /// 注册库存模块的后台任务服务（数据库上下文、仓储和低库存告警任务）
+    /// </summary>
     public static IServiceCollection AddInventoryJobServices(this IServiceCollection services, IConfiguration configuration)
     {
         var connectionString = configuration.GetConnectionString("modulithdb")

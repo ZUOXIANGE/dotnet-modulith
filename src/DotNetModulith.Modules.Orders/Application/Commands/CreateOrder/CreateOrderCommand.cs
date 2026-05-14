@@ -10,4 +10,4 @@ namespace DotNetModulith.Modules.Orders.Application.Commands.CreateOrder;
 /// <param name="Lines">订单行项目数据列表</param>
 public sealed record CreateOrderCommand(
     string CustomerId,
-    IReadOnlyList<OrderLineData> Lines) : ICommand<OrderId>;
+    IReadOnlyList<OrderLineData> Lines) : ICommand<Guid>;

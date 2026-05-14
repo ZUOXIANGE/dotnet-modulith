@@ -22,7 +22,7 @@ public static partial class PaymentMapper
     /// <summary>
     /// 将支付ID转换为字符串
     /// </summary>
-    private static string MapPaymentIdToString(PaymentId id) => id.ToString();
+    private static string MapPaymentIdToString(Guid id) => id.ToString();
 
     /// <summary>
     /// 将支付状态枚举转换为字符串

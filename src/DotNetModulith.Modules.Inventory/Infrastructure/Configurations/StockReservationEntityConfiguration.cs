@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 namespace DotNetModulith.Modules.Inventory.Infrastructure;
 
 /// <summary>
-/// 库存预留明细EF Core配置
+/// 库存预留实体EF Core配置
 /// </summary>
 internal sealed class StockReservationEntityConfiguration : IEntityTypeConfiguration<StockReservationEntity>
 {
@@ -21,9 +21,6 @@ internal sealed class StockReservationEntityConfiguration : IEntityTypeConfigura
 
         builder.Property(r => r.StockId)
             .HasColumnName("stock_id")
-            .HasConversion(
-                id => id.Value,
-                value => new StockId(value))
             .IsRequired();
 
         builder.Property(r => r.OrderId)

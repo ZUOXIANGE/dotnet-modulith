@@ -95,7 +95,7 @@
   </ItemGroup>
   <!-- SourceLink 相关包版本 -->
   <ItemGroup>
-    <PackageVersion Include="Microsoft.SourceLink.GitHub" Version="10.0.203" />
+    <PackageVersion Include="Microsoft.SourceLink.GitHub" Version="10.0.300" />
   </ItemGroup>
   <!-- OpenAPI 与文档相关包版本 -->
   <ItemGroup>

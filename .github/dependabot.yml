@@ -38,6 +38,9 @@ updates:
       mapperly:
         patterns:
           - "Riok.Mapperly*"
+      tickerq:
+        patterns:
+          - "TickerQ*"
       health-checks:
         patterns:
           - "AspNetCore.HealthChecks.*"

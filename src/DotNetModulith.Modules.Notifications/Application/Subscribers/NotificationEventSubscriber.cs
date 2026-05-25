@@ -4,6 +4,7 @@ using DotNetCore.CAP;
 using DotNetModulith.Abstractions.Contracts.Inventory;
 using DotNetModulith.Abstractions.Contracts.Orders;
 using DotNetModulith.Abstractions.Contracts.Payments;
+using DotNetModulith.Abstractions.Contracts.TraceDemo;
 using Microsoft.Extensions.Logging;
 
 namespace DotNetModulith.Modules.Notifications.Application.Subscribers;
@@ -111,6 +112,31 @@ public sealed class NotificationEventSubscriber : ICapSubscribe
             @event.Items.Count,
             new KeyValuePair<string, object?>("modulith.notification_type", "low_stock_alert"),
             new KeyValuePair<string, object?>("modulith.channel", "message"));
+
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// 处理链路追踪演示事件，验证完整的事件驱动链路追踪
+    /// </summary>
+    [CapSubscribe("modulith.trace.TraceDemoIntegrationEvent", Group = "notifications")]
+    public Task HandleTraceDemoAsync(TraceDemoIntegrationEvent @event, CancellationToken ct = default)
+    {
+        using var activity = ActivitySource.StartActivity("HandleTraceDemoEvent", ActivityKind.Consumer);
+        activity?.SetTag("modulith.event_type", "TraceDemoIntegrationEvent");
+        activity?.SetTag("modulith.demo_id", @event.DemoId);
+        activity?.SetTag("modulith.message", @event.Message);
+        activity?.SetTag("messaging.system", "rabbitmq");
+        activity?.SetTag("messaging.destination", "modulith.trace.TraceDemoIntegrationEvent");
+        activity?.SetTag("messaging.operation", "receive");
+
+        _logger.LogInformation(
+            "Trace demo event received: DemoId={DemoId}, Message={Message}, Timestamp={Timestamp}",
+            @event.DemoId, @event.Message, @event.Timestamp);
+
+        NotificationsSent.Add(1,
+            new KeyValuePair<string, object?>("modulith.notification_type", "trace_demo"),
+            new KeyValuePair<string, object?>("modulith.channel", "event_bus"));
 
         return Task.CompletedTask;
     }

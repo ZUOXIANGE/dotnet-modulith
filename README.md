@@ -99,6 +99,7 @@ Aspire 启动后会自动准备：
 
 常用脚本：
 - API 联调脚本：`pwsh ./scripts/test-api.ps1`
+- 链路追踪演示脚本：`pwsh ./scripts/test-trace-demo.ps1`（验证 API → DB → Cache → Queue → Subscriber 完整链路）
 
 ## API 文档
 - Scalar UI：`{api-base-url}/scalar/v1`

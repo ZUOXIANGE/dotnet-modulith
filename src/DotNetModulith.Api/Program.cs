@@ -1,6 +1,8 @@
 using DotNetModulith.Abstractions.Exceptions;
 using DotNetModulith.Abstractions.Results;
+using DotNetModulith.Api.Controllers;
 using DotNetModulith.Api.HealthChecks;
+using DotNetModulith.Api.MultiTenancy;
 using DotNetModulith.Modules.Inventory;
 using DotNetModulith.Modules.Inventory.Api.Controllers;
 using DotNetModulith.Modules.Notifications;
@@ -13,6 +15,7 @@ using DotNetModulith.Modules.Users;
 using DotNetModulith.Modules.Users.Api.Controllers;
 using DotNetModulith.ModulithCore;
 using DotNetModulith.ServiceDefaults;
+using Finbuckle.MultiTenant.AspNetCore.Extensions;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 using Scalar.AspNetCore;
@@ -44,6 +47,7 @@ writeToProviders: true);
 
 builder.AddServiceDefaults();
 
+builder.Services.AddModulithMultiTenancy(builder.Configuration);
 builder.Services.AddModulithCore(builder.Configuration);
 builder.Services.AddUsersAuthentication(builder.Configuration);
 
@@ -236,6 +240,8 @@ app.UseWhen(
         };
     }));
 
+app.UseMultiTenant();
+app.UseMiddleware<TenantContextCaptureMiddleware>();
 app.UseAuthentication();
 app.UseAuthorization();
 

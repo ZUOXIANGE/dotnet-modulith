@@ -49,12 +49,6 @@ internal static class OrdersServiceCollectionExtensions
             .AddOptions<OrdersCacheOptions>()
             .Bind(configuration.GetSection(OrdersCacheOptions.SectionName));
 
-        services.AddStackExchangeRedisCache(options =>
-        {
-            options.Configuration = configuration.GetConnectionString("redis") ?? "localhost:6379";
-            options.InstanceName = "dotnet-modulith:";
-        });
-
         services.AddFusionCache()
             .WithDefaultEntryOptions(options =>
             {

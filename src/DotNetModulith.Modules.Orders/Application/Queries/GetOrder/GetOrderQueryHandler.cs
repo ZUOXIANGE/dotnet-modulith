@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using DotNetModulith.ModulithCore.MultiTenancy;
 using DotNetModulith.Modules.Orders.Application.Caching;
 using DotNetModulith.Modules.Orders.Application.Mappings;
 using DotNetModulith.Modules.Orders.Domain;
@@ -16,18 +17,25 @@ public sealed class GetOrderQueryHandler : IQueryHandler<GetOrderQuery, OrderDet
 
     private readonly IOrderRepository _orderRepository;
     private readonly IFusionCache _cache;
+    private readonly IModulithTenantAccessor _tenantAccessor;
 
-    public GetOrderQueryHandler(IOrderRepository orderRepository, IFusionCache cache)
+    public GetOrderQueryHandler(
+        IOrderRepository orderRepository,
+        IFusionCache cache,
+        IModulithTenantAccessor tenantAccessor)
     {
         _orderRepository = orderRepository;
         _cache = cache;
+        _tenantAccessor = tenantAccessor;
     }
 
     public async ValueTask<OrderDetail?> Handle(GetOrderQuery query, CancellationToken cancellationToken)
     {
         using var activity = ActivitySource.StartActivity("GetOrder", ActivityKind.Internal);
         activity?.SetTag("modulith.order_id", query.OrderId.ToString());
-        var cacheKey = OrderCacheKeys.OrderDetail(query.OrderId.ToString());
+        var cacheKey = OrderCacheKeys.OrderDetail(
+            _tenantAccessor.GetRequiredTenantIdentifier(),
+            query.OrderId.ToString());
 
         return await _cache.GetOrSetAsync<OrderDetail?>(
             cacheKey,

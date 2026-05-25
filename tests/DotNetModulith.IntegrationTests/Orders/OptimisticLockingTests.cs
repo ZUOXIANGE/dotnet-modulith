@@ -42,13 +42,15 @@ public class OptimisticLockingTests(PostgreSqlFixture dbFixture) : IAsyncLifetim
     {
         await dbFixture.ResetAsync();
         var ct = TestContext.Current.CancellationToken;
+        var tenant = TenantTestData.CreateTenant(TenantTestData.TenantA);
 
         var orderId = Guid.NewGuid();
-        await using (var seedContext = new OrdersDbContext(_ordersOptions))
+        await using (var seedContext = new OrdersDbContext(_ordersOptions, tenant))
         {
             seedContext.Orders.Add(new OrderEntity
             {
                 Id = orderId,
+                TenantId = tenant.Id,
                 CustomerId = "CONCURRENT-001",
                 Status = OrderStatus.Pending,
                 TotalAmount = 100m,
@@ -57,8 +59,8 @@ public class OptimisticLockingTests(PostgreSqlFixture dbFixture) : IAsyncLifetim
             await seedContext.SaveChangesAsync(ct);
         }
 
-        await using var contextA = new OrdersDbContext(_ordersOptions);
-        await using var contextB = new OrdersDbContext(_ordersOptions);
+        await using var contextA = new OrdersDbContext(_ordersOptions, tenant);
+        await using var contextB = new OrdersDbContext(_ordersOptions, tenant);
 
         var orderA = await contextA.Orders.FindAsync([orderId], ct);
         var orderB = await contextB.Orders.FindAsync([orderId], ct);
@@ -80,13 +82,15 @@ public class OptimisticLockingTests(PostgreSqlFixture dbFixture) : IAsyncLifetim
     {
         await dbFixture.ResetAsync();
         var ct = TestContext.Current.CancellationToken;
+        var tenant = TenantTestData.CreateTenant(TenantTestData.TenantA);
 
         var orderId = Guid.NewGuid();
-        await using (var seedContext = new OrdersDbContext(_ordersOptions))
+        await using (var seedContext = new OrdersDbContext(_ordersOptions, tenant))
         {
             seedContext.Orders.Add(new OrderEntity
             {
                 Id = orderId,
+                TenantId = tenant.Id,
                 CustomerId = "VERSION-001",
                 Status = OrderStatus.Pending,
                 TotalAmount = 50m,
@@ -96,13 +100,13 @@ public class OptimisticLockingTests(PostgreSqlFixture dbFixture) : IAsyncLifetim
         }
 
         byte[] initialVersion;
-        await using (var context = new OrdersDbContext(_ordersOptions))
+        await using (var context = new OrdersDbContext(_ordersOptions, tenant))
         {
             var order = await context.Orders.FindAsync([orderId], ct);
             initialVersion = order!.RowVersion;
         }
 
-        await using (var context = new OrdersDbContext(_ordersOptions))
+        await using (var context = new OrdersDbContext(_ordersOptions, tenant))
         {
             var order = await context.Orders.FindAsync([orderId], ct);
             order!.Status = OrderStatus.Confirmed;
@@ -110,7 +114,7 @@ public class OptimisticLockingTests(PostgreSqlFixture dbFixture) : IAsyncLifetim
             await context.SaveChangesAsync(ct);
         }
 
-        await using (var context = new OrdersDbContext(_ordersOptions))
+        await using (var context = new OrdersDbContext(_ordersOptions, tenant))
         {
             var order = await context.Orders.FindAsync([orderId], ct);
             var updatedVersion = order!.RowVersion;
@@ -204,13 +208,15 @@ public class OptimisticLockingTests(PostgreSqlFixture dbFixture) : IAsyncLifetim
     {
         await dbFixture.ResetAsync();
         var ct = TestContext.Current.CancellationToken;
+        var tenant = TenantTestData.CreateTenant(TenantTestData.TenantA);
 
         var orderId = Guid.NewGuid();
-        await using (var seedContext = new OrdersDbContext(_ordersOptions))
+        await using (var seedContext = new OrdersDbContext(_ordersOptions, tenant))
         {
             seedContext.Orders.Add(new OrderEntity
             {
                 Id = orderId,
+                TenantId = tenant.Id,
                 CustomerId = "RETRY-001",
                 Status = OrderStatus.Pending,
                 TotalAmount = 75m,
@@ -219,8 +225,8 @@ public class OptimisticLockingTests(PostgreSqlFixture dbFixture) : IAsyncLifetim
             await seedContext.SaveChangesAsync(ct);
         }
 
-        await using var contextA = new OrdersDbContext(_ordersOptions);
-        await using var contextB = new OrdersDbContext(_ordersOptions);
+        await using var contextA = new OrdersDbContext(_ordersOptions, tenant);
+        await using var contextB = new OrdersDbContext(_ordersOptions, tenant);
 
         var orderA = await contextA.Orders.FindAsync([orderId], ct);
         var orderB = await contextB.Orders.FindAsync([orderId], ct);
@@ -251,7 +257,7 @@ public class OptimisticLockingTests(PostgreSqlFixture dbFixture) : IAsyncLifetim
             await contextB.SaveChangesAsync(ct);
         }
 
-        await using var verifyContext = new OrdersDbContext(_ordersOptions);
+        await using var verifyContext = new OrdersDbContext(_ordersOptions, tenant);
         var finalOrder = await verifyContext.Orders.FindAsync([orderId], ct);
         finalOrder!.Status.Should().Be(OrderStatus.Paid);
     }

@@ -8,7 +8,9 @@ internal static class OrderCacheKeys
     /// <summary>
     /// 生成订单详情缓存键
     /// </summary>
+    /// <param name="tenantIdentifier">租户标识</param>
     /// <param name="orderId">订单ID</param>
     /// <returns>缓存键字符串</returns>
-    public static string OrderDetail(string orderId) => $"orders:detail:{orderId}";
+    public static string OrderDetail(string tenantIdentifier, string orderId)
+        => $"orders:{tenantIdentifier}:detail:{orderId}";
 }

@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Diagnostics.Metrics;
 using DotNetCore.CAP;
 using DotNetModulith.Abstractions.Events;
+using DotNetModulith.ModulithCore.MultiTenancy;
 using DotNetModulith.Modules.Orders.Application.Caching;
 using DotNetModulith.Modules.Orders.Domain;
 using DotNetModulith.Modules.Orders.Domain.Events;
@@ -30,6 +31,7 @@ public sealed class CreateOrderCommandHandler : ICommandHandler<CreateOrderComma
     private readonly IFusionCache _cache;
     private readonly OrdersDbContext _dbContext;
     private readonly ICapPublisher _capPublisher;
+    private readonly IModulithTenantAccessor _tenantAccessor;
 
     public CreateOrderCommandHandler(
         IOrderRepository orderRepository,
@@ -37,7 +39,8 @@ public sealed class CreateOrderCommandHandler : ICommandHandler<CreateOrderComma
         ILogger<CreateOrderCommandHandler> logger,
         IFusionCache cache,
         OrdersDbContext dbContext,
-        ICapPublisher capPublisher)
+        ICapPublisher capPublisher,
+        IModulithTenantAccessor tenantAccessor)
     {
         _orderRepository = orderRepository;
         _domainEventDispatcher = domainEventDispatcher;
@@ -45,6 +48,7 @@ public sealed class CreateOrderCommandHandler : ICommandHandler<CreateOrderComma
         _cache = cache;
         _dbContext = dbContext;
         _capPublisher = capPublisher;
+        _tenantAccessor = tenantAccessor;
     }
 
     public async ValueTask<Guid> Handle(CreateOrderCommand command, CancellationToken cancellationToken)
@@ -65,6 +69,7 @@ public sealed class CreateOrderCommandHandler : ICommandHandler<CreateOrderComma
 
             var orderId = Guid.NewGuid();
             var now = DateTimeOffset.UtcNow;
+            var tenantIdentifier = _tenantAccessor.GetRequiredTenantIdentifier();
 
             var orderLines = command.Lines
                 .Select(line => new OrderLineEntity(line.ProductId, line.ProductName, line.Quantity, line.UnitPrice))
@@ -82,7 +87,12 @@ public sealed class CreateOrderCommandHandler : ICommandHandler<CreateOrderComma
                 Lines = orderLines
             };
 
-            var domainEvent = new OrderCreatedDomainEvent(order.Id, order.CustomerId, order.TotalAmount, command.Lines);
+            var domainEvent = new OrderCreatedDomainEvent(
+                order.Id,
+                tenantIdentifier,
+                order.CustomerId,
+                order.TotalAmount,
+                command.Lines);
 
             await CapTransactionScope.ExecuteAsync(
                 _dbContext,
@@ -90,7 +100,7 @@ public sealed class CreateOrderCommandHandler : ICommandHandler<CreateOrderComma
                 async ct =>
                 {
                     await _orderRepository.AddAsync(order, ct);
-                    await _cache.RemoveAsync(OrderCacheKeys.OrderDetail(order.Id.ToString()), null, ct);
+                    await _cache.RemoveAsync(OrderCacheKeys.OrderDetail(tenantIdentifier, order.Id.ToString()), null, ct);
                     await _domainEventDispatcher.DispatchAsync([domainEvent], ct);
                 },
                 cancellationToken);

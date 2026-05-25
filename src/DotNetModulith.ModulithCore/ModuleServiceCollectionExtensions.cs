@@ -1,4 +1,5 @@
 using DotNetModulith.Abstractions.Events;
+using DotNetModulith.ModulithCore.MultiTenancy;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -24,6 +25,7 @@ public static class ModuleServiceCollectionExtensions
 
         services.AddSingleton<ModuleRegistry>();
         services.AddSingleton<ModuleBoundaryVerifier>();
+        services.AddScoped<IModulithTenantAccessor, ModulithTenantAccessor>();
         services.AddScoped<IDomainEventDispatcher, DomainEventDispatcher>();
         return services;
     }

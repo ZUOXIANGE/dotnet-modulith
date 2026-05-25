@@ -19,6 +19,11 @@ internal sealed class OrderEntityConfiguration : IEntityTypeConfiguration<OrderE
             .HasColumnName("id")
             .ValueGeneratedNever();
 
+        builder.Property(o => o.TenantId)
+            .HasColumnName("tenant_id")
+            .HasMaxLength(64)
+            .IsRequired();
+
         builder.Property(o => o.CustomerId)
             .HasColumnName("customer_id")
             .HasMaxLength(100)
@@ -51,7 +56,7 @@ internal sealed class OrderEntityConfiguration : IEntityTypeConfiguration<OrderE
             .HasForeignKey("order_id")
             .OnDelete(DeleteBehavior.Cascade);
 
-        builder.HasIndex(o => o.CustomerId);
-        builder.HasIndex(o => o.Status);
+        builder.HasIndex(o => new { o.TenantId, o.CustomerId });
+        builder.HasIndex(o => new { o.TenantId, o.Status });
     }
 }

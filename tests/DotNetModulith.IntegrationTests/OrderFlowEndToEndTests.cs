@@ -29,6 +29,7 @@ public sealed class OrderFlowEndToEndTests : IClassFixture<MessagingApiWebApplic
     {
         _factory = factory;
         _client = factory.CreateClient();
+        _client.DefaultRequestHeaders.Add(TenantTestData.HeaderName, TenantTestData.TenantA);
     }
 
     [Fact]
@@ -229,7 +230,12 @@ public sealed class OrderFlowEndToEndTests : IClassFixture<MessagingApiWebApplic
 
         await PublishAsync(
             "modulith.payments.PaymentCompletedIntegrationEvent",
-            new PaymentCompletedIntegrationEvent(orderId, payment.Id.ToString(), "E2E-IDEMPOTENT-01", 31m),
+            new PaymentCompletedIntegrationEvent(
+                orderId,
+                TenantTestData.TenantA,
+                payment.Id.ToString(),
+                "E2E-IDEMPOTENT-01",
+                31m),
             ct);
 
         await Task.Delay(TimeSpan.FromSeconds(2), ct);
@@ -265,6 +271,7 @@ public sealed class OrderFlowEndToEndTests : IClassFixture<MessagingApiWebApplic
             "modulith.inventory.StockReservedIntegrationEvent",
             new StockReservedIntegrationEvent(
                 orderId,
+                TenantTestData.TenantA,
                 "E2E-IDEMPOTENT-02",
                 31m,
                 [new StockReservedLine(productId, 2)]),
@@ -299,7 +306,12 @@ public sealed class OrderFlowEndToEndTests : IClassFixture<MessagingApiWebApplic
 
         await PublishAsync(
             "modulith.payments.PaymentCompletedIntegrationEvent",
-            new PaymentCompletedIntegrationEvent(orderId, Guid.NewGuid().ToString(), "E2E-OUTOFORDER-01", 25m),
+            new PaymentCompletedIntegrationEvent(
+                orderId,
+                TenantTestData.TenantA,
+                Guid.NewGuid().ToString(),
+                "E2E-OUTOFORDER-01",
+                25m),
             ct);
 
         await Task.Delay(TimeSpan.FromSeconds(2), ct);
@@ -343,7 +355,12 @@ public sealed class OrderFlowEndToEndTests : IClassFixture<MessagingApiWebApplic
 
         await PublishAsync(
             "modulith.payments.PaymentFailedIntegrationEvent",
-            new PaymentFailedIntegrationEvent(orderId, payment.Id.ToString(), "E2E-OUTOFORDER-02", "late failure replay"),
+            new PaymentFailedIntegrationEvent(
+                orderId,
+                TenantTestData.TenantA,
+                payment.Id.ToString(),
+                "E2E-OUTOFORDER-02",
+                "late failure replay"),
             ct);
 
         await Task.Delay(TimeSpan.FromSeconds(2), ct);
@@ -531,7 +548,8 @@ public sealed class OrderFlowEndToEndTests : IClassFixture<MessagingApiWebApplic
         return new OrdersDbContext(
             new DbContextOptionsBuilder<OrdersDbContext>()
                 .UseNpgsql(_factory.ConnectionString)
-                .Options);
+                .Options,
+            TenantTestData.CreateTenant(TenantTestData.TenantA));
     }
 
     private static async Task<T> PollAsync<T>(
@@ -582,4 +600,3 @@ public sealed class OrderFlowEndToEndTests : IClassFixture<MessagingApiWebApplic
 
     private sealed record PaymentDetailRecord(Guid Id, string OrderId, string Status);
 }
-

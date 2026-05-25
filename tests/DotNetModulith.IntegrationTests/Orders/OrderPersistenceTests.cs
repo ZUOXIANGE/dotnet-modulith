@@ -11,14 +11,15 @@ namespace DotNetModulith.IntegrationTests.Orders;
 public class OrderPersistenceTests(PostgreSqlFixture dbFixture) : IAsyncLifetime
 {
     private OrdersDbContext _dbContext = null!;
+    private DbContextOptions<OrdersDbContext> _options = null!;
 
     public async ValueTask InitializeAsync()
     {
-        var options = new DbContextOptionsBuilder<OrdersDbContext>()
+        _options = new DbContextOptionsBuilder<OrdersDbContext>()
             .UseNpgsql(dbFixture.ConnectionString)
             .Options;
 
-        _dbContext = new OrdersDbContext(options);
+        _dbContext = TenantTestData.CreateOrdersDbContext(_options);
     }
 
     public async ValueTask DisposeAsync()
@@ -36,6 +37,7 @@ public class OrderPersistenceTests(PostgreSqlFixture dbFixture) : IAsyncLifetime
         var order = new OrderEntity
         {
             Id = Guid.NewGuid(),
+            TenantId = TenantTestData.TenantA,
             CustomerId = "CUST-001",
             Status = OrderStatus.Pending,
             TotalAmount = 45.00m,
@@ -69,6 +71,7 @@ public class OrderPersistenceTests(PostgreSqlFixture dbFixture) : IAsyncLifetime
         var order = new OrderEntity
         {
             Id = Guid.NewGuid(),
+            TenantId = TenantTestData.TenantA,
             CustomerId = "CUST-002",
             Status = OrderStatus.Pending,
             TotalAmount = 17.50m,
@@ -96,6 +99,54 @@ public class OrderPersistenceTests(PostgreSqlFixture dbFixture) : IAsyncLifetime
 
         saved.Should().NotBeNull();
         saved!.Status.Should().Be(OrderStatus.Paid);
+    }
+
+    [Fact]
+    public async Task TenantScopedQuery_ShouldOnlyReturnCurrentTenantOrders()
+    {
+        var ct = TestContext.Current.CancellationToken;
+
+        await dbFixture.ResetAsync();
+
+        var tenantAOrder = new OrderEntity
+        {
+            Id = Guid.NewGuid(),
+            TenantId = TenantTestData.TenantA,
+            CustomerId = "SHARED-CUST",
+            Status = OrderStatus.Pending,
+            TotalAmount = 20m,
+            CreatedAt = DateTimeOffset.UtcNow
+        };
+
+        var tenantBOrder = new OrderEntity
+        {
+            Id = Guid.NewGuid(),
+            TenantId = TenantTestData.TenantB,
+            CustomerId = "SHARED-CUST",
+            Status = OrderStatus.Pending,
+            TotalAmount = 35m,
+            CreatedAt = DateTimeOffset.UtcNow
+        };
+
+        await _dbContext.Orders.AddAsync(tenantAOrder, ct);
+        await _dbContext.SaveChangesAsync(ct);
+
+        await using var tenantBContext = TenantTestData.CreateOrdersDbContext(_options, TenantTestData.TenantB);
+        await tenantBContext.Orders.AddAsync(tenantBOrder, ct);
+        await tenantBContext.SaveChangesAsync(ct);
+
+        var tenantAOrders = await _dbContext.Orders
+            .Where(x => x.CustomerId == "SHARED-CUST")
+            .Select(x => x.Id)
+            .ToListAsync(ct);
+
+        var tenantBOrders = await tenantBContext.Orders
+            .Where(x => x.CustomerId == "SHARED-CUST")
+            .Select(x => x.Id)
+            .ToListAsync(ct);
+
+        tenantAOrders.Should().ContainSingle().Which.Should().Be(tenantAOrder.Id);
+        tenantBOrders.Should().ContainSingle().Which.Should().Be(tenantBOrder.Id);
     }
 }
 

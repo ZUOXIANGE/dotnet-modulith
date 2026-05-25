@@ -7,11 +7,13 @@ namespace DotNetModulith.Abstractions.Contracts.Payments;
 /// 支付完成集成事件
 /// </summary>
 /// <param name="OrderId">订单ID</param>
+/// <param name="TenantIdentifier">租户标识</param>
 /// <param name="PaymentId">支付ID</param>
 /// <param name="CustomerId">客户ID</param>
 /// <param name="Amount">支付金额</param>
 public sealed record PaymentCompletedIntegrationEvent(
     [property: JsonPropertyName("orderId")] string OrderId,
+    [property: JsonPropertyName("tenantIdentifier")] string TenantIdentifier,
     [property: JsonPropertyName("paymentId")] string PaymentId,
     [property: JsonPropertyName("customerId")] string CustomerId,
     [property: JsonPropertyName("amount")] decimal Amount) : IntegrationEvent;
@@ -20,11 +22,13 @@ public sealed record PaymentCompletedIntegrationEvent(
 /// 支付失败集成事件
 /// </summary>
 /// <param name="OrderId">订单ID</param>
+/// <param name="TenantIdentifier">租户标识</param>
 /// <param name="PaymentId">支付ID</param>
 /// <param name="CustomerId">客户ID</param>
 /// <param name="Reason">失败原因</param>
 public sealed record PaymentFailedIntegrationEvent(
     [property: JsonPropertyName("orderId")] string OrderId,
+    [property: JsonPropertyName("tenantIdentifier")] string TenantIdentifier,
     [property: JsonPropertyName("paymentId")] string PaymentId,
     [property: JsonPropertyName("customerId")] string CustomerId,
     [property: JsonPropertyName("reason")] string Reason) : IntegrationEvent;

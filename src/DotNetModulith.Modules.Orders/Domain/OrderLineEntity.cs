@@ -11,6 +11,11 @@ public sealed class OrderLineEntity
     public Guid Id { get; }
 
     /// <summary>
+    /// 租户标识，由 Finbuckle 在保存时强制写入。
+    /// </summary>
+    public string TenantId { get; private set; } = null!;
+
+    /// <summary>
     /// 产品ID
     /// </summary>
     public string ProductId { get; }

@@ -19,6 +19,10 @@ namespace DotNetModulith.IntegrationTests.Fixtures;
 /// </summary>
 public sealed class ApiWebApplicationFactory : TestWebApplicationFactoryBase
 {
+    private readonly RedisFixture _redisFixture = new();
+
+    public Task ResetDatabaseAsync() => DbFixture.ResetAsync();
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment("Testing");
@@ -28,7 +32,7 @@ public sealed class ApiWebApplicationFactory : TestWebApplicationFactoryBase
             config.AddInMemoryCollection(new Dictionary<string, string?>
             {
                 ["ConnectionStrings:modulithdb"] = ConnectionString,
-                ["ConnectionStrings:redis"] = string.Empty
+                ["ConnectionStrings:redis"] = _redisFixture.ConnectionString
             });
         });
 
@@ -36,9 +40,25 @@ public sealed class ApiWebApplicationFactory : TestWebApplicationFactoryBase
         {
             DbFixture.ReplaceRegisteredDbContexts(services);
             services.RemoveAll<IDistributedCache>();
-            services.AddDistributedMemoryCache();
+            services.AddStackExchangeRedisCache(options =>
+            {
+                options.Configuration = _redisFixture.ConnectionString;
+                options.InstanceName = "dotnet-modulith:";
+            });
             services.AddSingleton<ICapPublisher, NullCapPublisher>();
         });
+    }
+
+    public override async ValueTask InitializeAsync()
+    {
+        await _redisFixture.InitializeAsync();
+        await base.InitializeAsync();
+    }
+
+    public override async ValueTask DisposeAsync()
+    {
+        await _redisFixture.DisposeAsync();
+        await base.DisposeAsync();
     }
 
     public async Task InitializeUsersModuleAsync()

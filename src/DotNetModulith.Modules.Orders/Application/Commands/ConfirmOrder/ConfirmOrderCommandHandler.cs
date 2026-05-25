@@ -3,6 +3,7 @@ using DotNetCore.CAP;
 using DotNetModulith.Abstractions.Events;
 using DotNetModulith.Abstractions.Exceptions;
 using DotNetModulith.Abstractions.Results;
+using DotNetModulith.ModulithCore.MultiTenancy;
 using DotNetModulith.Modules.Orders.Application.Caching;
 using DotNetModulith.Modules.Orders.Domain;
 using DotNetModulith.Modules.Orders.Infrastructure;
@@ -25,6 +26,7 @@ public sealed class ConfirmOrderCommandHandler : ICommandHandler<ConfirmOrderCom
     private readonly IFusionCache _cache;
     private readonly OrdersDbContext _dbContext;
     private readonly ICapPublisher _capPublisher;
+    private readonly IModulithTenantAccessor _tenantAccessor;
 
     public ConfirmOrderCommandHandler(
         IOrderRepository orderRepository,
@@ -32,7 +34,8 @@ public sealed class ConfirmOrderCommandHandler : ICommandHandler<ConfirmOrderCom
         ILogger<ConfirmOrderCommandHandler> logger,
         IFusionCache cache,
         OrdersDbContext dbContext,
-        ICapPublisher capPublisher)
+        ICapPublisher capPublisher,
+        IModulithTenantAccessor tenantAccessor)
     {
         _orderRepository = orderRepository;
         _domainEventDispatcher = domainEventDispatcher;
@@ -40,12 +43,14 @@ public sealed class ConfirmOrderCommandHandler : ICommandHandler<ConfirmOrderCom
         _cache = cache;
         _dbContext = dbContext;
         _capPublisher = capPublisher;
+        _tenantAccessor = tenantAccessor;
     }
 
     public async ValueTask<Result> Handle(ConfirmOrderCommand command, CancellationToken cancellationToken)
     {
         using var activity = ActivitySource.StartActivity("ConfirmOrder", ActivityKind.Internal);
         activity?.SetTag("modulith.order_id", command.OrderId.ToString());
+        var tenantIdentifier = _tenantAccessor.GetRequiredTenantIdentifier();
 
         var order = await _orderRepository.GetByIdAsync(command.OrderId, cancellationToken);
 
@@ -84,7 +89,7 @@ public sealed class ConfirmOrderCommandHandler : ICommandHandler<ConfirmOrderCom
             async ct =>
             {
                 await _orderRepository.UpdateAsync(order, ct);
-                await _cache.RemoveAsync(OrderCacheKeys.OrderDetail(order.Id.ToString()), null, ct);
+                await _cache.RemoveAsync(OrderCacheKeys.OrderDetail(tenantIdentifier, order.Id.ToString()), null, ct);
                 await _domainEventDispatcher.DispatchAsync([], ct);
             },
             cancellationToken);

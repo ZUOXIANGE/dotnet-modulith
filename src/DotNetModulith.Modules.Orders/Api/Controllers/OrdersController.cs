@@ -1,6 +1,7 @@
 using DotNetModulith.Abstractions.Authorization;
 using DotNetModulith.Abstractions.Exceptions;
 using DotNetModulith.Abstractions.Results;
+using DotNetModulith.ModulithCore.MultiTenancy;
 using DotNetModulith.Modules.Orders.Api.Contracts.Requests;
 using DotNetModulith.Modules.Orders.Api.Contracts.Responses;
 using DotNetModulith.Modules.Orders.Api.Mappings;
@@ -24,11 +25,16 @@ public sealed class OrdersController : ControllerBase
 {
     private readonly IMediator _mediator;
     private readonly IFusionCache _cache;
+    private readonly IModulithTenantAccessor _tenantAccessor;
 
-    public OrdersController(IMediator mediator, IFusionCache cache)
+    public OrdersController(
+        IMediator mediator,
+        IFusionCache cache,
+        IModulithTenantAccessor tenantAccessor)
     {
         _mediator = mediator;
         _cache = cache;
+        _tenantAccessor = tenantAccessor;
     }
 
     /// <summary>
@@ -95,7 +101,10 @@ public sealed class OrdersController : ControllerBase
     [HttpDelete("{orderId:guid}/cache")]
     public async Task<ApiResponse<object?>> ClearOrderCache(Guid orderId, CancellationToken ct)
     {
-        await _cache.RemoveAsync(OrderCacheKeys.OrderDetail(orderId.ToString()), null, ct);
+        await _cache.RemoveAsync(
+            OrderCacheKeys.OrderDetail(_tenantAccessor.GetRequiredTenantIdentifier(), orderId.ToString()),
+            null,
+            ct);
         return ApiResponse.Success();
     }
 }

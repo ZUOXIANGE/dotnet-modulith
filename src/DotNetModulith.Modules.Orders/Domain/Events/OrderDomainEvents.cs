@@ -6,11 +6,13 @@ namespace DotNetModulith.Modules.Orders.Domain.Events;
 /// 订单已创建领域事件
 /// </summary>
 /// <param name="OrderId">订单ID</param>
+/// <param name="TenantIdentifier">租户标识</param>
 /// <param name="CustomerId">客户ID</param>
 /// <param name="TotalAmount">订单总金额</param>
 /// <param name="Lines">订单行项目列表</param>
 public sealed record OrderCreatedDomainEvent(
     Guid OrderId,
+    string TenantIdentifier,
     string CustomerId,
     decimal TotalAmount,
     IReadOnlyList<OrderLineData> Lines) : DomainEvent;
@@ -19,10 +21,12 @@ public sealed record OrderCreatedDomainEvent(
 /// 订单已支付领域事件
 /// </summary>
 /// <param name="OrderId">订单ID</param>
+/// <param name="TenantIdentifier">租户标识</param>
 /// <param name="CustomerId">客户ID</param>
 /// <param name="TotalAmount">支付金额</param>
 public sealed record OrderPaidDomainEvent(
     Guid OrderId,
+    string TenantIdentifier,
     string CustomerId,
     decimal TotalAmount) : DomainEvent;
 
@@ -30,11 +34,13 @@ public sealed record OrderPaidDomainEvent(
 /// 订单已取消领域事件
 /// </summary>
 /// <param name="OrderId">订单ID</param>
+/// <param name="TenantIdentifier">租户标识</param>
 /// <param name="CustomerId">客户ID</param>
 /// <param name="Reason">取消原因</param>
 /// <param name="Lines">订单行项目列表</param>
 public sealed record OrderCancelledDomainEvent(
     Guid OrderId,
+    string TenantIdentifier,
     string CustomerId,
     string Reason,
     IReadOnlyList<OrderLineData> Lines) : DomainEvent;

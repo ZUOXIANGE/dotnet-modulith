@@ -3,10 +3,13 @@ using System.Diagnostics.Metrics;
 using DotNetCore.CAP;
 using DotNetModulith.Abstractions.Contracts.Inventory;
 using DotNetModulith.Abstractions.Events;
+using DotNetModulith.ModulithCore.MultiTenancy;
 using DotNetModulith.Modules.Orders.Application.Caching;
 using DotNetModulith.Modules.Orders.Domain;
 using DotNetModulith.Modules.Orders.Domain.Events;
 using DotNetModulith.Modules.Orders.Infrastructure;
+using Finbuckle.MultiTenant.Abstractions;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using ZiggyCreatures.Caching.Fusion;
 
@@ -25,25 +28,25 @@ public sealed class InventoryEventSubscriber : ICapSubscribe
         description: "Number of events consumed by the Orders module");
 
     private readonly ILogger<InventoryEventSubscriber> _logger;
-    private readonly IOrderRepository _orderRepository;
     private readonly IDomainEventDispatcher _domainEventDispatcher;
     private readonly IFusionCache _cache;
-    private readonly OrdersDbContext _dbContext;
+    private readonly DbContextOptions<OrdersDbContext> _dbContextOptions;
+    private readonly IMultiTenantStore<ModulithTenantInfo> _tenantStore;
     private readonly ICapPublisher _capPublisher;
 
     public InventoryEventSubscriber(
         ILogger<InventoryEventSubscriber> logger,
-        IOrderRepository orderRepository,
         IDomainEventDispatcher domainEventDispatcher,
         IFusionCache cache,
-        OrdersDbContext dbContext,
+        DbContextOptions<OrdersDbContext> dbContextOptions,
+        IMultiTenantStore<ModulithTenantInfo> tenantStore,
         ICapPublisher capPublisher)
     {
         _logger = logger;
-        _orderRepository = orderRepository;
         _domainEventDispatcher = domainEventDispatcher;
         _cache = cache;
-        _dbContext = dbContext;
+        _dbContextOptions = dbContextOptions;
+        _tenantStore = tenantStore;
         _capPublisher = capPublisher;
     }
 
@@ -59,8 +62,10 @@ public sealed class InventoryEventSubscriber : ICapSubscribe
 
         EventsConsumed.Add(1, new KeyValuePair<string, object?>("modulith.event_type", "StockReservedIntegrationEvent"));
 
+        await using var tenantDbContext = await CreateTenantDbContextAsync(@event.TenantIdentifier);
+        var orderRepository = new OrderRepository(tenantDbContext);
         var orderId = Guid.Parse(@event.OrderId);
-        var order = await _orderRepository.GetByIdAsync(orderId, ct);
+        var order = await orderRepository.GetByIdAsync(orderId, ct);
         if (order is null)
         {
             _logger.LogWarning("Order {OrderId} not found while handling reserved stock event", @event.OrderId);
@@ -87,12 +92,15 @@ public sealed class InventoryEventSubscriber : ICapSubscribe
         order.UpdatedAt = DateTimeOffset.UtcNow;
 
         await CapTransactionScope.ExecuteAsync(
-            _dbContext,
+            tenantDbContext,
             _capPublisher,
             async cancellationToken =>
             {
-                await _orderRepository.UpdateAsync(order, cancellationToken);
-                await _cache.RemoveAsync(OrderCacheKeys.OrderDetail(order.Id.ToString()), null, cancellationToken);
+                await orderRepository.UpdateAsync(order, cancellationToken);
+                await _cache.RemoveAsync(
+                    OrderCacheKeys.OrderDetail(@event.TenantIdentifier, order.Id.ToString()),
+                    null,
+                    cancellationToken);
                 await _domainEventDispatcher.DispatchAsync([], cancellationToken);
             },
             ct);
@@ -114,8 +122,10 @@ public sealed class InventoryEventSubscriber : ICapSubscribe
         activity?.SetTag("modulith.order_id", @event.OrderId);
         activity?.SetTag("modulith.product_id", @event.ProductId);
 
+        await using var tenantDbContext = await CreateTenantDbContextAsync(@event.TenantIdentifier);
+        var orderRepository = new OrderRepository(tenantDbContext);
         var orderId = Guid.Parse(@event.OrderId);
-        var order = await _orderRepository.GetByIdAsync(orderId, ct);
+        var order = await orderRepository.GetByIdAsync(orderId, ct);
         if (order is null)
         {
             _logger.LogWarning("Order {OrderId} not found while handling insufficient stock event", @event.OrderId);
@@ -145,15 +155,23 @@ public sealed class InventoryEventSubscriber : ICapSubscribe
             .Select(line => new OrderLineData(line.ProductId, line.ProductName, line.Quantity, line.UnitPrice))
             .ToList();
 
-        var domainEvent = new OrderCancelledDomainEvent(order.Id, order.CustomerId, reason, lines);
+        var domainEvent = new OrderCancelledDomainEvent(
+            order.Id,
+            @event.TenantIdentifier,
+            order.CustomerId,
+            reason,
+            lines);
 
         await CapTransactionScope.ExecuteAsync(
-            _dbContext,
+            tenantDbContext,
             _capPublisher,
             async cancellationToken =>
             {
-                await _orderRepository.UpdateAsync(order, cancellationToken);
-                await _cache.RemoveAsync(OrderCacheKeys.OrderDetail(order.Id.ToString()), null, cancellationToken);
+                await orderRepository.UpdateAsync(order, cancellationToken);
+                await _cache.RemoveAsync(
+                    OrderCacheKeys.OrderDetail(@event.TenantIdentifier, order.Id.ToString()),
+                    null,
+                    cancellationToken);
                 await _domainEventDispatcher.DispatchAsync([domainEvent], cancellationToken);
             },
             ct);
@@ -161,5 +179,13 @@ public sealed class InventoryEventSubscriber : ICapSubscribe
         _logger.LogWarning("Order {OrderId} cancelled due to insufficient stock for product {ProductId}",
             order.Id, @event.ProductId);
         activity?.SetStatus(ActivityStatusCode.Ok);
+    }
+
+    private async Task<OrdersDbContext> CreateTenantDbContextAsync(string tenantIdentifier)
+    {
+        var tenantInfo = await _tenantStore.GetByIdentifierAsync(tenantIdentifier)
+            ?? throw new InvalidOperationException($"Tenant '{tenantIdentifier}' not found.");
+
+        return new OrdersDbContext(_dbContextOptions, tenantInfo);
     }
 }

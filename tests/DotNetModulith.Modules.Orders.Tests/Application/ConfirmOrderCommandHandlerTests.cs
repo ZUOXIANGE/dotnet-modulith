@@ -2,6 +2,7 @@ using DotNetCore.CAP;
 using DotNetModulith.Abstractions.Events;
 using DotNetModulith.Abstractions.Exceptions;
 using DotNetModulith.Abstractions.Results;
+using DotNetModulith.ModulithCore.MultiTenancy;
 using DotNetModulith.Modules.Orders.Application.Commands.ConfirmOrder;
 using DotNetModulith.Modules.Orders.Domain;
 using DotNetModulith.Modules.Orders.Infrastructure;
@@ -67,7 +68,8 @@ public sealed class ConfirmOrderCommandHandlerTests
             NullLogger<ConfirmOrderCommandHandler>.Instance,
             new FusionCache(new FusionCacheOptions()),
             new OrdersDbContext(new DbContextOptionsBuilder<OrdersDbContext>().Options),
-            new NullCapPublisher());
+            new NullCapPublisher(),
+            new TestTenantAccessor());
     }
 
     private sealed class InMemoryOrderRepository : IOrderRepository
@@ -144,5 +146,17 @@ public sealed class ConfirmOrderCommandHandlerTests
         public void PublishDelay<T>(TimeSpan delayTime, string name, T? contentObj, string? callbackName = null)
         {
         }
+    }
+
+    private sealed class TestTenantAccessor : IModulithTenantAccessor
+    {
+        public ModulithTenantInfo? CurrentTenant { get; } = new()
+        {
+            Id = "tenant-a",
+            Identifier = "tenant-a",
+            Name = "tenant-a"
+        };
+
+        public string GetRequiredTenantIdentifier() => CurrentTenant!.Identifier;
     }
 }

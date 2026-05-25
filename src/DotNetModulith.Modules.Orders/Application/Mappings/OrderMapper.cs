@@ -29,6 +29,7 @@ public static partial class OrderMapper
     public static OrderCreatedIntegrationEvent ToIntegrationEvent(
         this OrderCreatedDomainEvent domainEvent) => new(
         domainEvent.OrderId.ToString(),
+        domainEvent.TenantIdentifier,
         domainEvent.CustomerId,
         domainEvent.TotalAmount,
         domainEvent.Lines.ToContractList());
@@ -36,12 +37,14 @@ public static partial class OrderMapper
     public static OrderPaidIntegrationEvent ToIntegrationEvent(
         this OrderPaidDomainEvent domainEvent) => new(
         domainEvent.OrderId.ToString(),
+        domainEvent.TenantIdentifier,
         domainEvent.CustomerId,
         domainEvent.TotalAmount);
 
     public static OrderCancelledIntegrationEvent ToIntegrationEvent(
         this OrderCancelledDomainEvent domainEvent) => new(
         domainEvent.OrderId.ToString(),
+        domainEvent.TenantIdentifier,
         domainEvent.CustomerId,
         domainEvent.Reason,
         domainEvent.Lines.ToContractList());

@@ -16,6 +16,7 @@ internal sealed class OrderLineEntityConfiguration : IEntityTypeConfiguration<Or
         builder.HasKey(l => l.Id);
         builder.Property(l => l.Id).HasColumnName("id").ValueGeneratedOnAdd();
 
+        builder.Property(l => l.TenantId).HasColumnName("tenant_id").HasMaxLength(64).IsRequired();
         builder.Property(l => l.ProductId).HasColumnName("product_id").HasMaxLength(100).IsRequired();
         builder.Property(l => l.ProductName).HasColumnName("product_name").HasMaxLength(500).IsRequired();
         builder.Property(l => l.Quantity).HasColumnName("quantity").IsRequired();
@@ -23,5 +24,6 @@ internal sealed class OrderLineEntityConfiguration : IEntityTypeConfiguration<Or
         builder.Ignore(l => l.LineTotal);
 
         builder.Property("order_id").HasColumnName("order_id").IsRequired();
+        builder.HasIndex(l => new { l.TenantId, l.ProductId });
     }
 }

@@ -45,6 +45,7 @@ public class InventoryReservationTests(PostgreSqlFixture dbFixture) : IAsyncLife
 
         var @event = new OrderCreatedIntegrationEvent(
             OrderId: Guid.NewGuid().ToString(),
+            TenantIdentifier: TenantTestData.TenantA,
             CustomerId: "CUST-001",
             TotalAmount: 35m,
             Lines:
@@ -87,6 +88,7 @@ public class InventoryReservationTests(PostgreSqlFixture dbFixture) : IAsyncLife
             await subscriber.HandleOrderCreatedAsync(
                 new OrderCreatedIntegrationEvent(
                     orderId,
+                    TenantTestData.TenantA,
                     "CUST-002",
                     12m,
                     [new OrderLineContract("PROD-003", "Nut", 4, 3m)]),
@@ -99,6 +101,7 @@ public class InventoryReservationTests(PostgreSqlFixture dbFixture) : IAsyncLife
             await subscriber.HandleOrderCancelledAsync(
                 new OrderCancelledIntegrationEvent(
                     orderId,
+                    TenantTestData.TenantA,
                     "CUST-002",
                     "payment failed",
                     [new OrderLineContract("PROD-003", "Nut", 4, 3m)]),
@@ -130,6 +133,7 @@ public class InventoryReservationTests(PostgreSqlFixture dbFixture) : IAsyncLife
             await subscriber.HandleOrderCreatedAsync(
                 new OrderCreatedIntegrationEvent(
                     orderId,
+                    TenantTestData.TenantA,
                     "CUST-003",
                     20m,
                     [new OrderLineContract("PROD-004", "Screw", 5, 4m)]),
@@ -140,7 +144,7 @@ public class InventoryReservationTests(PostgreSqlFixture dbFixture) : IAsyncLife
         {
             var subscriber = CreateSubscriber(paidDbContext);
             await subscriber.HandleOrderPaidAsync(
-                new OrderPaidIntegrationEvent(orderId, "CUST-003", 20m),
+                new OrderPaidIntegrationEvent(orderId, TenantTestData.TenantA, "CUST-003", 20m),
                 ct);
         }
 

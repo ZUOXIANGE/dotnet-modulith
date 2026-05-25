@@ -19,6 +19,7 @@ public sealed class UsersApiTests : IClassFixture<ApiWebApplicationFactory>
     {
         _factory = factory;
         _client = factory.CreateClient();
+        _client.DefaultRequestHeaders.Add(TenantTestData.HeaderName, TenantTestData.TenantA);
     }
 
     [Fact]

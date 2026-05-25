@@ -19,6 +19,7 @@ public class ModuleApiTests : IClassFixture<ApiWebApplicationFactory>
     {
         _factory = factory;
         _client = factory.CreateClient();
+        _client.DefaultRequestHeaders.Add(TenantTestData.HeaderName, TenantTestData.TenantA);
     }
 
     [Fact]
@@ -217,4 +218,3 @@ public class ModuleApiTests : IClassFixture<ApiWebApplicationFactory>
         return (body["data"]!["id"]!.GetValue<Guid>(), userName, password);
     }
 }
-

@@ -7,11 +7,13 @@ namespace DotNetModulith.Abstractions.Contracts.Inventory;
 /// 库存已预留集成事件
 /// </summary>
 /// <param name="OrderId">订单ID</param>
+/// <param name="TenantIdentifier">租户标识</param>
 /// <param name="CustomerId">客户ID</param>
 /// <param name="TotalAmount">订单总金额</param>
 /// <param name="Lines">预留行项目列表</param>
 public sealed record StockReservedIntegrationEvent(
     [property: JsonPropertyName("orderId")] string OrderId,
+    [property: JsonPropertyName("tenantIdentifier")] string TenantIdentifier,
     [property: JsonPropertyName("customerId")] string CustomerId,
     [property: JsonPropertyName("totalAmount")] decimal TotalAmount,
     [property: JsonPropertyName("lines")] IReadOnlyList<StockReservedLine> Lines) : IntegrationEvent;
@@ -38,11 +40,13 @@ public sealed record StockReplenishedIntegrationEvent(
 /// 库存不足集成事件
 /// </summary>
 /// <param name="OrderId">订单ID</param>
+/// <param name="TenantIdentifier">租户标识</param>
 /// <param name="ProductId">产品ID</param>
 /// <param name="Requested">请求预留数量</param>
 /// <param name="Available">实际可用数量</param>
 public sealed record StockInsufficientIntegrationEvent(
     [property: JsonPropertyName("orderId")] string OrderId,
+    [property: JsonPropertyName("tenantIdentifier")] string TenantIdentifier,
     [property: JsonPropertyName("productId")] string ProductId,
     [property: JsonPropertyName("requested")] int Requested,
     [property: JsonPropertyName("available")] int Available) : IntegrationEvent;

@@ -90,7 +90,7 @@ public sealed class OrderEventSubscriber : ICapSubscribe
                         }
 
                         var insufficientEvent = new StockInsufficientIntegrationEvent(
-                            @event.OrderId, line.ProductId, line.Quantity, stock?.AvailableQuantity ?? 0);
+                            @event.OrderId, @event.TenantIdentifier, line.ProductId, line.Quantity, stock?.AvailableQuantity ?? 0);
 
                         await _capPublisher.PublishAsync(
                             "modulith.inventory.StockInsufficientIntegrationEvent",
@@ -122,6 +122,7 @@ public sealed class OrderEventSubscriber : ICapSubscribe
 
                 var reservedEvent = new StockReservedIntegrationEvent(
                     @event.OrderId,
+                    @event.TenantIdentifier,
                     @event.CustomerId,
                     @event.TotalAmount,
                     reservedLines);

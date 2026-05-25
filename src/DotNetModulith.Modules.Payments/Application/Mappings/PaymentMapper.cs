@@ -35,6 +35,7 @@ public static partial class PaymentMapper
     public static PaymentCompletedIntegrationEvent ToIntegrationEvent(
         this PaymentCompletedDomainEvent domainEvent) => new(
         domainEvent.OrderId,
+        domainEvent.TenantIdentifier,
         domainEvent.PaymentId.ToString(),
         domainEvent.CustomerId,
         domainEvent.Amount);
@@ -45,6 +46,7 @@ public static partial class PaymentMapper
     public static PaymentFailedIntegrationEvent ToIntegrationEvent(
         this PaymentFailedDomainEvent domainEvent) => new(
         domainEvent.OrderId,
+        domainEvent.TenantIdentifier,
         domainEvent.PaymentId.ToString(),
         domainEvent.CustomerId,
         domainEvent.Reason);

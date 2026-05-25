@@ -90,7 +90,7 @@ public sealed class OrderEventSubscriber : ICapSubscribe
                     payment.CompletedAt = DateTimeOffset.UtcNow;
 
                     var domainEvent = new PaymentCompletedDomainEvent(
-                        payment.Id, payment.OrderId, payment.CustomerId, payment.Amount);
+                        payment.Id, payment.OrderId, @event.TenantIdentifier, payment.CustomerId, payment.Amount);
 
                     await _paymentRepository.AddAsync(payment, cancellationToken);
                     await _domainEventDispatcher.DispatchAsync([domainEvent], cancellationToken);
@@ -104,7 +104,7 @@ public sealed class OrderEventSubscriber : ICapSubscribe
                 payment.CompletedAt = DateTimeOffset.UtcNow;
 
                 var failedDomainEvent = new PaymentFailedDomainEvent(
-                    payment.Id, payment.OrderId, payment.CustomerId, "Payment gateway timeout");
+                    payment.Id, payment.OrderId, @event.TenantIdentifier, payment.CustomerId, "Payment gateway timeout");
 
                 await _paymentRepository.AddAsync(payment, cancellationToken);
                 await _domainEventDispatcher.DispatchAsync([failedDomainEvent], cancellationToken);

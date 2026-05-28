@@ -11,6 +11,7 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Http.Resilience" />
     <PackageReference Include="Microsoft.Extensions.ServiceDiscovery" />
+    <PackageReference Include="Npgsql" />
     <PackageReference Include="Npgsql.OpenTelemetry" />
     <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" />
     <PackageReference Include="ZiggyCreatures.FusionCache.OpenTelemetry" />

@@ -8,10 +8,11 @@
 
 ## 核心能力
 - 模块化单体：模块边界清晰，支持运行时与架构测试校验
-- DDD + CQRS：聚合根、值对象、领域事件与命令/查询分离
+- DDD + CQRS：聚合根、值对象、领域事件与基于 Mediator 的命令/查询分离
 - 事件驱动：基于 CAP + RabbitMQ 的可靠事件发布订阅（含 Outbox）
 - 定时调度：基于 TickerQ 的持久化任务与 Dashboard
 - 多级缓存：FusionCache（L1 内存 + L2 Redis）
+- 对象映射：基于 Mapperly 的编译时对象映射，避免运行时反射开销
 - 文件存储：RustFS（S3 兼容）+ 直传/签名上传
 - 统一可观测：OpenTelemetry + OpenObserve，支持 Logs/Traces/Metrics
 - 结构化日志：Serilog JSON（控制台 + 文件），并异步写入
@@ -21,10 +22,13 @@
 | ------ | ---------------------------------------------------------- |
 | 运行时 | .NET 10                                                    |
 | Web    | ASP.NET Core Controllers + OpenAPI                         |
+| CQRS   | Mediator.SourceGenerator（编译时）                         |
+| 认证鉴权 | JWT Bearer + RBAC                                         |
 | 数据库 | PostgreSQL + EF Core 10                                    |
 | 消息   | RabbitMQ + DotNetCore.CAP                                  |
 | 调度   | TickerQ + TickerQ.EntityFrameworkCore + TickerQ.Dashboard  |
 | 缓存   | FusionCache + Redis                                        |
+| 对象映射 | Riok.Mapperly（编译时）                                   |
 | 对象存储 | RustFS（S3-compatible） + AWS SDK for .NET                |
 | 观测   | OpenTelemetry + OpenObserve + OTEL Collector               |
 | 日志   | Serilog（Async + JSON）                                    |
@@ -37,6 +41,7 @@
 src/
   DotNetModulith.Api/                 # API 主机（Program.cs）
   DotNetModulith.AppHost/             # Aspire 编排入口
+  DotNetModulith.JobHost/             # 定时任务宿主（TickerQ）
   DotNetModulith.ServiceDefaults/     # OTel/健康检查/服务发现默认配置
   DotNetModulith.MigrationService/    # 迁移服务
   DotNetModulith.Abstractions/        # 共享抽象与事件契约

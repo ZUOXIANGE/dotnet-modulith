@@ -13,8 +13,8 @@
   </PropertyGroup>
   <!-- 基础设施与缓存相关包版本 -->
   <ItemGroup>
-    <PackageVersion Include="Aspire.Hosting.Redis" Version="13.3.5" />
-    <PackageVersion Include="AWSSDK.S3" Version="4.0.23.4" />
+    <PackageVersion Include="Aspire.Hosting.Redis" Version="13.4.2" />
+    <PackageVersion Include="AWSSDK.S3" Version="4.0.24" />
     <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.8" />
     <PackageVersion Include="Microsoft.Extensions.Configuration.Abstractions" Version="10.0.8" />
     <PackageVersion Include="Microsoft.Extensions.Configuration.Binder" Version="10.0.0" />
@@ -46,7 +46,7 @@
     <PackageVersion Include="Microsoft.EntityFrameworkCore" Version="10.0.8" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.8" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.8" />
-    <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.1" />
+    <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.2" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore.Tools" Version="10.0.5" />
   </ItemGroup>
   <!-- CAP 事件总线相关包版本 -->
@@ -81,8 +81,8 @@
   </ItemGroup>
   <!-- Aspire 托管与服务发现相关包版本 -->
   <ItemGroup>
-    <PackageVersion Include="Aspire.Hosting.PostgreSQL" Version="13.3.5" />
-    <PackageVersion Include="Aspire.Hosting.RabbitMQ" Version="13.3.5" />
+    <PackageVersion Include="Aspire.Hosting.PostgreSQL" Version="13.4.2" />
+    <PackageVersion Include="Aspire.Hosting.RabbitMQ" Version="13.4.2" />
     <PackageVersion Include="Aspire.Npgsql.EntityFrameworkCore.PostgreSQL" Version="$(AspireVersion)" />
     <PackageVersion Include="Microsoft.Extensions.Http.Resilience" Version="10.6.0" />
     <PackageVersion Include="Microsoft.Extensions.ServiceDiscovery" Version="10.6.0" />

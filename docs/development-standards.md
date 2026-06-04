@@ -137,8 +137,24 @@ dotnet build
 dotnet test
 ```
 
-## 13. 文档维护要求
+## 13. 模块间通信规范
+
+模块间通信遵循 Spring Modulith 设计理念，分为两种模式：
+
+1. **事件驱动（异步）**：通过 CAP + RabbitMQ Outbox 发送/订阅集成事件，适用最终一致性场景
+2. **同步调用（模块公开 API）**：被调用模块在 `Api` 命名空间暴露 `public interface IXxxService`，调用模块通过 DI 注入接口直接调用，适用实时校验、事务内操作
+
+详细规则与代码示例见 `docs/module-communication.md`。
+
+关键约束：
+- 跨模块同步调用只能引用目标模块的 `Api` 命名空间
+- 禁止直接引用其他模块的 `Application`、`Domain`、`Infrastructure` 命名空间
+- 公开 API 接口的实现类必须标记 `internal sealed`
+- 架构测试强制执行上述约束（`DotNetModulith.ArchitectureTests.ModuleBoundaryTests`）
+
+## 14. 文档维护要求
 
 - 新增/调整错误码时同步更新 `docs/api-error-codes.md`。
 - 调整接口契约（Request/Response）时同步更新 README 的主要 API 描述。
+- 新增模块公开 API 接口时同步更新 `docs/module-communication.md`。
 - 重大架构规则变更时同步更新本文档。

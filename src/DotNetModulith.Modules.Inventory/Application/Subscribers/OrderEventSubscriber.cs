@@ -5,7 +5,9 @@ using DotNetModulith.Abstractions.Contracts.Inventory;
 using DotNetModulith.Abstractions.Contracts.Orders;
 using DotNetModulith.Modules.Inventory.Domain;
 using DotNetModulith.Modules.Inventory.Infrastructure;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Npgsql;
 
 namespace DotNetModulith.Modules.Inventory.Application.Subscribers;
 
@@ -61,6 +63,27 @@ public sealed class OrderEventSubscriber : ICapSubscribe
             return;
         }
 
+        try
+        {
+            await ReserveStockForOrderAsync(@event, activity, ct);
+        }
+        catch (DbUpdateException ex) when (IsDuplicateKeyViolation(ex))
+        {
+            _logger.LogInformation(
+                "Inventory reservations for order {OrderId} already exist (race with sync path), skip",
+                @event.OrderId);
+            activity?.SetStatus(ActivityStatusCode.Ok);
+        }
+
+        _logger.LogInformation("Stock reserved for order {OrderId}", @event.OrderId);
+        activity?.SetStatus(ActivityStatusCode.Ok);
+    }
+
+    private async Task ReserveStockForOrderAsync(
+        OrderCreatedIntegrationEvent @event,
+        Activity? activity,
+        CancellationToken ct)
+    {
         var reservedLines = new List<StockReservedLine>();
 
         await CapTransactionScope.ExecuteAsync(
@@ -132,9 +155,6 @@ public sealed class OrderEventSubscriber : ICapSubscribe
                     cancellationToken: cancellationToken);
             },
             ct);
-
-        _logger.LogInformation("Stock reserved for order {OrderId}", @event.OrderId);
-        activity?.SetStatus(ActivityStatusCode.Ok);
     }
 
     /// <summary>
@@ -238,5 +258,10 @@ public sealed class OrderEventSubscriber : ICapSubscribe
 
         _logger.LogInformation("Confirmed stock reservations for paid order {OrderId}", @event.OrderId);
         activity?.SetStatus(ActivityStatusCode.Ok);
+    }
+
+    private static bool IsDuplicateKeyViolation(DbUpdateException ex)
+    {
+        return ex.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation };
     }
 }

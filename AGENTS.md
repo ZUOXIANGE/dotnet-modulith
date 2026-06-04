@@ -82,14 +82,36 @@ IMPORTANT: 对任何 .NET 工作，优先采用检索式推理而非预训练知
 | 模型校验  | DataAnnotations，失败统一 `ApiCodes.Common.ValidationFailed` |
 | 业务异常  | `BusinessException`，全局中间件统一转换                      |
 | 模块注册  | `IModule` 接口，`IServiceCollection.Add*()` 扩展方法         |
+| 模块通信  | 事件驱动（CAP+RabbitMQ），同步调用（Spring Modulith API 模式） |
 | 数据库    | 业务库 `modulithdb`，调度库 `tickerqdb`（独立）              |
 | 映射器    | `Api/Mappings`（接口层）、`Application/Mappings`（应用层）   |
 | XML 注释  | `summary/param/returns` 末尾不使用句号                       |
 | 启动方式  | 统一 `dotnet run --project src/DotNetModulith.AppHost`       |
+
+## 模块间通信（Spring Modulith 模式）
+
+### 事件驱动（异步）
+
+- 模块发布/订阅集成事件，通过 CAP + RabbitMQ Outbox 保证最终一致性
+- 事件定义在 `Abstractions/Events`，在 `IModule.PublishedEvents` / `SubscribedEvents` 声明
+- 订阅者放在 `Application/Subscribers`
+
+### 同步调用（模块公开 API）
+
+借鉴 Spring Modulith 的模块间直接调用模式：
+
+- 被调用模块在 `Api` 命名空间下定义 `public interface IXxxService` + 配套 DTO
+- 实现类在 `Application/Services` 下，标记 `internal sealed`
+- 模块在 `IModule.AddModuleServices()` 中注册 `services.AddScoped<IXxxService, XxxService>()`
+- 调用模块添加项目引用指向被调用模块，构造函数注入接口
+- **架构测试强制执行**：允许引用 `*.Inventory.Api`，禁止引用 `*.Inventory.Application/Domain/Infrastructure`
+
+示例：Orders → Inventory 库存校验/预留，详见 `docs/module-communication.md`。
 
 ## 参考文档
 
 - 认证鉴权与 RBAC：`docs/auth-rbac.md`
 - 错误码约定：`docs/api-error-codes.md`
 - 开发规范：`docs/development-standards.md`
+- 模块间通信：`docs/module-communication.md`
 - 定时任务：`docs/scheduled-jobs.md`

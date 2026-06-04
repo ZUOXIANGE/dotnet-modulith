@@ -49,7 +49,7 @@ public sealed class PostgreSqlFixture : IAsyncLifetime
         _respawner = await Respawner.CreateAsync(connection, new RespawnerOptions
         {
             DbAdapter = DbAdapter.Postgres,
-            SchemasToInclude = ["public", .. TestModuleDatabaseRegistry.BusinessModules.Select(module => module.Schema)]
+            SchemasToInclude = ["public", "cap", .. TestModuleDatabaseRegistry.BusinessModules.Select(module => module.Schema)]
         });
     }
 

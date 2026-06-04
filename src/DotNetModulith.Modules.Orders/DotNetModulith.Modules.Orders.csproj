@@ -28,6 +28,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\DotNetModulith.Abstractions\DotNetModulith.Abstractions.csproj" />
+    <ProjectReference Include="..\DotNetModulith.Modules.Inventory\DotNetModulith.Modules.Inventory.csproj" />
     <ProjectReference Include="..\DotNetModulith.ModulithCore\DotNetModulith.ModulithCore.csproj" />
   </ItemGroup>
 </Project>

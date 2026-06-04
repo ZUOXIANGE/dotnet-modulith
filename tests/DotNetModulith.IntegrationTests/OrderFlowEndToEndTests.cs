@@ -131,7 +131,7 @@ public sealed class OrderFlowEndToEndTests : IClassFixture<MessagingApiWebApplic
     }
 
     [Fact]
-    public async Task CreateOrder_WithInsufficientStock_ShouldEventuallyBecomeCancelled()
+    public async Task CreateOrder_WithInsufficientStock_ShouldReturnInsufficientStockError()
     {
         await _factory.ResetDatabaseAsync();
         await AuthorizeAsAdminAsync();
@@ -174,38 +174,9 @@ public sealed class OrderFlowEndToEndTests : IClassFixture<MessagingApiWebApplic
             .ReadFromJsonAsync<ApiEnvelope<CreateOrderResult>>(cancellationToken: ct);
 
         orderCreation.Should().NotBeNull();
-        orderCreation!.Data.Should().NotBeNull();
+        orderCreation!.Code.Should().Be(ApiCodes.Inventory.InsufficientStock);
 
-        var orderId = orderCreation.Data!.OrderId;
-
-        var order = await PollAsync(
-            async () =>
-            {
-                var response = await _client.GetFromJsonAsync<ApiEnvelope<OrderDetailResult>>(
-                    $"/api/orders/{orderId}",
-                    ct);
-
-                return response?.Data;
-            },
-            result => result.Status == "Cancelled",
-            TimeSpan.FromSeconds(30),
-            ct);
-
-        order.Status.Should().Be("Cancelled");
-
-        var stock = await PollAsync(
-            async () =>
-            {
-                var response = await _client.GetFromJsonAsync<ApiEnvelope<StockDetailResult>>(
-                    $"/api/inventory/stocks/{productId}",
-                    ct);
-
-                return response?.Data;
-            },
-            result => result.AvailableQuantity == 1 && result.ReservedQuantity == 0,
-            TimeSpan.FromSeconds(30),
-            ct);
-
+        var stock = await GetStockAsync(productId, ct);
         stock.AvailableQuantity.Should().Be(1);
         stock.ReservedQuantity.Should().Be(0);
     }

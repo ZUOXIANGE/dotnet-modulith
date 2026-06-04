@@ -21,23 +21,30 @@ internal static class CapTransactionScope
         Func<CancellationToken, Task> operation,
         CancellationToken ct = default)
     {
-        var strategy = dbContext.Database.CreateExecutionStrategy();
-
-        return strategy.ExecuteAsync(async () =>
+        if (capPublisher.ServiceProvider is null)
         {
-            if (capPublisher.ServiceProvider is null)
+            var strategy = dbContext.Database.CreateExecutionStrategy();
+            return strategy.ExecuteAsync(async () =>
             {
-                await using var fallbackTransaction = await dbContext.Database.BeginTransactionAsync(ct);
+                await using var tx = await dbContext.Database.BeginTransactionAsync(ct);
                 await operation(ct);
                 await dbContext.SaveChangesAsync(ct);
-                await fallbackTransaction.CommitAsync(ct);
-                return;
-            }
+                await tx.CommitAsync(ct);
+            });
+        }
 
-            using var capTransaction = dbContext.Database.BeginTransaction(capPublisher, autoCommit: false);
-            await operation(ct);
-            await dbContext.SaveChangesAsync(ct);
-            capTransaction.Commit();
-        });
+        return ExecuteWithCapAsync(dbContext, capPublisher, operation, ct);
+    }
+
+    private static async Task ExecuteWithCapAsync(
+        DbContext dbContext,
+        ICapPublisher capPublisher,
+        Func<CancellationToken, Task> operation,
+        CancellationToken ct)
+    {
+        using var capTransaction = dbContext.Database.BeginTransaction(capPublisher, autoCommit: false);
+        await operation(ct);
+        await dbContext.SaveChangesAsync(ct);
+        capTransaction.Commit();
     }
 }

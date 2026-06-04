@@ -213,9 +213,14 @@ app.UseExceptionHandler(errorApp =>
             return;
         }
 
+        var appEnv = builder.Environment.EnvironmentName;
+        var detailMsg = appEnv is "Integration" or "Development"
+            ? FlattenException(exception)
+            : "internal server error";
+
         context.Response.StatusCode = StatusCodes.Status200OK;
         await context.Response.WriteAsJsonAsync(
-            ApiResponse.Failure("internal server error", ApiCodes.Common.InternalError),
+            ApiResponse.Failure(detailMsg, ApiCodes.Common.InternalError),
             context.RequestAborted);
     });
 });
@@ -259,5 +264,24 @@ if (!isTesting)
 }
 
 app.Run();
+
+static string FlattenException(Exception? ex)
+{
+    if (ex is null)
+        return "no exception details";
+
+    var parts = new System.Text.StringBuilder();
+    var current = ex;
+
+    while (current is not null)
+    {
+        if (parts.Length > 0)
+            parts.Append(" --> ");
+        parts.Append($"{current.GetType().Name}: {current.Message}");
+        current = current.InnerException;
+    }
+
+    return parts.ToString();
+}
 
 public partial class Program;

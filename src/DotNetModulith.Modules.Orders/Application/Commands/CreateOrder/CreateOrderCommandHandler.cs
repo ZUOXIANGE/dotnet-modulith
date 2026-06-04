@@ -2,6 +2,9 @@ using System.Diagnostics;
 using System.Diagnostics.Metrics;
 using DotNetCore.CAP;
 using DotNetModulith.Abstractions.Events;
+using DotNetModulith.Abstractions.Exceptions;
+using DotNetModulith.Abstractions.Results;
+using DotNetModulith.Modules.Inventory.Api;
 using DotNetModulith.Modules.Orders.Application.Caching;
 using DotNetModulith.Modules.Orders.Domain;
 using DotNetModulith.Modules.Orders.Domain.Events;
@@ -30,6 +33,7 @@ public sealed class CreateOrderCommandHandler : ICommandHandler<CreateOrderComma
     private readonly IFusionCache _cache;
     private readonly OrdersDbContext _dbContext;
     private readonly ICapPublisher _capPublisher;
+    private readonly IInventoryService _inventoryService;
 
     public CreateOrderCommandHandler(
         IOrderRepository orderRepository,
@@ -37,7 +41,8 @@ public sealed class CreateOrderCommandHandler : ICommandHandler<CreateOrderComma
         ILogger<CreateOrderCommandHandler> logger,
         IFusionCache cache,
         OrdersDbContext dbContext,
-        ICapPublisher capPublisher)
+        ICapPublisher capPublisher,
+        IInventoryService inventoryService)
     {
         _orderRepository = orderRepository;
         _domainEventDispatcher = domainEventDispatcher;
@@ -45,6 +50,7 @@ public sealed class CreateOrderCommandHandler : ICommandHandler<CreateOrderComma
         _cache = cache;
         _dbContext = dbContext;
         _capPublisher = capPublisher;
+        _inventoryService = inventoryService;
     }
 
     public async ValueTask<Guid> Handle(CreateOrderCommand command, CancellationToken cancellationToken)
@@ -62,6 +68,20 @@ public sealed class CreateOrderCommandHandler : ICommandHandler<CreateOrderComma
 
             if (command.Lines.Count == 0)
                 throw new ArgumentException("Order must have at least one line.", nameof(command.Lines));
+
+            var checkStockLines = command.Lines
+                .Select(line => new CheckStockLine(line.ProductId, line.Quantity))
+                .ToList();
+
+            var checkResult = await _inventoryService.CheckStockAsync(checkStockLines, cancellationToken);
+
+            if (!checkResult.IsSuccess)
+            {
+                throw new BusinessException(
+                    message: checkResult.Error!,
+                    code: ApiCodes.Inventory.InsufficientStock,
+                    httpStatusCode: 422);
+            }
 
             var orderId = Guid.NewGuid();
             var now = DateTimeOffset.UtcNow;
@@ -94,6 +114,24 @@ public sealed class CreateOrderCommandHandler : ICommandHandler<CreateOrderComma
                     await _domainEventDispatcher.DispatchAsync([domainEvent], ct);
                 },
                 cancellationToken);
+
+            var reserveLines = command.Lines
+                .Select(line => new ReserveStockLine(line.ProductId, line.Quantity))
+                .ToList();
+
+            var reserveResult = await _inventoryService.ReserveStockAsync(
+                order.Id.ToString(), order.CustomerId, order.TotalAmount, reserveLines, cancellationToken);
+
+            if (!reserveResult.IsSuccess)
+            {
+                _logger.LogWarning("Stock reservation failed after order {OrderId} created: {Error}",
+                    order.Id, reserveResult.Error);
+
+                throw new BusinessException(
+                    message: reserveResult.Error!,
+                    code: ApiCodes.Inventory.InsufficientStock,
+                    httpStatusCode: 422);
+            }
 
             _logger.LogInformation("Order {OrderId} created for customer {CustomerId} with total {TotalAmount}",
                 order.Id, order.CustomerId, order.TotalAmount);

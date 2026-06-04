@@ -37,11 +37,13 @@ public class ModuleBoundaryTests
         Types().That().ResideInNamespace("DotNetModulith.Modules.Users*").As("Users Module");
 
     private readonly IObjectProvider<IType> _ordersExternalModules =
-        Types().That().ResideInNamespace("DotNetModulith.Modules.Inventory*")
+        Types().That().ResideInNamespace("DotNetModulith.Modules.Inventory.Application*")
+            .Or().ResideInNamespace("DotNetModulith.Modules.Inventory.Domain*")
+            .Or().ResideInNamespace("DotNetModulith.Modules.Inventory.Infrastructure*")
             .Or().ResideInNamespace("DotNetModulith.Modules.Payments*")
             .Or().ResideInNamespace("DotNetModulith.Modules.Notifications*")
             .Or().ResideInNamespace("DotNetModulith.Modules.Users*")
-            .As("All non-Orders modules");
+            .As("All non-Orders internal modules (excluding Inventory.Api)");
 
     private readonly IObjectProvider<IType> _inventoryExternalModules =
         Types().That().ResideInNamespace("DotNetModulith.Modules.Orders*")
@@ -72,28 +74,28 @@ public class ModuleBoundaryTests
             .As("All non-Users modules");
 
     /// <summary>
-    /// 验证订单模块不直接引用库存模块的领域层
+    /// 验证订单模块不直接引用库存模块的领域层（Spring Modulith: 只能通过模块公开 API 通信）
     /// </summary>
     [Fact]
     public void OrdersModule_ShouldNotReferenceInventoryDomain()
     {
         var rule = Types().That().Are(_ordersModule)
             .Should().NotDependOnAny(Types().That().ResideInNamespace("DotNetModulith.Modules.Inventory.Domain*"))
-            .Because("Modules should communicate via integration events, not direct domain references")
+            .Because("Orders may only access Inventory via its published API (DotNetModulith.Modules.Inventory.Api), not its domain layer")
             .WithoutRequiringPositiveResults();
 
         rule.Check(Architecture);
     }
 
     /// <summary>
-    /// 验证订单模块不直接依赖其他模块实现命名空间
+    /// 验证订单模块不直接依赖其他模块内部实现（Spring Modulith: 允许通过公开 API 通信，禁止访问内部层）
     /// </summary>
     [Fact]
-    public void OrdersModule_ShouldNotReferenceOtherModules()
+    public void OrdersModule_ShouldNotReferenceOtherModuleInternals()
     {
         var rule = Types().That().Are(_ordersModule)
             .Should().NotDependOnAny(_ordersExternalModules)
-            .Because("Orders should communicate with other modules only through abstractions and integration contracts")
+            .Because("Orders should communicate with other modules only through their published API (e.g., Inventory.Api) or integration events")
             .WithoutRequiringPositiveResults();
 
         rule.Check(Architecture);

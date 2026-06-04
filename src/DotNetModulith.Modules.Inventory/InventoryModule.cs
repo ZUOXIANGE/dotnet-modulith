@@ -1,4 +1,6 @@
+using DotNetModulith.Modules.Inventory.Api;
 using DotNetModulith.Modules.Inventory.Application.Jobs;
+using DotNetModulith.Modules.Inventory.Application.Services;
 using DotNetModulith.Modules.Inventory.Application.Subscribers;
 using DotNetModulith.Modules.Inventory.Domain;
 using DotNetModulith.ModulithCore;
@@ -53,6 +55,7 @@ public sealed class InventoryModule : IModule
     /// </summary>
     public IServiceCollection AddModuleServices(IServiceCollection services, IConfiguration configuration)
     {
+        services.AddScoped<IInventoryService, InventoryService>();
         services.AddInventoryJobServices(configuration);
         services.AddTransient<OrderEventSubscriber>();
 

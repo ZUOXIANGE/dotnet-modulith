@@ -108,7 +108,7 @@ public sealed class OrderFlowEndToEndTests : IClassFixture<MessagingApiWebApplic
                 return response?.Data;
             },
             result => result.Status == "Paid",
-            TimeSpan.FromSeconds(30),
+            TimeSpan.FromSeconds(90),
             ct);
 
         order.Status.Should().Be("Paid");

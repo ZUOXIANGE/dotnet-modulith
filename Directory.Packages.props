@@ -6,7 +6,7 @@
     <CapVersion>8.3.0</CapVersion>
     <AspireVersion>13.2.3</AspireVersion>
     <EfCoreVersion>10.0.0</EfCoreVersion>
-    <OpenTelemetryVersion>1.15.3</OpenTelemetryVersion>
+    <OpenTelemetryVersion>1.16.0</OpenTelemetryVersion>
     <MediatorVersion>3.0.2</MediatorVersion>
     <ScalarVersion>2.13.22</ScalarVersion>
     <MapperlyVersion>4.3.1</MapperlyVersion>
@@ -72,8 +72,8 @@
     <PackageVersion Include="OpenTelemetry" Version="$(OpenTelemetryVersion)" />
     <PackageVersion Include="OpenTelemetry.Api" Version="$(OpenTelemetryVersion)" />
     <PackageVersion Include="OpenTelemetry.Extensions.Propagators" Version="$(OpenTelemetryVersion)" />
-    <PackageVersion Include="OpenTelemetry.Extensions.Hosting" Version="1.15.3" />
-    <PackageVersion Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.15.3" />
+    <PackageVersion Include="OpenTelemetry.Extensions.Hosting" Version="1.16.0" />
+    <PackageVersion Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.16.0" />
     <PackageVersion Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.15.2" />
     <PackageVersion Include="OpenTelemetry.Instrumentation.Http" Version="1.15.1" />
     <PackageVersion Include="OpenTelemetry.Instrumentation.Runtime" Version="1.15.1" />

@@ -37,6 +37,8 @@ public sealed class AuthController : ControllerBase
             new LoginInput(
                 request.UserName,
                 request.Password,
+                request.CaptchaId,
+                request.CaptchaCode,
                 HttpContext.Connection.RemoteIpAddress?.ToString(),
                 Request.Headers.UserAgent.ToString()),
             ct);

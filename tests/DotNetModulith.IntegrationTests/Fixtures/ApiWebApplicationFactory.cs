@@ -1,5 +1,6 @@
 using DotNetCore.CAP;
 using DotNetModulith.Modules.Users;
+using DotNetModulith.Modules.Users.Application;
 using DotNetModulith.Modules.Users.Domain;
 using DotNetModulith.Modules.Users.Infrastructure;
 using Microsoft.AspNetCore.Hosting;
@@ -37,6 +38,8 @@ public sealed class ApiWebApplicationFactory : TestWebApplicationFactoryBase
             DbFixture.ReplaceRegisteredDbContexts(services);
             services.RemoveAll<IDistributedCache>();
             services.AddDistributedMemoryCache();
+            services.RemoveAll<ICaptchaService>();
+            services.AddSingleton<ICaptchaService, NullCaptchaService>();
             services.AddSingleton<ICapPublisher, NullCapPublisher>();
         });
     }

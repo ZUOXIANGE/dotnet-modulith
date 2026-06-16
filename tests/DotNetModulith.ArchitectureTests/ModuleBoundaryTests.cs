@@ -7,28 +7,13 @@ using static ArchUnitNET.Fluent.ArchRuleDefinition;
 
 namespace DotNetModulith.ArchitectureTests;
 
-/// <summary>
-/// 模块边界架构测试，验证各模块间不存在违规的直接依赖
-/// </summary>
 public class ModuleBoundaryTests
 {
     private static readonly Architecture Architecture = new ArchLoader()
         .LoadAssemblies(
-            typeof(Modules.Orders.Domain.OrderEntity).Assembly,
-            typeof(Modules.Inventory.Domain.StockEntity).Assembly,
-            typeof(Modules.Payments.Domain.PaymentEntity).Assembly,
-            typeof(Modules.Notifications.Application.Subscribers.NotificationEventSubscriber).Assembly,
+            typeof(Modules.Notifications.NotificationsModule).Assembly,
             typeof(Modules.Users.Domain.UserEntity).Assembly)
         .Build();
-
-    private readonly IObjectProvider<IType> _ordersModule =
-        Types().That().ResideInNamespace("DotNetModulith.Modules.Orders*").As("Orders Module");
-
-    private readonly IObjectProvider<IType> _inventoryModule =
-        Types().That().ResideInNamespace("DotNetModulith.Modules.Inventory*").As("Inventory Module");
-
-    private readonly IObjectProvider<IType> _paymentsModule =
-        Types().That().ResideInNamespace("DotNetModulith.Modules.Payments*").As("Payments Module");
 
     private readonly IObjectProvider<IType> _notificationsModule =
         Types().That().ResideInNamespace("DotNetModulith.Modules.Notifications*").As("Notifications Module");
@@ -36,130 +21,14 @@ public class ModuleBoundaryTests
     private readonly IObjectProvider<IType> _usersModule =
         Types().That().ResideInNamespace("DotNetModulith.Modules.Users*").As("Users Module");
 
-    private readonly IObjectProvider<IType> _ordersExternalModules =
-        Types().That().ResideInNamespace("DotNetModulith.Modules.Inventory.Application*")
-            .Or().ResideInNamespace("DotNetModulith.Modules.Inventory.Domain*")
-            .Or().ResideInNamespace("DotNetModulith.Modules.Inventory.Infrastructure*")
-            .Or().ResideInNamespace("DotNetModulith.Modules.Payments*")
-            .Or().ResideInNamespace("DotNetModulith.Modules.Notifications*")
-            .Or().ResideInNamespace("DotNetModulith.Modules.Users*")
-            .As("All non-Orders internal modules (excluding Inventory.Api)");
-
-    private readonly IObjectProvider<IType> _inventoryExternalModules =
-        Types().That().ResideInNamespace("DotNetModulith.Modules.Orders*")
-            .Or().ResideInNamespace("DotNetModulith.Modules.Payments*")
-            .Or().ResideInNamespace("DotNetModulith.Modules.Notifications*")
-            .Or().ResideInNamespace("DotNetModulith.Modules.Users*")
-            .As("All non-Inventory modules");
-
-    private readonly IObjectProvider<IType> _paymentsExternalModules =
-        Types().That().ResideInNamespace("DotNetModulith.Modules.Orders*")
-            .Or().ResideInNamespace("DotNetModulith.Modules.Inventory*")
-            .Or().ResideInNamespace("DotNetModulith.Modules.Notifications*")
-            .Or().ResideInNamespace("DotNetModulith.Modules.Users*")
-            .As("All non-Payments modules");
-
     private readonly IObjectProvider<IType> _notificationsExternalModules =
-        Types().That().ResideInNamespace("DotNetModulith.Modules.Orders*")
-            .Or().ResideInNamespace("DotNetModulith.Modules.Inventory*")
-            .Or().ResideInNamespace("DotNetModulith.Modules.Payments*")
-            .Or().ResideInNamespace("DotNetModulith.Modules.Users*")
+        Types().That().ResideInNamespace("DotNetModulith.Modules.Users*")
             .As("All non-Notifications modules");
 
     private readonly IObjectProvider<IType> _usersExternalModules =
-        Types().That().ResideInNamespace("DotNetModulith.Modules.Orders*")
-            .Or().ResideInNamespace("DotNetModulith.Modules.Inventory*")
-            .Or().ResideInNamespace("DotNetModulith.Modules.Payments*")
-            .Or().ResideInNamespace("DotNetModulith.Modules.Notifications*")
+        Types().That().ResideInNamespace("DotNetModulith.Modules.Notifications*")
             .As("All non-Users modules");
 
-    /// <summary>
-    /// 验证订单模块不直接引用库存模块的领域层（Spring Modulith: 只能通过模块公开 API 通信）
-    /// </summary>
-    [Fact]
-    public void OrdersModule_ShouldNotReferenceInventoryDomain()
-    {
-        var rule = Types().That().Are(_ordersModule)
-            .Should().NotDependOnAny(Types().That().ResideInNamespace("DotNetModulith.Modules.Inventory.Domain*"))
-            .Because("Orders may only access Inventory via its published API (DotNetModulith.Modules.Inventory.Api), not its domain layer")
-            .WithoutRequiringPositiveResults();
-
-        rule.Check(Architecture);
-    }
-
-    /// <summary>
-    /// 验证订单模块不直接依赖其他模块内部实现（Spring Modulith: 允许通过公开 API 通信，禁止访问内部层）
-    /// </summary>
-    [Fact]
-    public void OrdersModule_ShouldNotReferenceOtherModuleInternals()
-    {
-        var rule = Types().That().Are(_ordersModule)
-            .Should().NotDependOnAny(_ordersExternalModules)
-            .Because("Orders should communicate with other modules only through their published API (e.g., Inventory.Api) or integration events")
-            .WithoutRequiringPositiveResults();
-
-        rule.Check(Architecture);
-    }
-
-    /// <summary>
-    /// 验证订单模块不直接引用支付模块的领域层
-    /// </summary>
-    [Fact]
-    public void OrdersModule_ShouldNotReferencePaymentsDomain()
-    {
-        var rule = Types().That().Are(_ordersModule)
-            .Should().NotDependOnAny(Types().That().ResideInNamespace("DotNetModulith.Modules.Payments.Domain*"))
-            .Because("Modules should communicate via integration events, not direct domain references")
-            .WithoutRequiringPositiveResults();
-
-        rule.Check(Architecture);
-    }
-
-    /// <summary>
-    /// 验证库存模块不直接引用订单模块的领域层
-    /// </summary>
-    [Fact]
-    public void InventoryModule_ShouldNotReferenceOrdersDomain()
-    {
-        var rule = Types().That().Are(_inventoryModule)
-            .Should().NotDependOnAny(Types().That().ResideInNamespace("DotNetModulith.Modules.Orders.Domain*"))
-            .Because("Modules should communicate via integration events, not direct domain references")
-            .WithoutRequiringPositiveResults();
-
-        rule.Check(Architecture);
-    }
-
-    /// <summary>
-    /// 验证库存模块不直接依赖其他模块实现命名空间
-    /// </summary>
-    [Fact]
-    public void InventoryModule_ShouldNotReferenceOtherModules()
-    {
-        var rule = Types().That().Are(_inventoryModule)
-            .Should().NotDependOnAny(_inventoryExternalModules)
-            .Because("Inventory should communicate with other modules only through abstractions and integration contracts")
-            .WithoutRequiringPositiveResults();
-
-        rule.Check(Architecture);
-    }
-
-    /// <summary>
-    /// 验证支付模块不直接依赖其他模块实现命名空间
-    /// </summary>
-    [Fact]
-    public void PaymentsModule_ShouldNotReferenceOtherModules()
-    {
-        var rule = Types().That().Are(_paymentsModule)
-            .Should().NotDependOnAny(_paymentsExternalModules)
-            .Because("Payments should communicate with other modules only through abstractions and integration contracts")
-            .WithoutRequiringPositiveResults();
-
-        rule.Check(Architecture);
-    }
-
-    /// <summary>
-    /// 验证通知模块不直接依赖其他模块实现命名空间
-    /// </summary>
     [Fact]
     public void NotificationsModule_ShouldNotReferenceOtherModules()
     {
@@ -171,9 +40,6 @@ public class ModuleBoundaryTests
         rule.Check(Architecture);
     }
 
-    /// <summary>
-    /// 验证用户模块不直接依赖其他模块实现命名空间
-    /// </summary>
     [Fact]
     public void UsersModule_ShouldNotReferenceOtherModules()
     {
@@ -185,9 +51,6 @@ public class ModuleBoundaryTests
         rule.Check(Architecture);
     }
 
-    /// <summary>
-    /// 验证领域层不依赖应用层（DDD依赖规则）
-    /// </summary>
     [Fact]
     public void DomainLayer_ShouldNotReferenceApplicationLayer()
     {
@@ -199,9 +62,6 @@ public class ModuleBoundaryTests
         rule.Check(Architecture);
     }
 
-    /// <summary>
-    /// 验证领域层不依赖基础设施层（DDD依赖规则）
-    /// </summary>
     [Fact]
     public void DomainLayer_ShouldNotReferenceInfrastructureLayer()
     {
@@ -213,9 +73,6 @@ public class ModuleBoundaryTests
         rule.Check(Architecture);
     }
 
-    /// <summary>
-    /// 验证应用层不依赖接口层
-    /// </summary>
     [Fact]
     public void ApplicationLayer_ShouldNotReferenceApiLayer()
     {
@@ -227,9 +84,6 @@ public class ModuleBoundaryTests
         rule.Check(Architecture);
     }
 
-    /// <summary>
-    /// 验证基础设施层不依赖接口层
-    /// </summary>
     [Fact]
     public void InfrastructureLayer_ShouldNotReferenceApiLayer()
     {
@@ -242,17 +96,11 @@ public class ModuleBoundaryTests
     }
 }
 
-/// <summary>
-/// 模块注册表单元测试，验证循环依赖检测和拓扑排序
-/// </summary>
 public class ModuleRegistryTests
 {
     private static ModulithCore.ModuleRegistry CreateRegistry(params ModulithCore.ModuleDescriptor[] descriptors)
         => new(descriptors);
 
-    /// <summary>
-    /// 验证模块注册表能正确检测循环依赖
-    /// </summary>
     [Fact]
     public void ModuleRegistry_ShouldDetectCircularDependencies()
     {
@@ -264,37 +112,32 @@ public class ModuleRegistryTests
         registry.HasCircularDependency().Should().BeTrue();
     }
 
-    /// <summary>
-    /// 验证模块注册表能生成正确的拓扑排序
-    /// </summary>
     [Fact]
     public void ModuleRegistry_ShouldProduceTopologicalOrder()
     {
         var registry = CreateRegistry(
-            new ModulithCore.ModuleDescriptor("Orders", "Ns.Orders", typeof(object).Assembly, ["Inventory"]),
-            new ModulithCore.ModuleDescriptor("Inventory", "Ns.Inventory", typeof(object).Assembly, []),
-            new ModulithCore.ModuleDescriptor("Payments", "Ns.Payments", typeof(object).Assembly, ["Orders"]),
-            new ModulithCore.ModuleDescriptor("Notifications", "Ns.Notifications", typeof(object).Assembly, ["Orders", "Payments"]));
+            new ModulithCore.ModuleDescriptor("Books", "Ns.Books", typeof(object).Assembly, []),
+            new ModulithCore.ModuleDescriptor("Members", "Ns.Members", typeof(object).Assembly, ["Books"]),
+            new ModulithCore.ModuleDescriptor("Borrowing", "Ns.Borrowing", typeof(object).Assembly, ["Books", "Members"]),
+            new ModulithCore.ModuleDescriptor("Fines", "Ns.Fines", typeof(object).Assembly, ["Borrowing"]));
 
         var order = registry.GetTopologicalOrder();
 
-        order.Select(m => m.Name).Should().ContainInConsecutiveOrder("Inventory", "Orders");
-        order.Select(m => m.Name).Should().ContainInConsecutiveOrder("Orders", "Payments");
+        order.Select(m => m.Name).Should().ContainInConsecutiveOrder("Books", "Members");
+        order.Select(m => m.Name).Should().ContainInConsecutiveOrder("Members", "Borrowing");
+        order.Select(m => m.Name).Should().ContainInConsecutiveOrder("Borrowing", "Fines");
     }
 
-    /// <summary>
-    /// 验证依赖关系图能生成Mermaid格式输出
-    /// </summary>
     [Fact]
     public void ModuleDependencyGraph_ShouldGenerateMermaid()
     {
         var registry = CreateRegistry(
-            new ModulithCore.ModuleDescriptor("Orders", "Ns.Orders", typeof(object).Assembly, ["Inventory"]),
-            new ModulithCore.ModuleDescriptor("Inventory", "Ns.Inventory", typeof(object).Assembly, []));
+            new ModulithCore.ModuleDescriptor("Books", "Ns.Books", typeof(object).Assembly, []),
+            new ModulithCore.ModuleDescriptor("Members", "Ns.Members", typeof(object).Assembly, ["Books"]));
 
         var graph = registry.BuildDependencyGraph();
         var mermaid = graph.ToMermaid();
 
-        mermaid.Should().Contain("Orders --> Inventory");
+        mermaid.Should().Contain("Members --> Books");
     }
 }

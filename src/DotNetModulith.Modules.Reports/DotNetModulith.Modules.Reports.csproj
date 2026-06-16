@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>$(NetAppVersion)</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Riok.Mapperly" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\DotNetModulith.Abstractions\DotNetModulith.Abstractions.csproj" />
+    <ProjectReference Include="..\DotNetModulith.ModulithCore\DotNetModulith.ModulithCore.csproj" />
+    <ProjectReference Include="..\DotNetModulith.Modules.Books\DotNetModulith.Modules.Books.csproj" />
+    <ProjectReference Include="..\DotNetModulith.Modules.Borrowing\DotNetModulith.Modules.Borrowing.csproj" />
+    <ProjectReference Include="..\DotNetModulith.Modules.Fines\DotNetModulith.Modules.Fines.csproj" />
+    <ProjectReference Include="..\DotNetModulith.Modules.Members\DotNetModulith.Modules.Members.csproj" />
+  </ItemGroup>
+</Project>

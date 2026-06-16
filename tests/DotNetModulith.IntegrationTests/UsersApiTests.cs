@@ -194,7 +194,9 @@ public sealed class UsersApiTests : IClassFixture<ApiWebApplicationFactory>
             new
             {
                 UserName = userName,
-                Password = password
+                Password = password,
+                CaptchaId = "test",
+                CaptchaCode = "test"
             },
             TestContext.Current.CancellationToken);
     }

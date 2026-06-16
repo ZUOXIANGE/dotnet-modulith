@@ -15,4 +15,17 @@ public sealed record LoginRequest
     [NotWhiteSpace]
     [StringLength(100, MinimumLength = 8)]
     public required string Password { get; init; }
+
+    /// <summary>
+    /// 验证码ID
+    /// </summary>
+    [NotWhiteSpace]
+    public required string CaptchaId { get; init; }
+
+    /// <summary>
+    /// 验证码
+    /// </summary>
+    [NotWhiteSpace]
+    [StringLength(8)]
+    public required string CaptchaCode { get; init; }
 }

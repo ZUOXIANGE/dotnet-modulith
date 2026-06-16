@@ -64,6 +64,12 @@ public static class UsersServiceCollectionExtensions
             });
         }
 
+        services.AddOptions<CaptchaOptions>()
+            .Bind(configuration.GetSection(CaptchaOptions.SectionName))
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
+
+        services.AddScoped<ICaptchaService, CaptchaService>();
         services.AddScoped<IUserIdentityService, UserIdentityService>();
         services.AddScoped<IJwtSessionValidator, JwtSessionValidator>();
         services.AddScoped<IUserAuthCache, DistributedUserAuthCache>();

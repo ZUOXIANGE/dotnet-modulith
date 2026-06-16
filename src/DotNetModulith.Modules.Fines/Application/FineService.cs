@@ -1,0 +1,141 @@
+using DotNetModulith.Abstractions.Exceptions;
+using DotNetModulith.Abstractions.Results;
+using DotNetModulith.Modules.Fines.Domain;
+using DotNetModulith.Modules.Fines.Infrastructure;
+using DotNetModulith.Modules.Members.Application;
+using Microsoft.EntityFrameworkCore;
+
+namespace DotNetModulith.Modules.Fines.Application;
+
+internal sealed class FineService : IFineService
+{
+    private readonly FinesDbContext _dbContext;
+    private readonly IMemberService _memberService;
+
+    public FineService(FinesDbContext dbContext, IMemberService memberService)
+    {
+        _dbContext = dbContext;
+        _memberService = memberService;
+    }
+
+    public async Task<FineListItem[]> GetFinesAsync(string? keyword, string? status, int page, int pageSize, CancellationToken ct)
+    {
+        var query = _dbContext.Fines.AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(status) && Enum.TryParse<FineStatus>(status, true, out var fineStatus))
+            query = query.Where(x => x.Status == fineStatus);
+
+        return await query
+            .OrderByDescending(x => x.CreatedAt)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .Select(x => new FineListItem(
+                x.Id,
+                x.MemberId,
+                string.Empty,
+                x.BorrowingRecordId,
+                x.Amount,
+                x.Reason.ToString(),
+                x.Status.ToString(),
+                x.CreatedAt,
+                x.PaidAt))
+            .ToArrayAsync(ct);
+    }
+
+    public async Task<int> GetFinesCountAsync(string? keyword, string? status, CancellationToken ct)
+    {
+        var query = _dbContext.Fines.AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(status) && Enum.TryParse<FineStatus>(status, true, out var fineStatus))
+            query = query.Where(x => x.Status == fineStatus);
+
+        return await query.CountAsync(ct);
+    }
+
+    public async Task<FineDetails?> GetFineByIdAsync(Guid id, CancellationToken ct)
+    {
+        return await _dbContext.Fines
+            .Where(x => x.Id == id)
+            .Select(x => new FineDetails(
+                x.Id,
+                x.MemberId,
+                string.Empty,
+                x.BorrowingRecordId,
+                x.Amount,
+                x.Reason.ToString(),
+                x.Status.ToString(),
+                x.CreatedAt,
+                x.PaidAt,
+                x.UpdatedAt))
+            .FirstOrDefaultAsync(ct);
+    }
+
+    public async Task<FineListItem[]> GetFinesByMemberAsync(Guid memberId, CancellationToken ct)
+    {
+        return await _dbContext.Fines
+            .Where(x => x.MemberId == memberId)
+            .OrderByDescending(x => x.CreatedAt)
+            .Select(x => new FineListItem(
+                x.Id,
+                x.MemberId,
+                string.Empty,
+                x.BorrowingRecordId,
+                x.Amount,
+                x.Reason.ToString(),
+                x.Status.ToString(),
+                x.CreatedAt,
+                x.PaidAt))
+            .ToArrayAsync(ct);
+    }
+
+    public async Task<FineDetails> CreateFineAsync(CreateFineInput input, CancellationToken ct)
+    {
+        var member = await _memberService.GetMemberByIdAsync(input.MemberId, ct);
+        if (member is null)
+            throw new BusinessException("member not found", ApiCodes.Common.NotFound);
+
+        if (!Enum.TryParse<FineReason>(input.Reason, true, out var reason))
+            throw new BusinessException("invalid fine reason", ApiCodes.Common.ValidationFailed);
+
+        if (input.Amount <= 0)
+            throw new BusinessException("fine amount must be greater than zero", ApiCodes.Common.ValidationFailed);
+
+        var now = DateTimeOffset.UtcNow;
+        var entity = FineEntity.Create(input.MemberId, input.BorrowingRecordId, input.Amount, reason, now);
+
+        _dbContext.Fines.Add(entity);
+        await _dbContext.SaveChangesAsync(ct);
+
+        return new FineDetails(
+            entity.Id,
+            entity.MemberId,
+            member.Name,
+            entity.BorrowingRecordId,
+            entity.Amount,
+            entity.Reason.ToString(),
+            entity.Status.ToString(),
+            entity.CreatedAt,
+            entity.PaidAt,
+            entity.UpdatedAt);
+    }
+
+    public async Task PayFineAsync(Guid fineId, CancellationToken ct)
+    {
+        var entity = await _dbContext.Fines.FindAsync(new object[] { fineId }, ct);
+        if (entity is null)
+            throw new BusinessException("fine not found", ApiCodes.Common.NotFound);
+
+        entity.Pay(DateTimeOffset.UtcNow);
+        await _dbContext.SaveChangesAsync(ct);
+    }
+
+    public async Task WaiveFineAsync(Guid fineId, CancellationToken ct)
+    {
+        var entity = await _dbContext.Fines.FindAsync(new object[] { fineId }, ct);
+        if (entity is null)
+            throw new BusinessException("fine not found", ApiCodes.Common.NotFound);
+
+        entity.Waive(DateTimeOffset.UtcNow);
+        await _dbContext.SaveChangesAsync(ct);
+    }
+}

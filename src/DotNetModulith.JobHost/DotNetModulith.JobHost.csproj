@@ -17,10 +17,11 @@
     <PackageReference Include="TickerQ.Dashboard" />
     <PackageReference Include="TickerQ.EntityFrameworkCore" />
     <PackageReference Include="TickerQ.Instrumentation.OpenTelemetry" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" />
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\DotNetModulith.Abstractions\DotNetModulith.Abstractions.csproj" />
     <ProjectReference Include="..\DotNetModulith.ServiceDefaults\DotNetModulith.ServiceDefaults.csproj" />
-    <ProjectReference Include="..\DotNetModulith.Modules.Inventory\DotNetModulith.Modules.Inventory.csproj" />
   </ItemGroup>
 </Project>

@@ -38,9 +38,13 @@ public static class Extensions
             .AddOptions<OpenObserveOptions>()
             .Bind(builder.Configuration.GetSection(OpenObserveOptions.SectionName))
             .ValidateDataAnnotations()
-            .Validate(
-                options => !options.Enabled || Uri.TryCreate(options.Endpoint, UriKind.Absolute, out _),
-                "OpenObserve:Endpoint must be a valid absolute URI when OpenObserve is enabled.")
+            .Validate(options =>
+                {
+                    if (!options.Enabled) return true;
+                    if (string.IsNullOrWhiteSpace(options.UserEmail)) return false;
+                    if (string.IsNullOrWhiteSpace(options.UserPassword)) return false;
+                    return Uri.TryCreate(options.Endpoint, UriKind.Absolute, out _);
+                }, "When OpenObserve is enabled, UserEmail, UserPassword, and a valid Endpoint URI are required.")
             .ValidateOnStart();
 
         builder.ConfigureOpenTelemetry();
@@ -152,9 +156,6 @@ public static class Extensions
                     .AddEntityFrameworkCoreInstrumentation(options =>
                         options.SetDbStatementForText = true)
                     .AddSource("TickerQ")
-                    .AddSource("DotNetModulith.Modules.Orders")
-                    .AddSource("DotNetModulith.Modules.Inventory")
-                    .AddSource("DotNetModulith.Modules.Payments")
                     .AddSource("DotNetModulith.Modules.Notifications");
 
                 if (openObserveEnabled)

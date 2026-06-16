@@ -77,6 +77,7 @@ var migrations = builder.AddProject<DotNetModulith_MigrationService>("migrations
     .WaitFor(tickerQDb);
 
 var api = builder.AddProject<DotNetModulith_Api>("api")
+    .WithEndpoint("http", e => e.Port = 5280)
     .WithReference(modulithDb)
     .WithReference(rabbitmq)
     .WithReference(redis)

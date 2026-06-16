@@ -1,7 +1,10 @@
 using DotNetModulith.JobHost.Infrastructure;
-using DotNetModulith.Modules.Inventory.Infrastructure;
-using DotNetModulith.Modules.Orders.Infrastructure;
-using DotNetModulith.Modules.Payments.Infrastructure;
+using DotNetModulith.Modules.Books.Infrastructure;
+using DotNetModulith.Modules.Borrowing.Infrastructure;
+using DotNetModulith.Modules.Fines.Infrastructure;
+using DotNetModulith.Modules.Members.Infrastructure;
+using DotNetModulith.Modules.Notifications.Infrastructure;
+using DotNetModulith.Modules.Reservation.Infrastructure;
 using DotNetModulith.Modules.Users.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -18,14 +21,27 @@ var connectionString = builder.Configuration.GetConnectionString("modulithdb")
 var tickerQConnectionString = builder.Configuration.GetConnectionString("tickerqdb")
     ?? throw new InvalidOperationException("tickerqdb connection string not found.");
 
-builder.Services.AddDbContext<OrdersDbContext>(options =>
-    options.UseNpgsql(connectionString));
-builder.Services.AddDbContext<InventoryDbContext>(options =>
-    options.UseNpgsql(connectionString));
-builder.Services.AddDbContext<PaymentsDbContext>(options =>
-    options.UseNpgsql(connectionString));
 builder.Services.AddDbContext<UsersDbContext>(options =>
-    options.UseNpgsql(connectionString));
+    options.UseNpgsql(connectionString,
+        npgsql => npgsql.MigrationsAssembly(typeof(UsersDbContext).Assembly.FullName)));
+builder.Services.AddDbContext<BooksDbContext>(options =>
+    options.UseNpgsql(connectionString,
+        npgsql => npgsql.MigrationsAssembly(typeof(BooksDbContext).Assembly.FullName)));
+builder.Services.AddDbContext<MembersDbContext>(options =>
+    options.UseNpgsql(connectionString,
+        npgsql => npgsql.MigrationsAssembly(typeof(MembersDbContext).Assembly.FullName)));
+builder.Services.AddDbContext<BorrowingDbContext>(options =>
+    options.UseNpgsql(connectionString,
+        npgsql => npgsql.MigrationsAssembly(typeof(BorrowingDbContext).Assembly.FullName)));
+builder.Services.AddDbContext<ReservationDbContext>(options =>
+    options.UseNpgsql(connectionString,
+        npgsql => npgsql.MigrationsAssembly(typeof(ReservationDbContext).Assembly.FullName)));
+builder.Services.AddDbContext<FinesDbContext>(options =>
+    options.UseNpgsql(connectionString,
+        npgsql => npgsql.MigrationsAssembly(typeof(FinesDbContext).Assembly.FullName)));
+builder.Services.AddDbContext<NotificationsDbContext>(options =>
+    options.UseNpgsql(connectionString,
+        npgsql => npgsql.MigrationsAssembly(typeof(NotificationsDbContext).Assembly.FullName)));
 builder.Services.AddDbContext<TickerQSchedulerDbContext>(options =>
     options.UseNpgsql(
         tickerQConnectionString,
@@ -36,9 +52,6 @@ builder.Services.AddHostedService<MigrationWorker>();
 var host = builder.Build();
 host.Run();
 
-/// <summary>
-/// 数据库迁移后台服务，在应用启动时自动执行待处理的EF Core迁移
-/// </summary>
 internal sealed class MigrationWorker : BackgroundService
 {
     private readonly IServiceProvider _serviceProvider;
@@ -63,19 +76,24 @@ internal sealed class MigrationWorker : BackgroundService
         {
             using var scope = _serviceProvider.CreateScope();
 
-            var ordersDb = scope.ServiceProvider.GetRequiredService<OrdersDbContext>();
-            var inventoryDb = scope.ServiceProvider.GetRequiredService<InventoryDbContext>();
-            var paymentsDb = scope.ServiceProvider.GetRequiredService<PaymentsDbContext>();
-            var usersDb = scope.ServiceProvider.GetRequiredService<UsersDbContext>();
-            var tickerQDb = scope.ServiceProvider.GetRequiredService<TickerQSchedulerDbContext>();
+            var dbContexts = new Dictionary<string, DbContext>
+            {
+                ["Users"] = scope.ServiceProvider.GetRequiredService<UsersDbContext>(),
+                ["Books"] = scope.ServiceProvider.GetRequiredService<BooksDbContext>(),
+                ["Members"] = scope.ServiceProvider.GetRequiredService<MembersDbContext>(),
+                ["Borrowing"] = scope.ServiceProvider.GetRequiredService<BorrowingDbContext>(),
+                ["Reservation"] = scope.ServiceProvider.GetRequiredService<ReservationDbContext>(),
+                ["Fines"] = scope.ServiceProvider.GetRequiredService<FinesDbContext>(),
+                ["Notifications"] = scope.ServiceProvider.GetRequiredService<NotificationsDbContext>(),
+                ["TickerQ"] = scope.ServiceProvider.GetRequiredService<TickerQSchedulerDbContext>()
+            };
 
-            await MigrateAsync(ordersDb, "Orders", stoppingToken);
-            await MigrateAsync(inventoryDb, "Inventory", stoppingToken);
-            await MigrateAsync(paymentsDb, "Payments", stoppingToken);
-            await MigrateAsync(usersDb, "Users", stoppingToken);
-            await MigrateAsync(tickerQDb, "TickerQ", stoppingToken);
+            foreach (var (name, db) in dbContexts)
+            {
+                await MigrateAsync(db, name, stoppingToken);
+            }
 
-            _logger.LogInformation("All migrations applied successfully for {ModuleCount} modules", 5);
+            _logger.LogInformation("All migrations applied successfully for {ModuleCount} modules", dbContexts.Count);
         }
         catch (Exception ex)
         {
@@ -88,12 +106,6 @@ internal sealed class MigrationWorker : BackgroundService
         }
     }
 
-    /// <summary>
-    /// 对指定数据库上下文执行迁移，使用执行策略确保在数据库暂不可用时重试
-    /// </summary>
-    /// <param name="dbContext">数据库上下文</param>
-    /// <param name="name">模块名称（用于日志）</param>
-    /// <param name="ct">取消令牌</param>
     private async Task MigrateAsync(DbContext dbContext, string name, CancellationToken ct)
     {
         var strategy = dbContext.Database.CreateExecutionStrategy();

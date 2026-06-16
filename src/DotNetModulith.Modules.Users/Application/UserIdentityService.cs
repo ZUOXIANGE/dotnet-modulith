@@ -15,23 +15,34 @@ internal sealed class UserIdentityService : IUserIdentityService
     private readonly JwtTokenFactory _jwtTokenFactory;
     private readonly IUserAuthCache _userAuthCache;
     private readonly ITokenBlacklistStore _tokenBlacklistStore;
+    private readonly ICaptchaService _captchaService;
 
     public UserIdentityService(
         UsersDbContext dbContext,
         IPasswordHasher<UserEntity> passwordHasher,
         JwtTokenFactory jwtTokenFactory,
         IUserAuthCache userAuthCache,
-        ITokenBlacklistStore tokenBlacklistStore)
+        ITokenBlacklistStore tokenBlacklistStore,
+        ICaptchaService captchaService)
     {
         _dbContext = dbContext;
         _passwordHasher = passwordHasher;
         _jwtTokenFactory = jwtTokenFactory;
         _userAuthCache = userAuthCache;
         _tokenBlacklistStore = tokenBlacklistStore;
+        _captchaService = captchaService;
     }
 
     public async Task<LoginResult> LoginAsync(LoginInput input, CancellationToken cancellationToken)
     {
+        if (!_captchaService.Validate(input.CaptchaId, input.CaptchaCode))
+        {
+            throw new BusinessException(
+                "invalid captcha",
+                ApiCodes.Auth.CaptchaInvalid,
+                StatusCodes.Status400BadRequest);
+        }
+
         var normalizedUserName = NormalizeUserName(input.UserName);
         var user = await _dbContext.Users
             .AsTracking()

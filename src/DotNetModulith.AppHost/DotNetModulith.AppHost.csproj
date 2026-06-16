@@ -1,4 +1,4 @@
-<Project Sdk="Aspire.AppHost.Sdk/13.3.5">
+<Project Sdk="Aspire.AppHost.Sdk/13.4.4">
   <PropertyGroup>
     <TargetFramework>$(NetAppVersion)</TargetFramework>
     <OutputType>Exe</OutputType>

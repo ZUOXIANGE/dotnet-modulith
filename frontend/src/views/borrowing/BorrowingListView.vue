@@ -137,15 +137,16 @@ const columns: DataTableColumns<BorrowingItem> = [
     key: 'actions',
     width: 180,
     render(row) {
-      const buttons = []
       if (row.status === 'Borrowed' || row.status === 'Overdue') {
-        buttons.push(
-          h(NButton, { size: 'small', type: 'success', onClick: () => handleReturn(row) }, { default: () => '归还' }),
-          h(NButton, { size: 'small', type: 'warning', onClick: () => handleRenew(row) }, { default: () => '续借' }),
-          h(NButton, { size: 'small', type: 'error', onClick: () => handleMarkLost(row) }, { default: () => '丢失' })
-        )
+        return h(NSpace, {}, {
+          default: () => [
+            h(NButton, { size: 'small', type: 'success', onClick: () => handleReturn(row) }, { default: () => '归还' }),
+            h(NButton, { size: 'small', type: 'warning', onClick: () => handleRenew(row) }, { default: () => '续借' }),
+            h(NButton, { size: 'small', type: 'error', onClick: () => handleMarkLost(row) }, { default: () => '丢失' })
+          ]
+        })
       }
-      return h(NSpace, {}, { default: () => buttons })
+      return null
     }
   }
 ]

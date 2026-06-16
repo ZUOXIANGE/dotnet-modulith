@@ -46,6 +46,17 @@ public sealed class RolesController : ControllerBase
     }
 
     /// <summary>
+    /// 更新角色
+    /// </summary>
+    [Authorize(Policy = UserPermissions.RolesManage)]
+    [HttpPut("{roleId:guid}")]
+    public async Task<ApiResponse<RoleResponse>> UpdateRole(Guid roleId, [FromBody] UpdateRoleRequest request, CancellationToken ct)
+    {
+        var role = await _identityService.UpdateRoleAsync(roleId, new UpdateRoleInput(request.Name, request.Description, request.Permissions), ct);
+        return ApiResponse.Success(role.ToResponse());
+    }
+
+    /// <summary>
     /// 更新角色权限
     /// </summary>
     [Authorize(Policy = UserPermissions.RolesManage)]

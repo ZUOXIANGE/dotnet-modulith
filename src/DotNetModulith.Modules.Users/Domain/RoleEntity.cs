@@ -28,6 +28,13 @@ public sealed class RoleEntity
             UpdatedAt = now
         };
 
+    public void UpdateProfile(string name, string? description, DateTimeOffset now)
+    {
+        Name = name;
+        Description = description;
+        UpdatedAt = now;
+    }
+
     public void ReplacePermissions(IEnumerable<string> permissions, DateTimeOffset now)
     {
         Permissions.Clear();

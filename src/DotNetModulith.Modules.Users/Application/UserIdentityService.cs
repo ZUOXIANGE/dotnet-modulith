@@ -338,6 +338,59 @@ internal sealed class UserIdentityService : IUserIdentityService
             role.Permissions.Select(x => x.Permission).OrderBy(x => x).ToArray());
     }
 
+    public async Task<RoleDetails> UpdateRoleAsync(
+        Guid roleId,
+        UpdateRoleInput input,
+        CancellationToken cancellationToken)
+    {
+        var role = await _dbContext.Roles
+            .AsTracking()
+            .Include(x => x.Permissions)
+            .SingleOrDefaultAsync(x => x.Id == roleId, cancellationToken)
+            ?? throw new BusinessException(
+                "role not found",
+                ApiCodes.Common.NotFound,
+                StatusCodes.Status404NotFound);
+
+        var roleName = input.Name.Trim();
+        if (roleName != role.Name && await _dbContext.Roles.AnyAsync(x => x.Name == roleName, cancellationToken))
+        {
+            throw new BusinessException(
+                "role name already exists",
+                ApiCodes.User.RoleNameAlreadyExists,
+                StatusCodes.Status409Conflict);
+        }
+
+        var permissions = NormalizePermissions(input.Permissions);
+        EnsurePermissionsExist(permissions);
+
+        role.UpdateProfile(
+            roleName,
+            string.IsNullOrWhiteSpace(input.Description) ? null : input.Description.Trim(),
+            DateTimeOffset.UtcNow);
+
+        role.ReplacePermissions(permissions, DateTimeOffset.UtcNow);
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        var userIds = await _dbContext.Users
+            .AsNoTracking()
+            .Where(x => x.Roles.Any(userRole => userRole.RoleId == roleId))
+            .Select(x => x.Id)
+            .ToArrayAsync(cancellationToken);
+
+        foreach (var userId in userIds)
+        {
+            await RefreshUserAuthCacheAsync(userId, cancellationToken);
+        }
+
+        return new RoleDetails(
+            role.Id,
+            role.Name,
+            role.Description,
+            role.IsSystem,
+            role.Permissions.Select(x => x.Permission).OrderBy(x => x).ToArray());
+    }
+
     public async Task UpdateRolePermissionsAsync(
         Guid roleId,
         IReadOnlyCollection<string> permissions,

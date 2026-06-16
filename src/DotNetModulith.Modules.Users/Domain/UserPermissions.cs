@@ -28,6 +28,8 @@ public static class UserPermissions
     public const string StorageManage = PermissionCodes.StorageManage;
     public const string AuditView = PermissionCodes.AuditView;
     public const string ModulesView = PermissionCodes.ModulesView;
+    public const string NotificationsView = PermissionCodes.NotificationsView;
+    public const string NotificationsManage = PermissionCodes.NotificationsManage;
 
     public static readonly IReadOnlyList<PermissionDefinition> Definitions =
     [
@@ -54,7 +56,9 @@ public static class UserPermissions
         new(ReportsView, "查看报表", "允许查看统计报表"),
         new(StorageManage, "管理文件存储", "允许通过直传或签名上传写入对象存储"),
         new(AuditView, "查看操作日志", "允许查看系统操作日志"),
-        new(ModulesView, "查看模块", "允许查看模块列表、依赖图和边界校验结果")
+        new(ModulesView, "查看模块", "允许查看模块列表、依赖图和边界校验结果"),
+        new(NotificationsView, "查看通知", "允许查看通知列表"),
+        new(NotificationsManage, "管理通知", "允许创建和发送通知")
     ];
 
     public static readonly IReadOnlyList<string> All = Definitions.Select(x => x.Code).ToArray();

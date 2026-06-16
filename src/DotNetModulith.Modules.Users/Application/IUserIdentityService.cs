@@ -30,6 +30,8 @@ public interface IUserIdentityService
 
     Task<RoleDetails> CreateRoleAsync(CreateRoleInput input, CancellationToken cancellationToken);
 
+    Task<RoleDetails> UpdateRoleAsync(Guid roleId, UpdateRoleInput input, CancellationToken cancellationToken);
+
     Task UpdateRolePermissionsAsync(Guid roleId, IReadOnlyCollection<string> permissions, CancellationToken cancellationToken);
 
     Task<IReadOnlyList<PermissionDetails>> GetPermissionsAsync(CancellationToken cancellationToken);

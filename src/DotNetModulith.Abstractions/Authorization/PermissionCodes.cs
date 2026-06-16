@@ -26,4 +26,6 @@ public static class PermissionCodes
     public const string StorageManage = "storage.manage";
     public const string AuditView = "audit.view";
     public const string ModulesView = "modules.view";
+    public const string NotificationsView = "notifications.view";
+    public const string NotificationsManage = "notifications.manage";
 }

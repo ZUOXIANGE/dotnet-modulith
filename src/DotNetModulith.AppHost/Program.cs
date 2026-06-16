@@ -33,9 +33,9 @@ var tickerQDb = postgres.AddDatabase("tickerqdb", "tickerq");
 
 var rabbitmq = builder.AddRabbitMQ("rabbitmq", rabbitMqUser, rabbitMqPassword, port: 5672)
     .WithDataVolume("modulith-rabbitmq-data")
-    .WithManagementPlugin();
+    .WithManagementPlugin(port: 15672);
 
-var redis = builder.AddRedis("redis")
+var redis = builder.AddRedis("redis", port: 6379)
     .WithDataVolume("modulith-redis-data")
     .WithRedisInsight();
 
@@ -51,7 +51,7 @@ var rustfs = builder.AddContainer("rustfs", "rustfs/rustfs", "latest")
     .WithEnvironment("RUSTFS_SECRET_ACCESS_KEY", rustfsSecretKey);
 
 var oo = builder.AddContainer("openobserve", "public.ecr.aws/zinclabs/openobserve")
-    .WithHttpEndpoint(targetPort: 5080, name: "http")
+    .WithHttpEndpoint(port: 5080, targetPort: 5080, name: "http")
     .WithEnvironment("ZO_ROOT_USER_EMAIL", openObserveUserEmail)
     .WithEnvironment("ZO_ROOT_USER_PASSWORD", openObserveUserPassword)
     .WithEnvironment("ZO_DATA_DIR", "/data")
@@ -108,6 +108,8 @@ var jobHost = builder.AddProject<DotNetModulith_JobHost>("job")
     .WaitFor(rabbitmq);
 
 var frontend = builder.AddViteApp("frontend", Path.GetFullPath("../../frontend", builder.AppHostDirectory))
-    .WithPnpm();
+    .WithPnpm()
+    .WithReference(api)
+    .WithEnvironment("VITE_API_TARGET", api.GetEndpoint("http"));
 
 await builder.Build().RunAsync();

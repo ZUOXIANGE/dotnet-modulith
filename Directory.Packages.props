@@ -81,6 +81,7 @@
   </ItemGroup>
   <!-- Aspire 托管与服务发现相关包版本 -->
   <ItemGroup>
+    <PackageVersion Include="Aspire.Hosting.JavaScript" Version="13.4.4" />
     <PackageVersion Include="Aspire.Hosting.PostgreSQL" Version="13.4.4" />
     <PackageVersion Include="Aspire.Hosting.RabbitMQ" Version="13.4.4" />
     <PackageVersion Include="Aspire.Npgsql.EntityFrameworkCore.PostgreSQL" Version="$(AspireVersion)" />

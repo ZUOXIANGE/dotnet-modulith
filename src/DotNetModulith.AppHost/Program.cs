@@ -107,4 +107,7 @@ var jobHost = builder.AddProject<DotNetModulith_JobHost>("job")
     .WaitForCompletion(migrations)
     .WaitFor(rabbitmq);
 
+var frontend = builder.AddViteApp("frontend", Path.GetFullPath("../../frontend", builder.AppHostDirectory))
+    .WithPnpm();
+
 await builder.Build().RunAsync();

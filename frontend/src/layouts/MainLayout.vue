@@ -40,13 +40,33 @@
         <router-view />
       </n-layout-content>
     </n-layout>
+
+    <n-modal v-model:show="showChangePassword" title="修改密码" preset="card" style="width: 420px" :mask-closable="false">
+      <n-form ref="passwordFormRef" :model="passwordForm" :rules="passwordRules" label-placement="left" label-width="90">
+        <n-form-item label="当前密码" path="currentPassword">
+          <n-input v-model:value="passwordForm.currentPassword" type="password" placeholder="请输入当前密码" />
+        </n-form-item>
+        <n-form-item label="新密码" path="newPassword">
+          <n-input v-model:value="passwordForm.newPassword" type="password" placeholder="请输入新密码（至少8位）" />
+        </n-form-item>
+        <n-form-item label="确认密码" path="confirmPassword">
+          <n-input v-model:value="passwordForm.confirmPassword" type="password" placeholder="请再次输入新密码" />
+        </n-form-item>
+      </n-form>
+      <template #footer>
+        <n-space justify="end">
+          <n-button @click="showChangePassword = false">取消</n-button>
+          <n-button type="primary" :loading="passwordSubmitting" @click="handleChangePassword">确认修改</n-button>
+        </n-space>
+      </template>
+    </n-modal>
   </n-layout>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, h } from 'vue'
+import { ref, computed, h, reactive } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { NIcon } from 'naive-ui'
+import { NIcon, useMessage, type FormInst, type FormRules } from 'naive-ui'
 import { PersonCircleOutline } from '@vicons/ionicons5'
 import {
   GridOutline,
@@ -62,10 +82,12 @@ import {
 } from '@vicons/ionicons5'
 import { useAuthStore } from '@/stores/auth'
 import type { MenuOption } from 'naive-ui'
+import { api } from '@/utils/api'
 
 const router = useRouter()
 const route = useRoute()
 const authStore = useAuthStore()
+const message = useMessage()
 const collapsed = ref(false)
 
 const renderIcon = (icon: any) => () => h(NIcon, null, { default: () => h(icon) })
@@ -131,6 +153,64 @@ function handleUserDropdown(key: string) {
   if (key === 'logout') {
     authStore.logout()
     router.push('/login')
+  } else if (key === 'changePassword') {
+    showChangePassword.value = true
+  }
+}
+
+const showChangePassword = ref(false)
+const passwordSubmitting = ref(false)
+const passwordFormRef = ref<FormInst | null>(null)
+
+const passwordForm = reactive({
+  currentPassword: '',
+  newPassword: '',
+  confirmPassword: ''
+})
+
+function validateConfirmPassword(_rule: any, value: string) {
+  if (!value) return new Error('请再次输入新密码')
+  if (value !== passwordForm.newPassword) return new Error('两次输入的密码不一致')
+  return true
+}
+
+const passwordRules: FormRules = {
+  currentPassword: [{ required: true, message: '请输入当前密码', trigger: 'blur' }],
+  newPassword: [
+    { required: true, message: '请输入新密码', trigger: 'blur' },
+    { min: 8, message: '密码至少8位', trigger: 'blur' }
+  ],
+  confirmPassword: [{ validator: validateConfirmPassword, trigger: 'blur' }]
+}
+
+async function handleChangePassword() {
+  try {
+    await passwordFormRef.value?.validate()
+  } catch {
+    return
+  }
+
+  passwordSubmitting.value = true
+  try {
+    const res = await api.post('/auth/change-password', {
+      currentPassword: passwordForm.currentPassword,
+      newPassword: passwordForm.newPassword
+    })
+    if (res.code === 200) {
+      message.success('密码修改成功，请重新登录')
+      showChangePassword.value = false
+      passwordForm.currentPassword = ''
+      passwordForm.newPassword = ''
+      passwordForm.confirmPassword = ''
+      authStore.logout()
+      router.push('/login')
+    } else {
+      message.error(res.msg || '修改失败')
+    }
+  } catch {
+    message.error('网络错误')
+  } finally {
+    passwordSubmitting.value = false
   }
 }
 </script>

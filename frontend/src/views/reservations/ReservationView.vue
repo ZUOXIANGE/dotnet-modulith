@@ -21,25 +21,27 @@
     <n-modal v-model:show="showCreateDialog" title="新建预约" preset="card" style="width: 480px" :mask-closable="false">
       <n-form ref="createFormRef" :model="createForm" :rules="createRules" label-placement="left" label-width="90">
         <n-form-item label="图书" path="bookId">
-          <n-select
-            v-model:value="createForm.bookId"
-            placeholder="搜索并选择图书"
-            filterable
-            remote
-            :loading="bookSearchLoading"
-            :options="bookOptions"
-            @search="searchBooks"
+          <SelectorPopup
+            v-model="createForm.bookId"
+            title="选择图书"
+            placeholder="请选择图书"
+            search-placeholder="搜索图书名称或ISBN"
+            api-url="/books"
+            :columns="bookColumns"
+            display-field="title"
+            :label-formatter="(b: any) => `${b.title} (${b.isbn})`"
           />
         </n-form-item>
         <n-form-item label="读者" path="memberId">
-          <n-select
-            v-model:value="createForm.memberId"
-            placeholder="搜索并选择读者"
-            filterable
-            remote
-            :loading="memberSearchLoading"
-            :options="memberOptions"
-            @search="searchMembers"
+          <SelectorPopup
+            v-model="createForm.memberId"
+            title="选择读者"
+            placeholder="请选择读者"
+            search-placeholder="搜索读者姓名或电话"
+            api-url="/members"
+            :columns="memberColumns"
+            display-field="name"
+            :label-formatter="(m: any) => `${m.name} (${m.phone})`"
           />
         </n-form-item>
       </n-form>
@@ -55,8 +57,9 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted, h } from 'vue'
-import { useMessage, useDialog, type FormInst, type FormRules, type DataTableColumns, NButton, NSpace, NTag, type SelectOption } from 'naive-ui'
+import { useMessage, useDialog, type FormInst, type FormRules, type DataTableColumns, NButton, NSpace, NTag } from 'naive-ui'
 import { api } from '@/utils/api'
+import SelectorPopup from '@/components/SelectorPopup.vue'
 
 interface ReservationItem {
   id: string
@@ -93,6 +96,7 @@ const pagination = reactive({
   itemCount: 0,
   showSizePicker: true,
   pageSizes: [10, 20, 50],
+  prefix: ({ itemCount }: { itemCount: number | undefined }) => `共 ${itemCount} 条`,
   onChange: (page: number) => {
     pagination.page = page
     fetchReservations()
@@ -150,11 +154,15 @@ const createRules: FormRules = {
   memberId: [{ required: true, message: '请选择读者', trigger: 'blur' }]
 }
 
-const bookSearchLoading = ref(false)
-const bookOptions = ref<SelectOption[]>([])
+const bookColumns: DataTableColumns<any> = [
+  { title: '书名', key: 'title', width: 200 },
+  { title: 'ISBN', key: 'isbn', width: 140 }
+]
 
-const memberSearchLoading = ref(false)
-const memberOptions = ref<SelectOption[]>([])
+const memberColumns: DataTableColumns<any> = [
+  { title: '姓名', key: 'name', width: 120 },
+  { title: '电话', key: 'phone', width: 140 }
+]
 
 async function fetchReservations() {
   loading.value = true
@@ -181,45 +189,12 @@ function search() {
   fetchReservations()
 }
 
-async function searchBooks(query: string) {
-  if (!query || query.length < 1) {
-    bookOptions.value = []
-    return
-  }
-  bookSearchLoading.value = true
-  try {
-    const res = await api.get<{ items: { id: string; title: string; isbn: string }[] }>(`/books?keyword=${encodeURIComponent(query)}&pageSize=10`)
-    if (res.code === 200 && res.data) {
-      bookOptions.value = res.data.items.map(b => ({ label: `${b.title} (${b.isbn})`, value: b.id }))
-    }
-  } catch {
-    // ignore
-  } finally {
-    bookSearchLoading.value = false
-  }
-}
-
-async function searchMembers(query: string) {
-  if (!query || query.length < 1) {
-    memberOptions.value = []
-    return
-  }
-  memberSearchLoading.value = true
-  try {
-    const res = await api.get<{ items: { id: string; name: string; phone: string }[] }>(`/members?keyword=${encodeURIComponent(query)}&pageSize=10`)
-    if (res.code === 200 && res.data) {
-      memberOptions.value = res.data.items.map(m => ({ label: `${m.name} (${m.phone})`, value: m.id }))
-    }
-  } catch {
-    // ignore
-  } finally {
-    memberSearchLoading.value = false
-  }
-}
-
 async function handleCreate() {
-  const valid = await createFormRef.value?.validate()
-  if (!valid) return
+  try {
+    await createFormRef.value?.validate()
+  } catch {
+    return
+  }
 
   submitting.value = true
   try {

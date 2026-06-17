@@ -249,8 +249,11 @@ async function fetchRoles() {
 }
 
 async function handleCreate() {
-  const valid = await createFormRef.value?.validate()
-  if (!valid) return
+  try {
+    await createFormRef.value?.validate()
+  } catch {
+    return
+  }
 
   submitting.value = true
   try {
@@ -288,8 +291,12 @@ function startEdit(row: UserItem) {
 }
 
 async function handleUpdate() {
-  const valid = await editFormRef.value?.validate()
-  if (!valid || !editingId.value) return
+  try {
+    await editFormRef.value?.validate()
+  } catch {
+    return
+  }
+  if (!editingId.value) return
 
   submitting.value = true
   try {
@@ -374,8 +381,12 @@ function startResetPassword(row: UserItem) {
 }
 
 async function handleResetPassword() {
-  const valid = await resetFormRef.value?.validate()
-  if (!valid || !editingId.value) return
+  try {
+    await resetFormRef.value?.validate()
+  } catch {
+    return
+  }
+  if (!editingId.value) return
 
   submitting.value = true
   try {

@@ -10,4 +10,5 @@ public interface IBookService
     Task DeleteBookAsync(Guid id, CancellationToken ct);
     Task BorrowBookAsync(Guid bookId, CancellationToken ct);
     Task ReturnBookAsync(Guid bookId, CancellationToken ct);
+    Task<IReadOnlyDictionary<Guid, string>> GetBookTitlesByIdsAsync(IEnumerable<Guid> ids, CancellationToken ct);
 }

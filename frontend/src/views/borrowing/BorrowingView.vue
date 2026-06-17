@@ -21,27 +21,28 @@
     <n-modal v-model:show="showBorrowDialog" title="借阅图书" preset="card" style="width: 480px" :mask-closable="false">
       <n-form ref="borrowFormRef" :model="borrowForm" :rules="borrowRules" label-placement="left" label-width="90">
         <n-form-item label="图书" path="bookId">
-          <n-select
-            v-model:value="borrowForm.bookId"
-            placeholder="搜索并选择图书"
-            filterable
-            remote
-            :loading="bookSearchLoading"
-            :options="bookOptions"
-            @search="searchBooks"
-            @update:value="handleBookSelect"
+          <SelectorPopup
+            v-model="borrowForm.bookId"
+            title="选择图书"
+            placeholder="请选择图书"
+            search-placeholder="搜索图书名称或ISBN"
+            api-url="/books"
+            :columns="bookColumns"
+            display-field="title"
+            :label-formatter="(b: any) => `${b.title} (${b.isbn})`"
+            :filter-fn="(b: any) => b.availableCopies > 0"
           />
         </n-form-item>
         <n-form-item label="读者" path="memberId">
-          <n-select
-            v-model:value="borrowForm.memberId"
-            placeholder="搜索并选择读者"
-            filterable
-            remote
-            :loading="memberSearchLoading"
-            :options="memberOptions"
-            @search="searchMembers"
-            @update:value="handleMemberSelect"
+          <SelectorPopup
+            v-model="borrowForm.memberId"
+            title="选择读者"
+            placeholder="请选择读者"
+            search-placeholder="搜索读者姓名或电话"
+            api-url="/members"
+            :columns="memberColumns"
+            display-field="name"
+            :label-formatter="(m: any) => `${m.name} (${m.phone})`"
           />
         </n-form-item>
         <n-form-item label="借阅天数" path="borrowDays">
@@ -60,8 +61,9 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted, h } from 'vue'
-import { useMessage, useDialog, type FormInst, type FormRules, type DataTableColumns, NButton, NSpace, NTag, type SelectOption } from 'naive-ui'
+import { useMessage, useDialog, type FormInst, type FormRules, type DataTableColumns, NButton, NSpace, NTag } from 'naive-ui'
 import { api } from '@/utils/api'
+import SelectorPopup from '@/components/SelectorPopup.vue'
 
 interface BorrowingItem {
   id: string
@@ -99,6 +101,7 @@ const pagination = reactive({
   itemCount: 0,
   showSizePicker: true,
   pageSizes: [10, 20, 50],
+  prefix: ({ itemCount }: { itemCount: number | undefined }) => `共 ${itemCount} 条`,
   onChange: (page: number) => {
     pagination.page = page
     fetchBorrowings()
@@ -161,16 +164,32 @@ const borrowRules: FormRules = {
   bookId: [{ required: true, message: '请选择图书', trigger: 'blur' }],
   memberId: [{ required: true, message: '请选择读者', trigger: 'blur' }],
   borrowDays: [
-    { required: true, message: '请输入借阅天数', trigger: 'blur' },
-    { type: 'number', min: 1, max: 60, message: '借阅天数 1-60', trigger: 'blur' }
+    {
+      validator: (_rule, value: unknown) => {
+        if (value === null || value === undefined || value === '') {
+          return new Error('请输入借阅天数')
+        }
+        const num = Number(value)
+        if (!Number.isFinite(num) || num < 1 || num > 60) {
+          return new Error('借阅天数 1-60')
+        }
+        return true
+      },
+      trigger: ['blur', 'change']
+    }
   ]
 }
 
-const bookSearchLoading = ref(false)
-const bookOptions = ref<SelectOption[]>([])
+const bookColumns: DataTableColumns<any> = [
+  { title: '书名', key: 'title', width: 200 },
+  { title: 'ISBN', key: 'isbn', width: 140 },
+  { title: '可借数量', key: 'availableCopies', width: 80 }
+]
 
-const memberSearchLoading = ref(false)
-const memberOptions = ref<SelectOption[]>([])
+const memberColumns: DataTableColumns<any> = [
+  { title: '姓名', key: 'name', width: 120 },
+  { title: '电话', key: 'phone', width: 140 }
+]
 
 async function fetchBorrowings() {
   loading.value = true
@@ -197,55 +216,13 @@ function search() {
   fetchBorrowings()
 }
 
-async function searchBooks(query: string) {
-  if (!query || query.length < 1) {
-    bookOptions.value = []
-    return
-  }
-  bookSearchLoading.value = true
-  try {
-    const res = await api.get<{ items: { id: string; title: string; isbn: string; availableCopies: number }[] }>(`/books?keyword=${encodeURIComponent(query)}&pageSize=10`)
-    if (res.code === 200 && res.data) {
-      bookOptions.value = res.data.items
-        .filter(b => b.availableCopies > 0)
-        .map(b => ({ label: `${b.title} (${b.isbn})`, value: b.id }))
-    }
-  } catch {
-    // ignore
-  } finally {
-    bookSearchLoading.value = false
-  }
-}
-
-function handleBookSelect() {
-  // placeholder
-}
-
-async function searchMembers(query: string) {
-  if (!query || query.length < 1) {
-    memberOptions.value = []
-    return
-  }
-  memberSearchLoading.value = true
-  try {
-    const res = await api.get<{ items: { id: string; name: string; phone: string }[] }>(`/members?keyword=${encodeURIComponent(query)}&pageSize=10`)
-    if (res.code === 200 && res.data) {
-      memberOptions.value = res.data.items.map(m => ({ label: `${m.name} (${m.phone})`, value: m.id }))
-    }
-  } catch {
-    // ignore
-  } finally {
-    memberSearchLoading.value = false
-  }
-}
-
-function handleMemberSelect() {
-  // placeholder
-}
-
 async function handleBorrow() {
-  const valid = await borrowFormRef.value?.validate()
-  if (!valid) return
+  try {
+    await borrowFormRef.value?.validate()
+  } catch (errors) {
+    console.log('表单验证失败:', errors)
+    return
+  }
 
   submitting.value = true
   try {

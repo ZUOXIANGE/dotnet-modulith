@@ -90,6 +90,7 @@ const overduePagination = reactive({
   itemCount: 0,
   showSizePicker: true,
   pageSizes: [10, 20, 50],
+  prefix: ({ itemCount }: { itemCount: number | undefined }) => `共 ${itemCount} 条`,
   onChange: (page: number) => {
     overduePagination.page = page
     fetchOverdueReport()

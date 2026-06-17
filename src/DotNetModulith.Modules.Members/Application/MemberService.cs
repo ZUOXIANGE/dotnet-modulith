@@ -201,4 +201,16 @@ internal sealed class MemberService : IMemberService
         entity.DecrementBorrowCount(DateTimeOffset.UtcNow);
         await _dbContext.SaveChangesAsync(ct);
     }
+
+    public async Task<IReadOnlyDictionary<Guid, string>> GetMemberNamesByIdsAsync(IEnumerable<Guid> ids, CancellationToken ct)
+    {
+        var idSet = ids.ToHashSet();
+        if (idSet.Count == 0)
+            return new Dictionary<Guid, string>();
+
+        return await _dbContext.Members
+            .Where(x => idSet.Contains(x.Id))
+            .Select(x => new { x.Id, x.Name })
+            .ToDictionaryAsync(x => x.Id, x => x.Name, ct);
+    }
 }

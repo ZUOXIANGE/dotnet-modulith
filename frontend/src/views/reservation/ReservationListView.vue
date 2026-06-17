@@ -93,6 +93,7 @@ const pagination = reactive({
   itemCount: 0,
   showSizePicker: true,
   pageSizes: [10, 20, 50],
+  prefix: ({ itemCount }: { itemCount: number | undefined }) => `共 ${itemCount} 条`,
   onChange: (page: number) => {
     pagination.page = page
     fetchReservations()
@@ -221,8 +222,11 @@ async function searchMembers(query: string) {
 }
 
 async function handleCreate() {
-  const valid = await createFormRef.value?.validate()
-  if (!valid) return
+  try {
+    await createFormRef.value?.validate()
+  } catch {
+    return
+  }
 
   submitting.value = true
   try {

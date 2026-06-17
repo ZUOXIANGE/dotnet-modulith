@@ -28,7 +28,7 @@ internal sealed class BorrowingService : IBorrowingService
         if (!string.IsNullOrWhiteSpace(status) && Enum.TryParse<BorrowingStatus>(status, true, out var borrowingStatus))
             query = query.Where(x => x.Status == borrowingStatus);
 
-        return await query
+        var items = await query
             .OrderByDescending(x => x.CreatedAt)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
@@ -45,6 +45,24 @@ internal sealed class BorrowingService : IBorrowingService
                 x.RenewalCount,
                 x.CreatedAt))
             .ToArrayAsync(ct);
+
+        if (items.Length > 0)
+        {
+            var bookIds = items.Select(x => x.BookId).Distinct();
+            var memberIds = items.Select(x => x.MemberId).Distinct();
+            var bookTitles = await _bookService.GetBookTitlesByIdsAsync(bookIds, ct);
+            var memberNames = await _memberService.GetMemberNamesByIdsAsync(memberIds, ct);
+            for (var i = 0; i < items.Length; i++)
+            {
+                items[i] = items[i] with
+                {
+                    BookTitle = bookTitles.GetValueOrDefault(items[i].BookId, string.Empty),
+                    MemberName = memberNames.GetValueOrDefault(items[i].MemberId, string.Empty)
+                };
+            }
+        }
+
+        return items;
     }
 
     public async Task<int> GetBorrowingsCountAsync(string? keyword, string? status, CancellationToken ct)
@@ -59,7 +77,7 @@ internal sealed class BorrowingService : IBorrowingService
 
     public async Task<BorrowingDetails?> GetBorrowingByIdAsync(Guid id, CancellationToken ct)
     {
-        return await _dbContext.BorrowingRecords
+        var borrowing = await _dbContext.BorrowingRecords
             .Where(x => x.Id == id)
             .Select(x => new BorrowingDetails(
                 x.Id,
@@ -76,6 +94,19 @@ internal sealed class BorrowingService : IBorrowingService
                 x.CreatedAt,
                 x.UpdatedAt))
             .FirstOrDefaultAsync(ct);
+
+        if (borrowing is not null)
+        {
+            var bookTitles = await _bookService.GetBookTitlesByIdsAsync(new[] { borrowing.BookId }, ct);
+            var memberNames = await _memberService.GetMemberNamesByIdsAsync(new[] { borrowing.MemberId }, ct);
+            borrowing = borrowing with
+            {
+                BookTitle = bookTitles.GetValueOrDefault(borrowing.BookId, string.Empty),
+                MemberName = memberNames.GetValueOrDefault(borrowing.MemberId, string.Empty)
+            };
+        }
+
+        return borrowing;
     }
 
     public async Task<BorrowingDetails> BorrowBookAsync(CreateBorrowingInput input, CancellationToken ct)

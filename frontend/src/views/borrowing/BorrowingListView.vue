@@ -99,6 +99,7 @@ const pagination = reactive({
   itemCount: 0,
   showSizePicker: true,
   pageSizes: [10, 20, 50],
+  prefix: ({ itemCount }: { itemCount: number | undefined }) => `共 ${itemCount} 条`,
   onChange: (page: number) => {
     pagination.page = page
     fetchBorrowings()
@@ -161,8 +162,19 @@ const borrowRules: FormRules = {
   bookId: [{ required: true, message: '请选择图书', trigger: 'blur' }],
   memberId: [{ required: true, message: '请选择读者', trigger: 'blur' }],
   borrowDays: [
-    { required: true, message: '请输入借阅天数', trigger: 'blur' },
-    { type: 'number', min: 1, max: 60, message: '借阅天数 1-60', trigger: 'blur' }
+    {
+      validator: (_rule, value: unknown) => {
+        if (value === null || value === undefined || value === '') {
+          return new Error('请输入借阅天数')
+        }
+        const num = Number(value)
+        if (!Number.isFinite(num) || num < 1 || num > 60) {
+          return new Error('借阅天数 1-60')
+        }
+        return true
+      },
+      trigger: ['blur', 'change']
+    }
   ]
 }
 
@@ -244,8 +256,12 @@ function handleMemberSelect() {
 }
 
 async function handleBorrow() {
-  const valid = await borrowFormRef.value?.validate()
-  if (!valid) return
+  try {
+    await borrowFormRef.value?.validate()
+  } catch (errors) {
+    console.log('表单验证失败:', errors)
+    return
+  }
 
   submitting.value = true
   try {

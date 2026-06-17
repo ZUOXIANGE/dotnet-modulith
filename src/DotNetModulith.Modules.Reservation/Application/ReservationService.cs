@@ -28,7 +28,7 @@ internal sealed class ReservationService : IReservationService
         if (!string.IsNullOrWhiteSpace(status) && Enum.TryParse<ReservationStatus>(status, true, out var reservationStatus))
             query = query.Where(x => x.Status == reservationStatus);
 
-        return await query
+        var items = await query
             .OrderByDescending(x => x.CreatedAt)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
@@ -44,6 +44,24 @@ internal sealed class ReservationService : IReservationService
                 x.QueuePosition,
                 x.CreatedAt))
             .ToArrayAsync(ct);
+
+        if (items.Length > 0)
+        {
+            var bookIds = items.Select(x => x.BookId).Distinct();
+            var memberIds = items.Select(x => x.MemberId).Distinct();
+            var bookTitles = await _bookService.GetBookTitlesByIdsAsync(bookIds, ct);
+            var memberNames = await _memberService.GetMemberNamesByIdsAsync(memberIds, ct);
+            for (var i = 0; i < items.Length; i++)
+            {
+                items[i] = items[i] with
+                {
+                    BookTitle = bookTitles.GetValueOrDefault(items[i].BookId, string.Empty),
+                    MemberName = memberNames.GetValueOrDefault(items[i].MemberId, string.Empty)
+                };
+            }
+        }
+
+        return items;
     }
 
     public async Task<int> GetReservationsCountAsync(string? keyword, string? status, CancellationToken ct)
@@ -58,7 +76,7 @@ internal sealed class ReservationService : IReservationService
 
     public async Task<ReservationDetails?> GetReservationByIdAsync(Guid id, CancellationToken ct)
     {
-        return await _dbContext.Reservations
+        var reservation = await _dbContext.Reservations
             .Where(x => x.Id == id)
             .Select(x => new ReservationDetails(
                 x.Id,
@@ -73,11 +91,24 @@ internal sealed class ReservationService : IReservationService
                 x.CreatedAt,
                 x.UpdatedAt))
             .FirstOrDefaultAsync(ct);
+
+        if (reservation is not null)
+        {
+            var bookTitles = await _bookService.GetBookTitlesByIdsAsync(new[] { reservation.BookId }, ct);
+            var memberNames = await _memberService.GetMemberNamesByIdsAsync(new[] { reservation.MemberId }, ct);
+            reservation = reservation with
+            {
+                BookTitle = bookTitles.GetValueOrDefault(reservation.BookId, string.Empty),
+                MemberName = memberNames.GetValueOrDefault(reservation.MemberId, string.Empty)
+            };
+        }
+
+        return reservation;
     }
 
     public async Task<ReservationListItem[]> GetReservationsByBookAsync(Guid bookId, CancellationToken ct)
     {
-        return await _dbContext.Reservations
+        var items = await _dbContext.Reservations
             .Where(x => x.BookId == bookId && x.Status == ReservationStatus.Pending)
             .OrderBy(x => x.QueuePosition)
             .Select(x => new ReservationListItem(
@@ -92,11 +123,29 @@ internal sealed class ReservationService : IReservationService
                 x.QueuePosition,
                 x.CreatedAt))
             .ToArrayAsync(ct);
+
+        if (items.Length > 0)
+        {
+            var bookTitles = await _bookService.GetBookTitlesByIdsAsync(new[] { bookId }, ct);
+            var memberIds = items.Select(x => x.MemberId).Distinct();
+            var memberNames = await _memberService.GetMemberNamesByIdsAsync(memberIds, ct);
+            var bookTitle = bookTitles.GetValueOrDefault(bookId, string.Empty);
+            for (var i = 0; i < items.Length; i++)
+            {
+                items[i] = items[i] with
+                {
+                    BookTitle = bookTitle,
+                    MemberName = memberNames.GetValueOrDefault(items[i].MemberId, string.Empty)
+                };
+            }
+        }
+
+        return items;
     }
 
     public async Task<ReservationListItem[]> GetReservationsByMemberAsync(Guid memberId, CancellationToken ct)
     {
-        return await _dbContext.Reservations
+        var items = await _dbContext.Reservations
             .Where(x => x.MemberId == memberId)
             .OrderByDescending(x => x.CreatedAt)
             .Select(x => new ReservationListItem(
@@ -111,6 +160,24 @@ internal sealed class ReservationService : IReservationService
                 x.QueuePosition,
                 x.CreatedAt))
             .ToArrayAsync(ct);
+
+        if (items.Length > 0)
+        {
+            var bookIds = items.Select(x => x.BookId).Distinct();
+            var bookTitles = await _bookService.GetBookTitlesByIdsAsync(bookIds, ct);
+            var memberNames = await _memberService.GetMemberNamesByIdsAsync(new[] { memberId }, ct);
+            var memberName = memberNames.GetValueOrDefault(memberId, string.Empty);
+            for (var i = 0; i < items.Length; i++)
+            {
+                items[i] = items[i] with
+                {
+                    BookTitle = bookTitles.GetValueOrDefault(items[i].BookId, string.Empty),
+                    MemberName = memberName
+                };
+            }
+        }
+
+        return items;
     }
 
     public async Task<ReservationDetails> CreateReservationAsync(CreateReservationInput input, CancellationToken ct)

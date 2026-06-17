@@ -86,6 +86,7 @@ const pagination = reactive({
   itemCount: 0,
   showSizePicker: true,
   pageSizes: [10, 20, 50],
+  prefix: ({ itemCount }: { itemCount: number | undefined }) => `共 ${itemCount} 条`,
   onChange: (page: number) => {
     pagination.page = page
     fetchFines()
@@ -152,7 +153,7 @@ const columns: DataTableColumns<FineItem> = [
 const createForm = reactive({
   memberId: null as string | null,
   reason: 'Overdue' as string,
-  amount: 0
+  amount: null as number | null
 })
 
 const reasonOptions = [
@@ -217,8 +218,11 @@ async function searchMembers(query: string) {
 }
 
 async function handleCreate() {
-  const valid = await createFormRef.value?.validate()
-  if (!valid) return
+  try {
+    await createFormRef.value?.validate()
+  } catch {
+    return
+  }
 
   submitting.value = true
   try {

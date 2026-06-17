@@ -36,8 +36,10 @@ declare module 'vue' {
     NNumberAnimation: typeof import('naive-ui')['NNumberAnimation']
     NSelect: typeof import('naive-ui')['NSelect']
     NSpace: typeof import('naive-ui')['NSpace']
+    NSpin: typeof import('naive-ui')['NSpin']
     NStatistic: typeof import('naive-ui')['NStatistic']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
+    SelectorPopup: typeof import('./src/components/SelectorPopup.vue')['default']
   }
 }

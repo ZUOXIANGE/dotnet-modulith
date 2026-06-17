@@ -60,8 +60,11 @@ async function refreshCaptcha() {
 }
 
 async function handleLogin() {
-  const valid = await formRef.value?.validate()
-  if (!valid) return
+  try {
+    await formRef.value?.validate()
+  } catch {
+    return
+  }
 
   loading.value = true
   try {

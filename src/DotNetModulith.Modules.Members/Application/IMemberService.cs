@@ -12,4 +12,5 @@ public interface IMemberService
     Task ActivateMemberAsync(Guid memberId, CancellationToken ct);
     Task IncrementBorrowCountAsync(Guid memberId, CancellationToken ct);
     Task DecrementBorrowCountAsync(Guid memberId, CancellationToken ct);
+    Task<IReadOnlyDictionary<Guid, string>> GetMemberNamesByIdsAsync(IEnumerable<Guid> ids, CancellationToken ct);
 }

@@ -146,8 +146,11 @@ function resetForm() {
 }
 
 async function handleCreate() {
-  const valid = await formRef.value?.validate()
-  if (!valid) return
+  try {
+    await formRef.value?.validate()
+  } catch {
+    return
+  }
 
   submitting.value = true
   try {
@@ -182,8 +185,12 @@ function startEdit(row: CategoryItem) {
 }
 
 async function handleUpdate() {
-  const valid = await editFormRef.value?.validate()
-  if (!valid || !editingId.value) return
+  try {
+    await editFormRef.value?.validate()
+  } catch {
+    return
+  }
+  if (!editingId.value) return
 
   submitting.value = true
   try {

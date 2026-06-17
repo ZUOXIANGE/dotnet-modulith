@@ -211,4 +211,16 @@ internal sealed class BookService : IBookService
         entity.ReturnCopy(DateTimeOffset.UtcNow);
         await _dbContext.SaveChangesAsync(ct);
     }
+
+    public async Task<IReadOnlyDictionary<Guid, string>> GetBookTitlesByIdsAsync(IEnumerable<Guid> ids, CancellationToken ct)
+    {
+        var idSet = ids.ToHashSet();
+        if (idSet.Count == 0)
+            return new Dictionary<Guid, string>();
+
+        return await _dbContext.Books
+            .Where(x => idSet.Contains(x.Id))
+            .Select(x => new { x.Id, x.Title })
+            .ToDictionaryAsync(x => x.Id, x => x.Title, ct);
+    }
 }

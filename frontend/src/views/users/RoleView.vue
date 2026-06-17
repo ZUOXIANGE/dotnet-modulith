@@ -193,8 +193,11 @@ async function fetchPermissions() {
 }
 
 async function handleSubmit() {
-  const valid = await formRef.value?.validate()
-  if (!valid) return
+  try {
+    await formRef.value?.validate()
+  } catch {
+    return
+  }
 
   submitting.value = true
   try {

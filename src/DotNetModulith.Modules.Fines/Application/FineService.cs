@@ -25,7 +25,7 @@ internal sealed class FineService : IFineService
         if (!string.IsNullOrWhiteSpace(status) && Enum.TryParse<FineStatus>(status, true, out var fineStatus))
             query = query.Where(x => x.Status == fineStatus);
 
-        return await query
+        var items = await query
             .OrderByDescending(x => x.CreatedAt)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
@@ -40,6 +40,19 @@ internal sealed class FineService : IFineService
                 x.CreatedAt,
                 x.PaidAt))
             .ToArrayAsync(ct);
+
+        if (items.Length > 0)
+        {
+            var memberIds = items.Select(x => x.MemberId).Distinct();
+            var memberNames = await _memberService.GetMemberNamesByIdsAsync(memberIds, ct);
+            for (var i = 0; i < items.Length; i++)
+            {
+                var name = memberNames.GetValueOrDefault(items[i].MemberId, string.Empty);
+                items[i] = items[i] with { MemberName = name };
+            }
+        }
+
+        return items;
     }
 
     public async Task<int> GetFinesCountAsync(string? keyword, string? status, CancellationToken ct)
@@ -54,7 +67,7 @@ internal sealed class FineService : IFineService
 
     public async Task<FineDetails?> GetFineByIdAsync(Guid id, CancellationToken ct)
     {
-        return await _dbContext.Fines
+        var fine = await _dbContext.Fines
             .Where(x => x.Id == id)
             .Select(x => new FineDetails(
                 x.Id,
@@ -68,11 +81,19 @@ internal sealed class FineService : IFineService
                 x.PaidAt,
                 x.UpdatedAt))
             .FirstOrDefaultAsync(ct);
+
+        if (fine is not null)
+        {
+            var memberNames = await _memberService.GetMemberNamesByIdsAsync(new[] { fine.MemberId }, ct);
+            fine = fine with { MemberName = memberNames.GetValueOrDefault(fine.MemberId, string.Empty) };
+        }
+
+        return fine;
     }
 
     public async Task<FineListItem[]> GetFinesByMemberAsync(Guid memberId, CancellationToken ct)
     {
-        return await _dbContext.Fines
+        var items = await _dbContext.Fines
             .Where(x => x.MemberId == memberId)
             .OrderByDescending(x => x.CreatedAt)
             .Select(x => new FineListItem(
@@ -86,6 +107,18 @@ internal sealed class FineService : IFineService
                 x.CreatedAt,
                 x.PaidAt))
             .ToArrayAsync(ct);
+
+        if (items.Length > 0)
+        {
+            var memberNames = await _memberService.GetMemberNamesByIdsAsync(new[] { memberId }, ct);
+            var name = memberNames.GetValueOrDefault(memberId, string.Empty);
+            for (var i = 0; i < items.Length; i++)
+            {
+                items[i] = items[i] with { MemberName = name };
+            }
+        }
+
+        return items;
     }
 
     public async Task<FineDetails> CreateFineAsync(CreateFineInput input, CancellationToken ct)

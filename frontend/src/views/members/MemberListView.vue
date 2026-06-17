@@ -133,6 +133,7 @@ const pagination = reactive({
   itemCount: 0,
   showSizePicker: true,
   pageSizes: [10, 20, 50],
+  prefix: ({ itemCount }: { itemCount: number | undefined }) => `共 ${itemCount} 条`,
   onChange: (page: number) => {
     pagination.page = page
     fetchMembers()
@@ -273,8 +274,11 @@ function resetForm() {
 }
 
 async function handleCreate() {
-  const valid = await formRef.value?.validate()
-  if (!valid) return
+  try {
+    await formRef.value?.validate()
+  } catch {
+    return
+  }
 
   submitting.value = true
   try {
@@ -314,8 +318,12 @@ function startEdit(row: MemberItem) {
 }
 
 async function handleUpdate() {
-  const valid = await editFormRef.value?.validate()
-  if (!valid || !editingId.value) return
+  try {
+    await editFormRef.value?.validate()
+  } catch {
+    return
+  }
+  if (!editingId.value) return
 
   submitting.value = true
   try {

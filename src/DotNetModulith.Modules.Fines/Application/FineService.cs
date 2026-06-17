@@ -173,7 +173,7 @@ internal sealed class FineService : IFineService
 
     public async Task PayFineAsync(Guid fineId, CancellationToken ct)
     {
-        var entity = await _dbContext.Fines.FindAsync(new object[] { fineId }, ct);
+        var entity = await _dbContext.Fines.AsTracking().FirstOrDefaultAsync(x => x.Id == fineId, ct);
         if (entity is null)
             throw new BusinessException("fine not found", ApiCodes.Common.NotFound);
 
@@ -199,7 +199,7 @@ internal sealed class FineService : IFineService
 
     public async Task WaiveFineAsync(Guid fineId, CancellationToken ct)
     {
-        var entity = await _dbContext.Fines.FindAsync(new object[] { fineId }, ct);
+        var entity = await _dbContext.Fines.AsTracking().FirstOrDefaultAsync(x => x.Id == fineId, ct);
         if (entity is null)
             throw new BusinessException("fine not found", ApiCodes.Common.NotFound);
 

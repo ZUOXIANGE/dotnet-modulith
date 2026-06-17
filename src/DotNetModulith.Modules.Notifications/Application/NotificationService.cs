@@ -100,7 +100,7 @@ internal sealed class NotificationService : INotificationService
 
     public async Task MarkAsReadAsync(Guid notificationId, CancellationToken ct)
     {
-        var entity = await _dbContext.Notifications.FindAsync(new object[] { notificationId }, ct);
+        var entity = await _dbContext.Notifications.AsTracking().FirstOrDefaultAsync(x => x.Id == notificationId, ct);
         if (entity is null)
             throw new BusinessException("notification not found", ApiCodes.Common.NotFound);
 
@@ -111,6 +111,7 @@ internal sealed class NotificationService : INotificationService
     public async Task MarkAllAsReadAsync(string recipientId, CancellationToken ct)
     {
         var unread = await _dbContext.Notifications
+            .AsTracking()
             .Where(x => x.RecipientId == recipientId && !x.IsRead)
             .ToListAsync(ct);
 

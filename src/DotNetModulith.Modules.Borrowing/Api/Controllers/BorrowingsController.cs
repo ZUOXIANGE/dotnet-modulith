@@ -48,7 +48,7 @@ public sealed class BorrowingsController : ControllerBase
         return ApiResponse.Success(borrowing.ToResponse());
     }
 
-    [Authorize(Policy = BorrowingPermissions.BorrowingsManage)]
+    [Authorize(Policy = BorrowingPermissions.BorrowingsBorrow)]
     [HttpPost("borrow")]
     public async Task<ApiResponse<BorrowingDetailsResponse>> BorrowBook([FromBody] CreateBorrowingRequest request, CancellationToken ct)
     {
@@ -57,7 +57,7 @@ public sealed class BorrowingsController : ControllerBase
         return ApiResponse.Success(result.ToResponse());
     }
 
-    [Authorize(Policy = BorrowingPermissions.BorrowingsManage)]
+    [Authorize(Policy = BorrowingPermissions.BorrowingsReturn)]
     [HttpPost("{borrowingId:guid}/return")]
     public async Task<ApiResponse<BorrowingDetailsResponse>> ReturnBook(Guid borrowingId, [FromBody] ReturnBorrowingRequest request, CancellationToken ct)
     {
@@ -66,7 +66,7 @@ public sealed class BorrowingsController : ControllerBase
         return ApiResponse.Success(result.ToResponse());
     }
 
-    [Authorize(Policy = BorrowingPermissions.BorrowingsManage)]
+    [Authorize(Policy = BorrowingPermissions.BorrowingsRenew)]
     [HttpPost("{borrowingId:guid}/renew")]
     public async Task<ApiResponse<BorrowingDetailsResponse>> RenewBorrowing(Guid borrowingId, CancellationToken ct)
     {
@@ -74,7 +74,7 @@ public sealed class BorrowingsController : ControllerBase
         return ApiResponse.Success(result.ToResponse());
     }
 
-    [Authorize(Policy = BorrowingPermissions.BorrowingsManage)]
+    [Authorize(Policy = BorrowingPermissions.BorrowingsMarkLost)]
     [HttpPost("{borrowingId:guid}/lost")]
     public async Task<ApiResponse<BorrowingDetailsResponse>> MarkLost(Guid borrowingId, CancellationToken ct)
     {

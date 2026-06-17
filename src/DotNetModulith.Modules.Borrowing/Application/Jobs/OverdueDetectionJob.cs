@@ -36,6 +36,10 @@ public sealed class OverdueDetectionJob
         _options = options.Value;
     }
 
+    /// <summary>
+    /// 检测超期借阅记录。
+    /// 每 5 分钟运行一次。
+    /// </summary>
     [TickerFunction("Borrowing.OverdueDetection", cronExpression: "0 */5 * * * *")]
     public async Task ExecuteAsync(TickerFunctionContext context, CancellationToken cancellationToken)
     {

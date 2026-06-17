@@ -2,7 +2,7 @@
   <div class="page-container">
     <div class="page-header">
       <span>预约管理</span>
-      <n-button type="primary" v-if="hasPermission('reservation.manage')" @click="showCreateDialog = true">新建预约</n-button>
+      <n-button type="primary" v-if="hasPermission('reservation.create')" @click="showCreateDialog = true">新建预约</n-button>
     </div>
 
     <n-space vertical :size="16">
@@ -138,7 +138,7 @@ const columns: DataTableColumns<ReservationItem> = [
     key: 'actions',
     width: 160,
     render(row) {
-      if (!hasPermission('reservation.manage')) return null
+      if (!hasPermission('reservation.create')) return null
       if (row.status === 'Pending') {
         return h(NSpace, { size: 4 }, {
           default: () => [

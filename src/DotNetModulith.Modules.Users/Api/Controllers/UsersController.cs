@@ -48,7 +48,7 @@ public sealed class UsersController : ControllerBase
     /// <summary>
     /// 创建用户
     /// </summary>
-    [Authorize(Policy = UserPermissions.UsersManage)]
+    [Authorize(Policy = UserPermissions.UsersCreate)]
     [HttpPost]
     public async Task<ApiResponse<CurrentUserResponse>> CreateUser([FromBody] CreateUserRequest request, CancellationToken ct)
     {
@@ -62,7 +62,7 @@ public sealed class UsersController : ControllerBase
     /// <summary>
     /// 编辑用户基础资料
     /// </summary>
-    [Authorize(Policy = UserPermissions.UsersManage)]
+    [Authorize(Policy = UserPermissions.UsersEdit)]
     [HttpPut("{userId:guid}")]
     public async Task<ApiResponse<CurrentUserResponse>> UpdateUser(Guid userId, [FromBody] UpdateUserRequest request, CancellationToken ct)
     {
@@ -77,7 +77,7 @@ public sealed class UsersController : ControllerBase
     /// <summary>
     /// 分配用户角色
     /// </summary>
-    [Authorize(Policy = UserPermissions.UsersManage)]
+    [Authorize(Policy = UserPermissions.UsersAssignRoles)]
     [HttpPut("{userId:guid}/roles")]
     public async Task<ApiResponse<object?>> AssignRoles(Guid userId, [FromBody] AssignUserRolesRequest request, CancellationToken ct)
     {
@@ -88,7 +88,7 @@ public sealed class UsersController : ControllerBase
     /// <summary>
     /// 设置用户状态
     /// </summary>
-    [Authorize(Policy = UserPermissions.UsersManage)]
+    [Authorize(Policy = UserPermissions.UsersEdit)]
     [HttpPut("{userId:guid}/status")]
     public async Task<ApiResponse<object?>> SetUserStatus(Guid userId, [FromBody] SetUserStatusRequest request, CancellationToken ct)
     {
@@ -99,7 +99,7 @@ public sealed class UsersController : ControllerBase
     /// <summary>
     /// 强制用户登出
     /// </summary>
-    [Authorize(Policy = UserPermissions.UsersManage)]
+    [Authorize(Policy = UserPermissions.UsersAssignRoles)]
     [HttpPost("{userId:guid}/force-logout")]
     public async Task<ApiResponse<object?>> ForceLogout(Guid userId, [FromBody] ForceLogoutRequest request, CancellationToken ct)
     {
@@ -110,7 +110,7 @@ public sealed class UsersController : ControllerBase
     /// <summary>
     /// 重置用户密码
     /// </summary>
-    [Authorize(Policy = UserPermissions.UsersManage)]
+    [Authorize(Policy = UserPermissions.UsersEdit)]
     [HttpPost("{userId:guid}/reset-password")]
     public async Task<ApiResponse<object?>> ResetPassword(Guid userId, [FromBody] ResetPasswordRequest request, CancellationToken ct)
     {

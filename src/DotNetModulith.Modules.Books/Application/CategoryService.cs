@@ -116,7 +116,7 @@ internal sealed class CategoryService : ICategoryService
         if (hasBooks)
             throw new BusinessException("cannot delete category with books", ApiCodes.Common.ValidationFailed, 400);
 
-        var entity = await _dbContext.Categories.FindAsync([id], ct);
+        var entity = await _dbContext.Categories.AsTracking().FirstOrDefaultAsync(x => x.Id == id, ct);
         if (entity is null)
             throw new BusinessException("category not found", ApiCodes.Common.NotFound, 404);
 

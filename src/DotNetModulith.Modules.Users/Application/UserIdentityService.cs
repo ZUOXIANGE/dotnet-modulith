@@ -425,7 +425,7 @@ internal sealed class UserIdentityService : IUserIdentityService
     public Task<IReadOnlyList<PermissionDetails>> GetPermissionsAsync(CancellationToken cancellationToken)
     {
         IReadOnlyList<PermissionDetails> permissions = UserPermissions.Definitions
-            .Select(x => new PermissionDetails(x.Code, x.Name, x.Description))
+            .Select(x => new PermissionDetails(x.Code, x.Name, x.Group, x.Description))
             .ToArray();
 
         return Task.FromResult(permissions);

@@ -2,7 +2,7 @@
   <div class="page-container">
     <div class="page-header">
       <span>罚款管理</span>
-      <n-button type="primary" v-if="hasPermission('fines.manage')" @click="showCreateDialog = true">创建罚款</n-button>
+      <n-button type="primary" v-if="hasPermission('fines.create')" @click="showCreateDialog = true">创建罚款</n-button>
     </div>
 
     <n-space vertical :size="16">
@@ -141,7 +141,7 @@ const columns: DataTableColumns<FineItem> = [
     key: 'actions',
     width: 150,
     render(row) {
-      if (!hasPermission('fines.manage')) return null
+      if (!hasPermission('fines.create')) return null
       if (row.status === 'Unpaid') {
         return h(NSpace, {}, {
           default: () => [

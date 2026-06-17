@@ -26,7 +26,7 @@ public sealed class StorageController : ControllerBase
     /// <summary>
     /// 直传上传文件（文件经由 API 中转后写入对象存储）
     /// </summary>
-    [Authorize(Policy = PermissionCodes.StorageManage)]
+    [Authorize(Policy = PermissionCodes.StorageUpload)]
     [HttpPost("upload/direct")]
     [RequestSizeLimit(104857600)]
     public async Task<ApiResponse<DirectUploadResponse>> UploadDirect([FromForm] IFormFile file, [FromForm] string? objectKey, CancellationToken ct)
@@ -38,7 +38,7 @@ public sealed class StorageController : ControllerBase
     /// <summary>
     /// 生成签名上传地址（客户端使用 URL 直接 PUT 到对象存储）
     /// </summary>
-    [Authorize(Policy = PermissionCodes.StorageManage)]
+    [Authorize(Policy = PermissionCodes.StorageUpload)]
     [HttpPost("upload/presign")]
     public async Task<ApiResponse<PresignedUploadResponse>> CreatePresignedUpload([FromBody] CreatePresignedUploadRequest request, CancellationToken ct)
     {
@@ -49,7 +49,7 @@ public sealed class StorageController : ControllerBase
     /// <summary>
     /// 读取对象内容（仅用于本地联调和集成测试）
     /// </summary>
-    [Authorize(Policy = PermissionCodes.StorageManage)]
+    [Authorize(Policy = PermissionCodes.StorageView)]
     [HttpGet("objects/{*objectKey}")]
     public async Task<IActionResult> GetObject([FromRoute] string objectKey, CancellationToken ct)
     {

@@ -64,7 +64,7 @@ public sealed class ReservationsController : ControllerBase
         return ApiResponse.Success(items.Select(x => x.ToResponse()).ToArray());
     }
 
-    [Authorize(Policy = ReservationPermissions.ReservationsManage)]
+    [Authorize(Policy = ReservationPermissions.ReservationsCreate)]
     [HttpPost]
     public async Task<ApiResponse<ReservationDetailsResponse>> CreateReservation([FromBody] CreateReservationRequest request, CancellationToken ct)
     {
@@ -73,7 +73,7 @@ public sealed class ReservationsController : ControllerBase
         return ApiResponse.Success(result.ToResponse());
     }
 
-    [Authorize(Policy = ReservationPermissions.ReservationsManage)]
+    [Authorize(Policy = ReservationPermissions.ReservationsCancel)]
     [HttpDelete("{reservationId:guid}")]
     public async Task<ApiResponse<object?>> CancelReservation(Guid reservationId, CancellationToken ct)
     {
@@ -81,7 +81,7 @@ public sealed class ReservationsController : ControllerBase
         return ApiResponse.Success();
     }
 
-    [Authorize(Policy = ReservationPermissions.ReservationsManage)]
+    [Authorize(Policy = ReservationPermissions.ReservationsFulfill)]
     [HttpPost("fulfill-next")]
     public async Task<ApiResponse<ReservationDetailsResponse>> FulfillReservation([FromBody] FulfillReservationRequest request, CancellationToken ct)
     {

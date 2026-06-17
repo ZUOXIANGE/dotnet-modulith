@@ -184,7 +184,7 @@ internal sealed class BookService : IBookService
 
     public async Task DeleteBookAsync(Guid id, CancellationToken ct)
     {
-        var entity = await _dbContext.Books.FindAsync([id], ct);
+        var entity = await _dbContext.Books.AsTracking().FirstOrDefaultAsync(x => x.Id == id, ct);
         if (entity is null)
             throw new BusinessException("book not found", ApiCodes.Common.NotFound, 404);
 
@@ -194,7 +194,7 @@ internal sealed class BookService : IBookService
 
     public async Task BorrowBookAsync(Guid bookId, CancellationToken ct)
     {
-        var entity = await _dbContext.Books.FindAsync(new object[] { bookId }, ct);
+        var entity = await _dbContext.Books.AsTracking().FirstOrDefaultAsync(x => x.Id == bookId, ct);
         if (entity is null)
             throw new BusinessException("book not found", ApiCodes.Common.NotFound, 404);
 
@@ -204,7 +204,7 @@ internal sealed class BookService : IBookService
 
     public async Task ReturnBookAsync(Guid bookId, CancellationToken ct)
     {
-        var entity = await _dbContext.Books.FindAsync(new object[] { bookId }, ct);
+        var entity = await _dbContext.Books.AsTracking().FirstOrDefaultAsync(x => x.Id == bookId, ct);
         if (entity is null)
             throw new BusinessException("book not found", ApiCodes.Common.NotFound, 404);
 

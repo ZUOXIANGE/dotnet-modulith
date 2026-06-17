@@ -19,7 +19,7 @@ public sealed class CategoriesController : ControllerBase
         _categoryService = categoryService;
     }
 
-    [Authorize(Policy = BooksPermissions.BooksView)]
+    [Authorize(Policy = BooksPermissions.CategoriesView)]
     [HttpGet]
     public async Task<ApiResponse<IReadOnlyList<CategoryDetailsResponse>>> GetCategories(CancellationToken ct)
     {
@@ -27,7 +27,7 @@ public sealed class CategoriesController : ControllerBase
         return ApiResponse.Success<IReadOnlyList<CategoryDetailsResponse>>(categories.Select(x => x.ToResponse()).ToArray());
     }
 
-    [Authorize(Policy = BooksPermissions.BooksView)]
+    [Authorize(Policy = BooksPermissions.CategoriesView)]
     [HttpGet("{categoryId:guid}")]
     public async Task<ApiResponse<CategoryDetailsResponse>> GetCategory(Guid categoryId, CancellationToken ct)
     {
@@ -38,7 +38,7 @@ public sealed class CategoriesController : ControllerBase
         return ApiResponse.Success(category.ToResponse());
     }
 
-    [Authorize(Policy = BooksPermissions.CategoriesManage)]
+    [Authorize(Policy = BooksPermissions.CategoriesCreate)]
     [HttpPost]
     public async Task<ApiResponse<CategoryDetailsResponse>> CreateCategory([FromBody] CreateCategoryRequest request, CancellationToken ct)
     {
@@ -47,7 +47,7 @@ public sealed class CategoriesController : ControllerBase
         return ApiResponse.Success(category.ToResponse());
     }
 
-    [Authorize(Policy = BooksPermissions.CategoriesManage)]
+    [Authorize(Policy = BooksPermissions.CategoriesEdit)]
     [HttpPut("{categoryId:guid}")]
     public async Task<ApiResponse<CategoryDetailsResponse>> UpdateCategory(Guid categoryId, [FromBody] UpdateCategoryRequest request, CancellationToken ct)
     {
@@ -56,7 +56,7 @@ public sealed class CategoriesController : ControllerBase
         return ApiResponse.Success(category.ToResponse());
     }
 
-    [Authorize(Policy = BooksPermissions.CategoriesManage)]
+    [Authorize(Policy = BooksPermissions.CategoriesDelete)]
     [HttpDelete("{categoryId:guid}")]
     public async Task<ApiResponse<object?>> DeleteCategory(Guid categoryId, CancellationToken ct)
     {

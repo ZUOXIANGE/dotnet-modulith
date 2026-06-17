@@ -2,7 +2,7 @@
   <div class="page-container">
     <div class="page-header">
       <span>角色管理</span>
-      <n-button type="primary" v-if="hasPermission('roles.manage')" @click="openCreateDialog">新增角色</n-button>
+      <n-button type="primary" v-if="hasPermission('roles.create')" @click="openCreateDialog">新增角色</n-button>
     </div>
 
     <n-space vertical :size="16">
@@ -28,16 +28,20 @@
         </n-form-item>
         <n-form-item label="角色权限" path="permissions">
           <n-checkbox-group v-model:value="form.permissions">
-            <n-grid :cols="2" :x-gap="16" :y-gap="4">
-              <n-gi v-for="p in permissionItems" :key="p.code">
-                <n-checkbox :value="p.code">
-                  <n-space align="center" :size="4">
-                    <span>{{ p.name }}</span>
-                    <n-tag :bordered="false" size="tiny" type="default">{{ p.code }}</n-tag>
-                  </n-space>
-                </n-checkbox>
-              </n-gi>
-            </n-grid>
+            <n-collapse>
+              <n-collapse-item v-for="group in permissionGroups" :key="group.name" :title="`${group.name} (${group.count})`">
+                <n-grid :cols="2" :x-gap="16" :y-gap="4">
+                  <n-gi v-for="p in group.items" :key="p.code">
+                    <n-checkbox :value="p.code">
+                      <n-space align="center" :size="4">
+                        <span>{{ p.name }}</span>
+                        <n-tag :bordered="false" size="tiny" type="default">{{ p.code }}</n-tag>
+                      </n-space>
+                    </n-checkbox>
+                  </n-gi>
+                </n-grid>
+              </n-collapse-item>
+            </n-collapse>
           </n-checkbox-group>
         </n-form-item>
       </n-form>
@@ -52,8 +56,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, h } from 'vue'
-import { useMessage, type FormInst, type FormRules, type DataTableColumns, NButton, NSpace, NTag, NCheckbox, NCheckboxGroup, NGrid, NGi } from 'naive-ui'
+import { ref, reactive, onMounted, h, computed } from 'vue'
+import { useMessage, type FormInst, type FormRules, type DataTableColumns, NButton, NSpace, NTag, NCheckbox, NCheckboxGroup, NGrid, NGi, NCollapse, NCollapseItem } from 'naive-ui'
 import { api } from '@/utils/api'
 import { usePermission } from '@/composables/usePermission'
 
@@ -68,6 +72,7 @@ interface RoleItem {
 interface PermissionItem {
   code: string
   name: string
+  group: string
   description: string
 }
 
@@ -81,6 +86,21 @@ const editingId = ref<string | null>(null)
 
 const roles = ref<RoleItem[]>([])
 const permissionItems = ref<PermissionItem[]>([])
+
+const permissionGroups = computed(() => {
+  const groups: { name: string; items: PermissionItem[]; count: number }[] = []
+  const seen = new Set<string>()
+  for (const item of permissionItems.value) {
+    if (!seen.has(item.group)) {
+      seen.add(item.group)
+      groups.push({ name: item.group, items: [], count: 0 })
+    }
+    const group = groups.find(g => g.name === item.group)!
+    group.items.push(item)
+    group.count++
+  }
+  return groups
+})
 
 const form = reactive({
   name: '',
@@ -138,7 +158,7 @@ const columns: DataTableColumns<RoleItem> = [
     key: 'actions',
     width: 120,
     render(row) {
-      if (row.isSystem || !hasPermission('roles.manage')) return '-'
+      if (row.isSystem || !hasPermission('roles.edit')) return '-'
       return h(NSpace, { size: 4 }, {
         default: () => [
           h(NButton, { size: 'small', onClick: () => openEditDialog(row) }, { default: () => '编辑' })

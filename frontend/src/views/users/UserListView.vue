@@ -2,7 +2,7 @@
   <div class="page-container">
     <div class="page-header">
       <span>用户管理</span>
-      <n-button type="primary" v-if="hasPermission('users.manage')" @click="showCreateDialog = true">新增用户</n-button>
+      <n-button type="primary" v-if="hasPermission('users.create')" @click="showCreateDialog = true">新增用户</n-button>
     </div>
 
     <n-space vertical :size="16">
@@ -158,7 +158,7 @@ const columns: DataTableColumns<UserItem> = [
     key: 'actions',
     width: 280,
     render(row) {
-      if (!hasPermission('users.manage')) return null
+      if (!hasPermission('users.create')) return null
       const buttons = [
         h(NButton, { size: 'small', onClick: () => startEdit(row) }, { default: () => '编辑' }),
         h(NButton, { size: 'small', onClick: () => startAssignRoles(row) }, { default: () => '角色' })

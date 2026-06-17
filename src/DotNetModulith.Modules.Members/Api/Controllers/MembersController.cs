@@ -49,7 +49,7 @@ public sealed class MembersController : ControllerBase
         return ApiResponse.Success(member.ToResponse());
     }
 
-    [Authorize(Policy = MembersPermissions.MembersManage)]
+    [Authorize(Policy = MembersPermissions.MembersCreate)]
     [HttpPost]
     public async Task<ApiResponse<MemberDetailsResponse>> CreateMember([FromBody] CreateMemberRequest request, CancellationToken ct)
     {
@@ -66,7 +66,7 @@ public sealed class MembersController : ControllerBase
         return ApiResponse.Success(member.ToResponse());
     }
 
-    [Authorize(Policy = MembersPermissions.MembersManage)]
+    [Authorize(Policy = MembersPermissions.MembersEdit)]
     [HttpPut("{memberId:guid}")]
     public async Task<ApiResponse<MemberDetailsResponse>> UpdateMember(Guid memberId, [FromBody] UpdateMemberRequest request, CancellationToken ct)
     {
@@ -82,7 +82,7 @@ public sealed class MembersController : ControllerBase
         return ApiResponse.Success(member.ToResponse());
     }
 
-    [Authorize(Policy = MembersPermissions.MembersManage)]
+    [Authorize(Policy = MembersPermissions.MembersDelete)]
     [HttpDelete("{memberId:guid}")]
     public async Task<ApiResponse<object?>> DeleteMember(Guid memberId, CancellationToken ct)
     {
@@ -90,7 +90,7 @@ public sealed class MembersController : ControllerBase
         return ApiResponse.Success();
     }
 
-    [Authorize(Policy = MembersPermissions.MembersManage)]
+    [Authorize(Policy = MembersPermissions.MembersEdit)]
     [HttpPost("{memberId:guid}/suspend")]
     public async Task<ApiResponse<object?>> SuspendMember(Guid memberId, CancellationToken ct)
     {
@@ -98,7 +98,7 @@ public sealed class MembersController : ControllerBase
         return ApiResponse.Success();
     }
 
-    [Authorize(Policy = MembersPermissions.MembersManage)]
+    [Authorize(Policy = MembersPermissions.MembersEdit)]
     [HttpPost("{memberId:guid}/activate")]
     public async Task<ApiResponse<object?>> ActivateMember(Guid memberId, CancellationToken ct)
     {

@@ -180,7 +180,7 @@ internal sealed class BorrowingService : IBorrowingService
 
     public async Task<BorrowingDetails> ReturnBookAsync(Guid borrowingId, ReturnBorrowingInput input, CancellationToken ct)
     {
-        var entity = await _dbContext.BorrowingRecords.FindAsync(new object[] { borrowingId }, ct);
+        var entity = await _dbContext.BorrowingRecords.AsTracking().FirstOrDefaultAsync(x => x.Id == borrowingId, ct);
         if (entity is null)
             throw new BusinessException("borrowing record not found", ApiCodes.Common.NotFound);
 
@@ -232,7 +232,7 @@ internal sealed class BorrowingService : IBorrowingService
 
     public async Task<BorrowingDetails> RenewBorrowingAsync(Guid borrowingId, CancellationToken ct)
     {
-        var entity = await _dbContext.BorrowingRecords.FindAsync(new object[] { borrowingId }, ct);
+        var entity = await _dbContext.BorrowingRecords.AsTracking().FirstOrDefaultAsync(x => x.Id == borrowingId, ct);
         if (entity is null)
             throw new BusinessException("borrowing record not found", ApiCodes.Common.NotFound);
 
@@ -263,7 +263,7 @@ internal sealed class BorrowingService : IBorrowingService
 
     public async Task<BorrowingDetails> MarkLostAsync(Guid borrowingId, CancellationToken ct)
     {
-        var entity = await _dbContext.BorrowingRecords.FindAsync(new object[] { borrowingId }, ct);
+        var entity = await _dbContext.BorrowingRecords.AsTracking().FirstOrDefaultAsync(x => x.Id == borrowingId, ct);
         if (entity is null)
             throw new BusinessException("borrowing record not found", ApiCodes.Common.NotFound);
 

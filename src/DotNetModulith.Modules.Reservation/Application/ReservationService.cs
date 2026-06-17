@@ -246,7 +246,7 @@ internal sealed class ReservationService : IReservationService
 
     public async Task CancelReservationAsync(Guid reservationId, CancellationToken ct)
     {
-        var entity = await _dbContext.Reservations.FindAsync(new object[] { reservationId }, ct);
+        var entity = await _dbContext.Reservations.AsTracking().FirstOrDefaultAsync(x => x.Id == reservationId, ct);
         if (entity is null)
             throw new BusinessException("reservation not found", ApiCodes.Common.NotFound);
 
@@ -257,6 +257,7 @@ internal sealed class ReservationService : IReservationService
     public async Task<ReservationDetails?> FulfillNextReservationAsync(Guid bookId, CancellationToken ct)
     {
         var next = await _dbContext.Reservations
+            .AsTracking()
             .Where(x => x.BookId == bookId && x.Status == ReservationStatus.Pending)
             .OrderBy(x => x.QueuePosition)
             .FirstOrDefaultAsync(ct);

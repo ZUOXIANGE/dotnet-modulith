@@ -57,7 +57,7 @@ public sealed class NotificationsController : ControllerBase
         return ApiResponse.Success(notification.ToResponse());
     }
 
-    [Authorize(Policy = NotificationPermissions.NotificationsManage)]
+    [Authorize(Policy = NotificationPermissions.NotificationsCreate)]
     [HttpPost]
     public async Task<ApiResponse<NotificationDetailsResponse>> CreateNotification([FromBody] CreateNotificationRequest request, CancellationToken ct)
     {

@@ -2,7 +2,7 @@
   <div class="page-container">
     <div class="page-header">
       <span>分类管理</span>
-      <n-button type="primary" v-if="hasPermission('categories.manage')" @click="showCreateDialog = true">新增分类</n-button>
+      <n-button type="primary" v-if="hasPermission('categories.create')" @click="showCreateDialog = true">新增分类</n-button>
     </div>
 
     <n-card>
@@ -97,7 +97,7 @@ const columns: DataTableColumns<CategoryItem> = [
     key: 'actions',
     width: 160,
     render(row) {
-      if (!hasPermission('categories.manage')) return null
+      if (!hasPermission('categories.create')) return null
       return h(NSpace, {}, {
         default: () => [
           h(NButton, { size: 'small', onClick: () => startEdit(row) }, { default: () => '编辑' }),

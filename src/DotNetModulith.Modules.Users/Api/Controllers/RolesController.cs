@@ -37,7 +37,7 @@ public sealed class RolesController : ControllerBase
     /// <summary>
     /// 创建角色
     /// </summary>
-    [Authorize(Policy = UserPermissions.RolesManage)]
+    [Authorize(Policy = UserPermissions.RolesCreate)]
     [HttpPost]
     public async Task<ApiResponse<RoleResponse>> CreateRole([FromBody] CreateRoleRequest request, CancellationToken ct)
     {
@@ -48,7 +48,7 @@ public sealed class RolesController : ControllerBase
     /// <summary>
     /// 更新角色
     /// </summary>
-    [Authorize(Policy = UserPermissions.RolesManage)]
+    [Authorize(Policy = UserPermissions.RolesEdit)]
     [HttpPut("{roleId:guid}")]
     public async Task<ApiResponse<RoleResponse>> UpdateRole(Guid roleId, [FromBody] UpdateRoleRequest request, CancellationToken ct)
     {
@@ -59,7 +59,7 @@ public sealed class RolesController : ControllerBase
     /// <summary>
     /// 更新角色权限
     /// </summary>
-    [Authorize(Policy = UserPermissions.RolesManage)]
+    [Authorize(Policy = UserPermissions.RolesEdit)]
     [HttpPut("{roleId:guid}/permissions")]
     public async Task<ApiResponse<object?>> UpdatePermissions(Guid roleId, [FromBody] UpdateRolePermissionsRequest request, CancellationToken ct)
     {

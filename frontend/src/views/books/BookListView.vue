@@ -2,7 +2,7 @@
   <div class="page-container">
     <div class="page-header">
       <span>图书管理</span>
-      <n-button type="primary" v-if="hasPermission('books.manage')" @click="showCreateDialog = true">新增图书</n-button>
+      <n-button type="primary" v-if="hasPermission('books.create')" @click="showCreateDialog = true">新增图书</n-button>
     </div>
 
     <n-space vertical :size="16">
@@ -161,7 +161,7 @@ const columns: DataTableColumns<BookItem> = [
     key: 'actions',
     width: 160,
     render(row) {
-      if (!hasPermission('books.manage')) return null
+      if (!hasPermission('books.create')) return null
       return h(NSpace, {}, {
         default: () => [
           h(NButton, { size: 'small', onClick: () => startEdit(row) }, { default: () => '编辑' }),

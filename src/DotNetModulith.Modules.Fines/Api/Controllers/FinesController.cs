@@ -56,8 +56,8 @@ public sealed class FinesController : ControllerBase
         return ApiResponse.Success(items.Select(x => x.ToResponse()).ToArray());
     }
 
-    [Authorize(Policy = FinePermissions.FinesManage)]
-    [HttpPost]
+    [Authorize(Policy = FinePermissions.FinesCreate)]
+    [HttpPost("create")]
     public async Task<ApiResponse<FineDetailsResponse>> CreateFine([FromBody] CreateFineRequest request, CancellationToken ct)
     {
         var input = new CreateFineInput(request.MemberId, request.BorrowingRecordId, request.Amount, request.Reason);
@@ -65,7 +65,7 @@ public sealed class FinesController : ControllerBase
         return ApiResponse.Success(result.ToResponse());
     }
 
-    [Authorize(Policy = FinePermissions.FinesManage)]
+    [Authorize(Policy = FinePermissions.FinesPay)]
     [HttpPost("{fineId:guid}/pay")]
     public async Task<ApiResponse<object?>> PayFine(Guid fineId, CancellationToken ct)
     {
@@ -73,7 +73,7 @@ public sealed class FinesController : ControllerBase
         return ApiResponse.Success();
     }
 
-    [Authorize(Policy = FinePermissions.FinesManage)]
+    [Authorize(Policy = FinePermissions.FinesWaive)]
     [HttpPost("{fineId:guid}/waive")]
     public async Task<ApiResponse<object?>> WaiveFine(Guid fineId, CancellationToken ct)
     {

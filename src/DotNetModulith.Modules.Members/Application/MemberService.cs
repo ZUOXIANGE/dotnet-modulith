@@ -122,7 +122,7 @@ internal sealed class MemberService : IMemberService
 
     public async Task<MemberDetails> UpdateMemberAsync(Guid memberId, UpdateMemberInput input, CancellationToken ct)
     {
-        var entity = await _dbContext.Members.FindAsync(new object[] { memberId }, ct);
+        var entity = await _dbContext.Members.AsTracking().FirstOrDefaultAsync(x => x.Id == memberId, ct);
         if (entity is null)
             throw new BusinessException("member not found", ApiCodes.Common.NotFound);
 
@@ -154,7 +154,7 @@ internal sealed class MemberService : IMemberService
 
     public async Task DeleteMemberAsync(Guid memberId, CancellationToken ct)
     {
-        var entity = await _dbContext.Members.FindAsync(new object[] { memberId }, ct);
+        var entity = await _dbContext.Members.AsTracking().FirstOrDefaultAsync(x => x.Id == memberId, ct);
         if (entity is null)
             throw new BusinessException("member not found", ApiCodes.Common.NotFound);
 
@@ -164,7 +164,7 @@ internal sealed class MemberService : IMemberService
 
     public async Task SuspendMemberAsync(Guid memberId, CancellationToken ct)
     {
-        var entity = await _dbContext.Members.FindAsync(new object[] { memberId }, ct);
+        var entity = await _dbContext.Members.AsTracking().FirstOrDefaultAsync(x => x.Id == memberId, ct);
         if (entity is null)
             throw new BusinessException("member not found", ApiCodes.Common.NotFound);
 
@@ -174,7 +174,7 @@ internal sealed class MemberService : IMemberService
 
     public async Task ActivateMemberAsync(Guid memberId, CancellationToken ct)
     {
-        var entity = await _dbContext.Members.FindAsync(new object[] { memberId }, ct);
+        var entity = await _dbContext.Members.AsTracking().FirstOrDefaultAsync(x => x.Id == memberId, ct);
         if (entity is null)
             throw new BusinessException("member not found", ApiCodes.Common.NotFound);
 
@@ -184,7 +184,7 @@ internal sealed class MemberService : IMemberService
 
     public async Task IncrementBorrowCountAsync(Guid memberId, CancellationToken ct)
     {
-        var entity = await _dbContext.Members.FindAsync(new object[] { memberId }, ct);
+        var entity = await _dbContext.Members.AsTracking().FirstOrDefaultAsync(x => x.Id == memberId, ct);
         if (entity is null)
             throw new BusinessException("member not found", ApiCodes.Common.NotFound);
 
@@ -194,7 +194,7 @@ internal sealed class MemberService : IMemberService
 
     public async Task DecrementBorrowCountAsync(Guid memberId, CancellationToken ct)
     {
-        var entity = await _dbContext.Members.FindAsync(new object[] { memberId }, ct);
+        var entity = await _dbContext.Members.AsTracking().FirstOrDefaultAsync(x => x.Id == memberId, ct);
         if (entity is null)
             throw new BusinessException("member not found", ApiCodes.Common.NotFound);
 

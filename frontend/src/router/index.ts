@@ -32,7 +32,7 @@ const router = createRouter({
           path: 'categories',
           name: 'Categories',
           component: () => import('@/views/books/CategoryView.vue'),
-          meta: { title: '分类管理', requiresAuth: true, permission: 'categories.manage' }
+          meta: { title: '分类管理', requiresAuth: true, permission: 'categories.view' }
         },
         {
           path: 'members',

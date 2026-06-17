@@ -104,7 +104,7 @@ const allMenuOptions: MenuOption[] = [
     permission: 'books.view',
     children: [
       { label: '图书列表', key: 'books', permission: 'books.view' },
-      { label: '分类管理', key: 'categories', permission: 'categories.manage' }
+      { label: '分类管理', key: 'categories', permission: 'categories.view' }
     ]
   },
   { label: '读者管理', key: 'members', icon: renderIcon(PeopleOutline), permission: 'members.view' },

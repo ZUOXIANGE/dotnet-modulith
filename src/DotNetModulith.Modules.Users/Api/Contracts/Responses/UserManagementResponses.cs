@@ -33,4 +33,4 @@ public sealed record RoleResponse(Guid Id, string Name, string? Description, boo
 /// <summary>
 /// 权限响应
 /// </summary>
-public sealed record PermissionResponse(string Code, string Name, string Description);
+public sealed record PermissionResponse(string Code, string Name, string Group, string Description);

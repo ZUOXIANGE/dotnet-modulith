@@ -2,7 +2,7 @@
   <div class="page-container">
     <div class="page-header">
       <span>借还管理</span>
-      <n-button type="primary" v-if="hasPermission('borrowing.operate')" @click="showBorrowDialog = true">借阅图书</n-button>
+      <n-button type="primary" v-if="hasPermission('borrowing.borrow')" @click="showBorrowDialog = true">借阅图书</n-button>
     </div>
 
     <n-space vertical :size="16">
@@ -142,7 +142,7 @@ const columns: DataTableColumns<BorrowingItem> = [
     key: 'actions',
     width: 180,
     render(row) {
-      if (!hasPermission('borrowing.operate')) return null
+      if (!hasPermission('borrowing.borrow')) return null
       if (row.status === 'Borrowed' || row.status === 'Overdue') {
         return h(NSpace, {}, {
           default: () => [

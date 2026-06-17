@@ -49,7 +49,7 @@ public sealed class BooksController : ControllerBase
         return ApiResponse.Success(book.ToResponse());
     }
 
-    [Authorize(Policy = BooksPermissions.BooksManage)]
+    [Authorize(Policy = BooksPermissions.BooksCreate)]
     [HttpPost]
     public async Task<ApiResponse<BookDetailsResponse>> CreateBook([FromBody] CreateBookRequest request, CancellationToken ct)
     {
@@ -68,7 +68,7 @@ public sealed class BooksController : ControllerBase
         return ApiResponse.Success(book.ToResponse());
     }
 
-    [Authorize(Policy = BooksPermissions.BooksManage)]
+    [Authorize(Policy = BooksPermissions.BooksEdit)]
     [HttpPut("{bookId:guid}")]
     public async Task<ApiResponse<BookDetailsResponse>> UpdateBook(Guid bookId, [FromBody] UpdateBookRequest request, CancellationToken ct)
     {
@@ -87,7 +87,7 @@ public sealed class BooksController : ControllerBase
         return ApiResponse.Success(book.ToResponse());
     }
 
-    [Authorize(Policy = BooksPermissions.BooksManage)]
+    [Authorize(Policy = BooksPermissions.BooksDelete)]
     [HttpDelete("{bookId:guid}")]
     public async Task<ApiResponse<object?>> DeleteBook(Guid bookId, CancellationToken ct)
     {

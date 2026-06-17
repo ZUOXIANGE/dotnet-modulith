@@ -75,6 +75,12 @@ const router = createRouter({
           name: 'Roles',
           component: () => import('@/views/users/RoleView.vue'),
           meta: { title: '角色管理', requiresAuth: true, permission: 'roles.view' }
+        },
+        {
+          path: 'notifications',
+          name: 'Notifications',
+          component: () => import('@/views/notifications/NotificationsListView.vue'),
+          meta: { title: '消息通知', requiresAuth: true, permission: 'notifications.view' }
         }
       ]
     }

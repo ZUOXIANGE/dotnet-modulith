@@ -15,7 +15,7 @@ public sealed class ReservationModule : IModule
 
     public IReadOnlyList<string> PublishedEvents => [nameof(ReservationAvailableIntegrationEvent), nameof(ReservationExpiredIntegrationEvent)];
 
-    public IReadOnlyList<string> SubscribedEvents => [];
+    public IReadOnlyList<string> SubscribedEvents => [nameof(BookReturnedIntegrationEvent)];
 
     public IServiceCollection AddModuleServices(IServiceCollection services, IConfiguration configuration)
     {

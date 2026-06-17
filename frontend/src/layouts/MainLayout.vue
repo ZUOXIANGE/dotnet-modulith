@@ -78,7 +78,8 @@ import {
   BarChartOutline,
   PersonOutline,
   ShieldCheckmarkOutline,
-  PricetagsOutline
+  PricetagsOutline,
+  NotificationsOutline
 } from '@vicons/ionicons5'
 import { useAuthStore } from '@/stores/auth'
 import { usePermission } from '@/composables/usePermission'
@@ -118,6 +119,7 @@ const allMenuOptions: MenuOption[] = [
     ]
   },
   { label: '罚款管理', key: 'fines', icon: renderIcon(CashOutline), permission: 'fines.view' },
+  { label: '消息通知', key: 'notifications', icon: renderIcon(NotificationsOutline), permission: 'notifications.view' },
   { label: '统计报表', key: 'reports', icon: renderIcon(BarChartOutline), permission: 'reports.view' },
   {
     label: '系统管理',
@@ -162,6 +164,7 @@ const activeKey = computed(() => {
   if (path.startsWith('/borrowing')) return 'borrowing'
   if (path.startsWith('/reservations')) return 'reservations'
   if (path.startsWith('/fines')) return 'fines'
+  if (path.startsWith('/notifications')) return 'notifications'
   if (path.startsWith('/reports')) return 'reports'
   if (path.startsWith('/users')) return 'users'
   if (path.startsWith('/roles')) return 'roles'

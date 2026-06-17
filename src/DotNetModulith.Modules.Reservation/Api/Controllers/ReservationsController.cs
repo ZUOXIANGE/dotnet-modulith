@@ -80,4 +80,15 @@ public sealed class ReservationsController : ControllerBase
         await _reservationService.CancelReservationAsync(reservationId, ct);
         return ApiResponse.Success();
     }
+
+    [Authorize(Policy = ReservationPermissions.ReservationsManage)]
+    [HttpPost("fulfill-next")]
+    public async Task<ApiResponse<ReservationDetailsResponse>> FulfillReservation([FromBody] FulfillReservationRequest request, CancellationToken ct)
+    {
+        var result = await _reservationService.FulfillNextReservationAsync(request.BookId, ct);
+        if (result is null)
+            return ApiResponse.Failure<ReservationDetailsResponse>("no pending reservation found for this book", ApiCodes.Common.NotFound);
+
+        return ApiResponse.Success(result.ToResponse());
+    }
 }

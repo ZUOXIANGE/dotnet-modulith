@@ -136,11 +136,16 @@ const columns: DataTableColumns<ReservationItem> = [
   {
     title: '操作',
     key: 'actions',
-    width: 100,
+    width: 160,
     render(row) {
       if (!hasPermission('reservation.manage')) return null
       if (row.status === 'Pending') {
-        return h(NButton, { size: 'small', type: 'error', onClick: () => handleCancel(row) }, { default: () => '取消预约' })
+        return h(NSpace, { size: 4 }, {
+          default: () => [
+            h(NButton, { size: 'small', type: 'primary', onClick: () => handleFulfill(row) }, { default: () => '履约' }),
+            h(NButton, { size: 'small', type: 'error', onClick: () => handleCancel(row) }, { default: () => '取消' })
+          ]
+        })
       }
       return null
     }
@@ -237,6 +242,16 @@ function handleCancel(row: ReservationItem) {
       }
     }
   })
+}
+
+async function handleFulfill(row: ReservationItem) {
+  const res = await api.post('/reservations/fulfill-next', { bookId: row.bookId })
+  if (res.code === 200) {
+    message.success(`已履约《${row.bookTitle}》的预约，请通知读者到馆借阅`)
+    fetchReservations()
+  } else {
+    message.error(res.msg || '履约失败')
+  }
 }
 
 onMounted(() => {

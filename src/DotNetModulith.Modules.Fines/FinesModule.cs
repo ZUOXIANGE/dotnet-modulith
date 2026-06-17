@@ -1,3 +1,4 @@
+using DotNetModulith.Abstractions.Events;
 using DotNetModulith.ModulithCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -12,9 +13,9 @@ public sealed class FinesModule : IModule
 
     public IReadOnlyList<string> Dependencies => ["Members"];
 
-    public IReadOnlyList<string> PublishedEvents => [];
+    public IReadOnlyList<string> PublishedEvents => [nameof(FineCreatedIntegrationEvent), nameof(FinePaidIntegrationEvent)];
 
-    public IReadOnlyList<string> SubscribedEvents => [];
+    public IReadOnlyList<string> SubscribedEvents => [nameof(BookOverdueIntegrationEvent)];
 
     public IServiceCollection AddModuleServices(IServiceCollection services, IConfiguration configuration)
     {

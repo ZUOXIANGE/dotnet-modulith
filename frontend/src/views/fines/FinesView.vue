@@ -2,7 +2,7 @@
   <div class="page-container">
     <div class="page-header">
       <span>罚款管理</span>
-      <n-button type="primary" @click="showCreateDialog = true">创建罚款</n-button>
+      <n-button type="primary" v-if="hasPermission('fines.manage')" @click="showCreateDialog = true">创建罚款</n-button>
     </div>
 
     <n-space vertical :size="16">
@@ -53,6 +53,7 @@
 import { ref, reactive, onMounted, h } from 'vue'
 import { useMessage, useDialog, type FormInst, type FormRules, type DataTableColumns, NButton, NSpace, NTag } from 'naive-ui'
 import { api } from '@/utils/api'
+import { usePermission } from '@/composables/usePermission'
 import SelectorPopup from '@/components/SelectorPopup.vue'
 
 interface FineItem {
@@ -69,6 +70,7 @@ interface FineItem {
 
 const message = useMessage()
 const dialog = useDialog()
+const { hasPermission } = usePermission()
 const loading = ref(false)
 const submitting = ref(false)
 const showCreateDialog = ref(false)
@@ -139,6 +141,7 @@ const columns: DataTableColumns<FineItem> = [
     key: 'actions',
     width: 150,
     render(row) {
+      if (!hasPermission('fines.manage')) return null
       if (row.status === 'Unpaid') {
         return h(NSpace, {}, {
           default: () => [

@@ -1,4 +1,5 @@
 using DotNetModulith.Modules.Borrowing.Application;
+using DotNetModulith.Modules.Borrowing.Application.Jobs;
 using DotNetModulith.Modules.Borrowing.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -28,6 +29,8 @@ public static class BorrowingServiceCollectionExtensions
     public static IServiceCollection AddBorrowingApplication(this IServiceCollection services, IConfiguration configuration)
     {
         services.AddScoped<IBorrowingService, BorrowingService>();
+        services.AddScoped<OverdueDetectionJob>();
+        services.Configure<OverdueDetectionOptions>(configuration.GetSection(OverdueDetectionOptions.SectionName));
 
         return services;
     }

@@ -1,3 +1,4 @@
+using DotNetModulith.Abstractions.Events;
 using DotNetModulith.ModulithCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -12,7 +13,7 @@ public sealed class ReservationModule : IModule
 
     public IReadOnlyList<string> Dependencies => ["Books", "Members"];
 
-    public IReadOnlyList<string> PublishedEvents => [];
+    public IReadOnlyList<string> PublishedEvents => [nameof(ReservationAvailableIntegrationEvent), nameof(ReservationExpiredIntegrationEvent)];
 
     public IReadOnlyList<string> SubscribedEvents => [];
 

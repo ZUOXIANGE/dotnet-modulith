@@ -1,4 +1,5 @@
 using DotNetModulith.Modules.Fines.Application;
+using DotNetModulith.Modules.Fines.Application.Subscribers;
 using DotNetModulith.Modules.Fines.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -28,6 +29,8 @@ public static class FinesServiceCollectionExtensions
     public static IServiceCollection AddFinesApplication(this IServiceCollection services, IConfiguration configuration)
     {
         services.AddScoped<IFineService, FineService>();
+        services.AddScoped<OverdueFineSubscriber>();
+        services.Configure<OverdueFineOptions>(configuration.GetSection(OverdueFineOptions.SectionName));
 
         return services;
     }

@@ -40,9 +40,12 @@ public static class Extensions
             .ValidateDataAnnotations()
             .Validate(options =>
                 {
-                    if (!options.Enabled) return true;
-                    if (string.IsNullOrWhiteSpace(options.UserEmail)) return false;
-                    if (string.IsNullOrWhiteSpace(options.UserPassword)) return false;
+                    if (!options.Enabled)
+                        return true;
+                    if (string.IsNullOrWhiteSpace(options.UserEmail))
+                        return false;
+                    if (string.IsNullOrWhiteSpace(options.UserPassword))
+                        return false;
                     return Uri.TryCreate(options.Endpoint, UriKind.Absolute, out _);
                 }, "When OpenObserve is enabled, UserEmail, UserPassword, and a valid Endpoint URI are required.")
             .ValidateOnStart();

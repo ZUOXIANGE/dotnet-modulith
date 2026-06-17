@@ -2,7 +2,7 @@
   <div class="page-container">
     <div class="page-header">
       <span>分类管理</span>
-      <n-button type="primary" @click="showCreateDialog = true">新增分类</n-button>
+      <n-button type="primary" v-if="hasPermission('categories.manage')" @click="showCreateDialog = true">新增分类</n-button>
     </div>
 
     <n-card>
@@ -61,6 +61,7 @@
 import { ref, reactive, onMounted, h } from 'vue'
 import { useMessage, useDialog, type FormInst, type FormRules, type DataTableColumns, NButton, NSpace } from 'naive-ui'
 import { api } from '@/utils/api'
+import { usePermission } from '@/composables/usePermission'
 
 interface CategoryItem {
   id: string
@@ -74,6 +75,7 @@ interface CategoryItem {
 
 const message = useMessage()
 const dialog = useDialog()
+const { hasPermission } = usePermission()
 const loading = ref(false)
 const submitting = ref(false)
 const showCreateDialog = ref(false)
@@ -95,6 +97,7 @@ const columns: DataTableColumns<CategoryItem> = [
     key: 'actions',
     width: 160,
     render(row) {
+      if (!hasPermission('categories.manage')) return null
       return h(NSpace, {}, {
         default: () => [
           h(NButton, { size: 'small', onClick: () => startEdit(row) }, { default: () => '编辑' }),

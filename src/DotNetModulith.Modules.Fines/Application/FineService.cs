@@ -1,3 +1,5 @@
+using DotNetCore.CAP;
+using DotNetModulith.Abstractions.Events;
 using DotNetModulith.Abstractions.Exceptions;
 using DotNetModulith.Abstractions.Results;
 using DotNetModulith.Modules.Fines.Domain;
@@ -11,11 +13,13 @@ internal sealed class FineService : IFineService
 {
     private readonly FinesDbContext _dbContext;
     private readonly IMemberService _memberService;
+    private readonly ICapPublisher _capPublisher;
 
-    public FineService(FinesDbContext dbContext, IMemberService memberService)
+    public FineService(FinesDbContext dbContext, IMemberService memberService, ICapPublisher capPublisher)
     {
         _dbContext = dbContext;
         _memberService = memberService;
+        _capPublisher = capPublisher;
     }
 
     public async Task<FineListItem[]> GetFinesAsync(string? keyword, string? status, int page, int pageSize, CancellationToken ct)
@@ -136,8 +140,23 @@ internal sealed class FineService : IFineService
         var now = DateTimeOffset.UtcNow;
         var entity = FineEntity.Create(input.MemberId, input.BorrowingRecordId, input.Amount, reason, now);
 
+        using var transaction = _dbContext.Database.BeginTransaction(_capPublisher, autoCommit: false);
+
         _dbContext.Fines.Add(entity);
         await _dbContext.SaveChangesAsync(ct);
+
+        await _capPublisher.PublishAsync(
+            nameof(FineCreatedIntegrationEvent),
+            new FineCreatedIntegrationEvent(
+                entity.Id,
+                entity.MemberId,
+                member.Name,
+                entity.BorrowingRecordId ?? default,
+                entity.Amount,
+                entity.Reason.ToString()),
+            cancellationToken: ct);
+
+        transaction.Commit();
 
         return new FineDetails(
             entity.Id,
@@ -159,7 +178,23 @@ internal sealed class FineService : IFineService
             throw new BusinessException("fine not found", ApiCodes.Common.NotFound);
 
         entity.Pay(DateTimeOffset.UtcNow);
+
+        using var transaction = _dbContext.Database.BeginTransaction(_capPublisher, autoCommit: false);
+
         await _dbContext.SaveChangesAsync(ct);
+
+        var member = await _memberService.GetMemberByIdAsync(entity.MemberId, ct);
+
+        await _capPublisher.PublishAsync(
+            nameof(FinePaidIntegrationEvent),
+            new FinePaidIntegrationEvent(
+                entity.Id,
+                entity.MemberId,
+                member?.Name ?? string.Empty,
+                entity.Amount),
+            cancellationToken: ct);
+
+        transaction.Commit();
     }
 
     public async Task WaiveFineAsync(Guid fineId, CancellationToken ct)

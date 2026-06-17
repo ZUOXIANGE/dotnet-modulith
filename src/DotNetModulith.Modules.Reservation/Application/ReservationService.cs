@@ -1,3 +1,5 @@
+using DotNetCore.CAP;
+using DotNetModulith.Abstractions.Events;
 using DotNetModulith.Abstractions.Exceptions;
 using DotNetModulith.Abstractions.Results;
 using DotNetModulith.Modules.Books.Application;
@@ -13,12 +15,14 @@ internal sealed class ReservationService : IReservationService
     private readonly ReservationDbContext _dbContext;
     private readonly IBookService _bookService;
     private readonly IMemberService _memberService;
+    private readonly ICapPublisher _capPublisher;
 
-    public ReservationService(ReservationDbContext dbContext, IBookService bookService, IMemberService memberService)
+    public ReservationService(ReservationDbContext dbContext, IBookService bookService, IMemberService memberService, ICapPublisher capPublisher)
     {
         _dbContext = dbContext;
         _bookService = bookService;
         _memberService = memberService;
+        _capPublisher = capPublisher;
     }
 
     public async Task<ReservationListItem[]> GetReservationsAsync(string? keyword, string? status, int page, int pageSize, CancellationToken ct)
@@ -208,8 +212,23 @@ internal sealed class ReservationService : IReservationService
 
         var entity = ReservationEntity.Create(input.BookId, input.MemberId, today, expiryDate, maxQueue + 1, now);
 
+        using var transaction = _dbContext.Database.BeginTransaction(_capPublisher, autoCommit: false);
+
         _dbContext.Reservations.Add(entity);
         await _dbContext.SaveChangesAsync(ct);
+
+        await _capPublisher.PublishAsync(
+            nameof(ReservationAvailableIntegrationEvent),
+            new ReservationAvailableIntegrationEvent(
+                entity.Id,
+                entity.BookId,
+                book.Title,
+                entity.MemberId,
+                member.Name,
+                entity.ExpiryDate),
+            cancellationToken: ct);
+
+        transaction.Commit();
 
         return new ReservationDetails(
             entity.Id,

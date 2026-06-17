@@ -2,7 +2,7 @@
   <div class="page-container">
     <div class="page-header">
       <span>预约管理</span>
-      <n-button type="primary" @click="showCreateDialog = true">新建预约</n-button>
+      <n-button type="primary" v-if="hasPermission('reservation.manage')" @click="showCreateDialog = true">新建预约</n-button>
     </div>
 
     <n-space vertical :size="16">
@@ -59,6 +59,7 @@
 import { ref, reactive, onMounted, h } from 'vue'
 import { useMessage, useDialog, type FormInst, type FormRules, type DataTableColumns, NButton, NSpace, NTag } from 'naive-ui'
 import { api } from '@/utils/api'
+import { usePermission } from '@/composables/usePermission'
 import SelectorPopup from '@/components/SelectorPopup.vue'
 
 interface ReservationItem {
@@ -76,6 +77,7 @@ interface ReservationItem {
 
 const message = useMessage()
 const dialog = useDialog()
+const { hasPermission } = usePermission()
 const loading = ref(false)
 const submitting = ref(false)
 const showCreateDialog = ref(false)
@@ -136,6 +138,7 @@ const columns: DataTableColumns<ReservationItem> = [
     key: 'actions',
     width: 100,
     render(row) {
+      if (!hasPermission('reservation.manage')) return null
       if (row.status === 'Pending') {
         return h(NButton, { size: 'small', type: 'error', onClick: () => handleCancel(row) }, { default: () => '取消预约' })
       }

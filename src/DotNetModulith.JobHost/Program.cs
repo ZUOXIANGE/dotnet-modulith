@@ -1,4 +1,9 @@
 using DotNetModulith.JobHost;
+using DotNetModulith.Modules.Borrowing;
+using DotNetModulith.Modules.Fines;
+using DotNetModulith.Modules.Notifications;
+using DotNetModulith.Modules.Reservation;
+using DotNetModulith.ModulithCore;
 using Serilog;
 using Serilog.Events;
 using Serilog.Formatting.Compact;
@@ -28,6 +33,13 @@ writeToProviders: true);
 builder.AddServiceDefaults();
 
 builder.Services.AddJobHostServices(builder.Configuration);
+
+builder.Services.AddModulithCore(builder.Configuration);
+builder.Services
+    .RegisterModule<BorrowingModule>(builder.Configuration)
+    .RegisterModule<ReservationModule>(builder.Configuration)
+    .RegisterModule<FinesModule>(builder.Configuration)
+    .RegisterModule<NotificationsModule>(builder.Configuration);
 
 var app = builder.Build();
 

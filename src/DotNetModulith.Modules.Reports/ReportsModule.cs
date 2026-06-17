@@ -1,3 +1,4 @@
+using DotNetModulith.Abstractions.Events;
 using DotNetModulith.ModulithCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -14,7 +15,7 @@ public sealed class ReportsModule : IModule
 
     public IReadOnlyList<string> PublishedEvents => [];
 
-    public IReadOnlyList<string> SubscribedEvents => [];
+    public IReadOnlyList<string> SubscribedEvents => [nameof(BookBorrowedIntegrationEvent), nameof(BookReturnedIntegrationEvent)];
 
     public IServiceCollection AddModuleServices(IServiceCollection services, IConfiguration configuration)
     {

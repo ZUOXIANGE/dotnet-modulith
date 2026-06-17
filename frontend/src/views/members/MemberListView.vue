@@ -2,7 +2,7 @@
   <div class="page-container">
     <div class="page-header">
       <span>读者管理</span>
-      <n-button type="primary" @click="showCreateDialog = true">新增读者</n-button>
+      <n-button type="primary" v-if="hasPermission('members.manage')" @click="showCreateDialog = true">新增读者</n-button>
     </div>
 
     <n-space vertical :size="16">
@@ -86,6 +86,7 @@
 import { ref, reactive, onMounted, h } from 'vue'
 import { useMessage, useDialog, type FormInst, type FormRules, type DataTableColumns, NButton, NSpace, NTag } from 'naive-ui'
 import { api } from '@/utils/api'
+import { usePermission } from '@/composables/usePermission'
 
 interface MemberItem {
   id: string
@@ -103,6 +104,7 @@ interface MemberItem {
 
 const message = useMessage()
 const dialog = useDialog()
+const { hasPermission } = usePermission()
 const loading = ref(false)
 const submitting = ref(false)
 const showCreateDialog = ref(false)
@@ -185,6 +187,7 @@ const columns: DataTableColumns<MemberItem> = [
     key: 'actions',
     width: 200,
     render(row) {
+      if (!hasPermission('members.manage')) return null
       const buttons = [
         h(NButton, { size: 'small', onClick: () => startEdit(row) }, { default: () => '编辑' })
       ]

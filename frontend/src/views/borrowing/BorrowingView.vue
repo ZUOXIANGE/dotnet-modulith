@@ -2,7 +2,7 @@
   <div class="page-container">
     <div class="page-header">
       <span>借还管理</span>
-      <n-button type="primary" @click="showBorrowDialog = true">借阅图书</n-button>
+      <n-button type="primary" v-if="hasPermission('borrowing.operate')" @click="showBorrowDialog = true">借阅图书</n-button>
     </div>
 
     <n-space vertical :size="16">
@@ -63,6 +63,7 @@
 import { ref, reactive, onMounted, h } from 'vue'
 import { useMessage, useDialog, type FormInst, type FormRules, type DataTableColumns, NButton, NSpace, NTag } from 'naive-ui'
 import { api } from '@/utils/api'
+import { usePermission } from '@/composables/usePermission'
 import SelectorPopup from '@/components/SelectorPopup.vue'
 
 interface BorrowingItem {
@@ -81,6 +82,7 @@ interface BorrowingItem {
 
 const message = useMessage()
 const dialog = useDialog()
+const { hasPermission } = usePermission()
 const loading = ref(false)
 const submitting = ref(false)
 const showBorrowDialog = ref(false)
@@ -140,6 +142,7 @@ const columns: DataTableColumns<BorrowingItem> = [
     key: 'actions',
     width: 180,
     render(row) {
+      if (!hasPermission('borrowing.operate')) return null
       if (row.status === 'Borrowed' || row.status === 'Overdue') {
         return h(NSpace, {}, {
           default: () => [

@@ -1,3 +1,5 @@
+using DotNetCore.CAP;
+using DotNetModulith.Abstractions.Events;
 using DotNetModulith.Abstractions.Exceptions;
 using DotNetModulith.Abstractions.Results;
 using DotNetModulith.Modules.Books.Application;
@@ -13,12 +15,14 @@ internal sealed class BorrowingService : IBorrowingService
     private readonly BorrowingDbContext _dbContext;
     private readonly IBookService _bookService;
     private readonly IMemberService _memberService;
+    private readonly ICapPublisher _capPublisher;
 
-    public BorrowingService(BorrowingDbContext dbContext, IBookService bookService, IMemberService memberService)
+    public BorrowingService(BorrowingDbContext dbContext, IBookService bookService, IMemberService memberService, ICapPublisher capPublisher)
     {
         _dbContext = dbContext;
         _bookService = bookService;
         _memberService = memberService;
+        _capPublisher = capPublisher;
     }
 
     public async Task<BorrowingListItem[]> GetBorrowingsAsync(string? keyword, string? status, int page, int pageSize, CancellationToken ct)
@@ -137,11 +141,26 @@ internal sealed class BorrowingService : IBorrowingService
 
         var entity = BorrowingRecordEntity.Create(input.BookId, input.MemberId, today, dueDate, now);
 
+        using var transaction = _dbContext.Database.BeginTransaction(_capPublisher, autoCommit: false);
+
         await _bookService.BorrowBookAsync(input.BookId, ct);
         await _memberService.IncrementBorrowCountAsync(input.MemberId, ct);
 
         _dbContext.BorrowingRecords.Add(entity);
         await _dbContext.SaveChangesAsync(ct);
+
+        await _capPublisher.PublishAsync(
+            nameof(BookBorrowedIntegrationEvent),
+            new BookBorrowedIntegrationEvent(
+                entity.Id,
+                entity.BookId,
+                book.Title,
+                entity.MemberId,
+                member.Name,
+                entity.DueDate),
+            cancellationToken: ct);
+
+        transaction.Commit();
 
         return new BorrowingDetails(
             entity.Id,
@@ -173,12 +192,27 @@ internal sealed class BorrowingService : IBorrowingService
         if (!string.IsNullOrWhiteSpace(input.Notes))
             entity.Notes = input.Notes;
 
+        using var transaction = _dbContext.Database.BeginTransaction(_capPublisher, autoCommit: false);
+
         await _bookService.ReturnBookAsync(entity.BookId, ct);
         await _memberService.DecrementBorrowCountAsync(entity.MemberId, ct);
         await _dbContext.SaveChangesAsync(ct);
 
         var book = await _bookService.GetBookByIdAsync(entity.BookId, ct);
         var member = await _memberService.GetMemberByIdAsync(entity.MemberId, ct);
+
+        await _capPublisher.PublishAsync(
+            nameof(BookReturnedIntegrationEvent),
+            new BookReturnedIntegrationEvent(
+                entity.Id,
+                entity.BookId,
+                book?.Title ?? string.Empty,
+                entity.MemberId,
+                member?.Name ?? string.Empty,
+                today),
+            cancellationToken: ct);
+
+        transaction.Commit();
 
         return new BorrowingDetails(
             entity.Id,

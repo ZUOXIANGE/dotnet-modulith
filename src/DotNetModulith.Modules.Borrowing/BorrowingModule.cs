@@ -1,3 +1,4 @@
+using DotNetModulith.Abstractions.Events;
 using DotNetModulith.ModulithCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -12,7 +13,7 @@ public sealed class BorrowingModule : IModule
 
     public IReadOnlyList<string> Dependencies => ["Books", "Members"];
 
-    public IReadOnlyList<string> PublishedEvents => [];
+    public IReadOnlyList<string> PublishedEvents => [nameof(BookBorrowedIntegrationEvent), nameof(BookReturnedIntegrationEvent), nameof(BookOverdueIntegrationEvent)];
 
     public IReadOnlyList<string> SubscribedEvents => [];
 

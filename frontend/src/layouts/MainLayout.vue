@@ -81,50 +81,78 @@ import {
   PricetagsOutline
 } from '@vicons/ionicons5'
 import { useAuthStore } from '@/stores/auth'
+import { usePermission } from '@/composables/usePermission'
 import type { MenuOption } from 'naive-ui'
 import { api } from '@/utils/api'
 
 const router = useRouter()
 const route = useRoute()
 const authStore = useAuthStore()
+const { hasPermission, hasAnyPermission } = usePermission()
 const message = useMessage()
 const collapsed = ref(false)
 
 const renderIcon = (icon: any) => () => h(NIcon, null, { default: () => h(icon) })
 
-const menuOptions: MenuOption[] = [
+const allMenuOptions: MenuOption[] = [
   { label: '工作台', key: 'dashboard', icon: renderIcon(GridOutline) },
   {
     label: '图书管理',
     key: 'books-group',
     icon: renderIcon(BookOutline),
+    permission: 'books.view',
     children: [
-      { label: '图书列表', key: 'books' },
-      { label: '分类管理', key: 'categories' }
+      { label: '图书列表', key: 'books', permission: 'books.view' },
+      { label: '分类管理', key: 'categories', permission: 'categories.manage' }
     ]
   },
-  { label: '读者管理', key: 'members', icon: renderIcon(PeopleOutline) },
+  { label: '读者管理', key: 'members', icon: renderIcon(PeopleOutline), permission: 'members.view' },
   {
     label: '借还管理',
     key: 'borrowing-group',
     icon: renderIcon(SwapHorizontalOutline),
+    permission: 'borrowing.view',
     children: [
-      { label: '借还操作', key: 'borrowing' },
-      { label: '预约管理', key: 'reservations' }
+      { label: '借还操作', key: 'borrowing', permission: 'borrowing.view' },
+      { label: '预约管理', key: 'reservations', permission: 'reservation.view' }
     ]
   },
-  { label: '罚款管理', key: 'fines', icon: renderIcon(CashOutline) },
-  { label: '统计报表', key: 'reports', icon: renderIcon(BarChartOutline) },
+  { label: '罚款管理', key: 'fines', icon: renderIcon(CashOutline), permission: 'fines.view' },
+  { label: '统计报表', key: 'reports', icon: renderIcon(BarChartOutline), permission: 'reports.view' },
   {
     label: '系统管理',
     key: 'system-group',
     icon: renderIcon(ShieldCheckmarkOutline),
+    permission: 'users.view',
     children: [
-      { label: '用户管理', key: 'users' },
-      { label: '角色管理', key: 'roles' }
+      { label: '用户管理', key: 'users', permission: 'users.view' },
+      { label: '角色管理', key: 'roles', permission: 'roles.view' }
     ]
   }
 ]
+
+function filterMenuByPermission(options: MenuOption[]): MenuOption[] {
+  return options
+    .map(option => {
+      const opt = { ...option } as MenuOption & { permission?: string }
+      const perm = (option as any).permission as string | undefined
+
+      if (opt.children) {
+        const filteredChildren = filterMenuByPermission(opt.children)
+        if (filteredChildren.length === 0) return null
+        opt.children = filteredChildren
+      }
+
+      if (perm && !hasPermission(perm)) {
+        if (!opt.children || opt.children.length === 0) return null
+      }
+
+      return opt
+    })
+    .filter(Boolean) as MenuOption[]
+}
+
+const menuOptions = computed(() => filterMenuByPermission(allMenuOptions))
 
 const activeKey = computed(() => {
   const path = route.path

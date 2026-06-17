@@ -2,7 +2,7 @@
   <div class="page-container">
     <div class="page-header">
       <span>角色管理</span>
-      <n-button type="primary" @click="openCreateDialog">新增角色</n-button>
+      <n-button type="primary" v-if="hasPermission('roles.manage')" @click="openCreateDialog">新增角色</n-button>
     </div>
 
     <n-space vertical :size="16">
@@ -55,6 +55,7 @@
 import { ref, reactive, onMounted, h } from 'vue'
 import { useMessage, type FormInst, type FormRules, type DataTableColumns, NButton, NSpace, NTag, NCheckbox, NCheckboxGroup, NGrid, NGi } from 'naive-ui'
 import { api } from '@/utils/api'
+import { usePermission } from '@/composables/usePermission'
 
 interface RoleItem {
   id: string
@@ -71,6 +72,7 @@ interface PermissionItem {
 }
 
 const message = useMessage()
+const { hasPermission } = usePermission()
 const loading = ref(false)
 const submitting = ref(false)
 const showFormDialog = ref(false)
@@ -136,7 +138,7 @@ const columns: DataTableColumns<RoleItem> = [
     key: 'actions',
     width: 120,
     render(row) {
-      if (row.isSystem) return '-'
+      if (row.isSystem || !hasPermission('roles.manage')) return '-'
       return h(NSpace, { size: 4 }, {
         default: () => [
           h(NButton, { size: 'small', onClick: () => openEditDialog(row) }, { default: () => '编辑' })

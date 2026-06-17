@@ -1,4 +1,5 @@
 using DotNetModulith.Modules.Reservation.Application;
+using DotNetModulith.Modules.Reservation.Application.Jobs;
 using DotNetModulith.Modules.Reservation.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -28,6 +29,8 @@ public static class ReservationServiceCollectionExtensions
     public static IServiceCollection AddReservationApplication(this IServiceCollection services, IConfiguration configuration)
     {
         services.AddScoped<IReservationService, ReservationService>();
+        services.AddScoped<ReservationExpiryJob>();
+        services.Configure<ReservationExpiryOptions>(configuration.GetSection(ReservationExpiryOptions.SectionName));
 
         return services;
     }

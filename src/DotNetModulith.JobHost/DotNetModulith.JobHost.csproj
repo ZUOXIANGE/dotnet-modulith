@@ -23,6 +23,8 @@
   <ItemGroup>
     <ProjectReference Include="..\DotNetModulith.Abstractions\DotNetModulith.Abstractions.csproj" />
     <ProjectReference Include="..\DotNetModulith.ServiceDefaults\DotNetModulith.ServiceDefaults.csproj" />
+    <ProjectReference Include="..\DotNetModulith.Modules.Books\DotNetModulith.Modules.Books.csproj" />
+    <ProjectReference Include="..\DotNetModulith.Modules.Members\DotNetModulith.Modules.Members.csproj" />
     <ProjectReference Include="..\DotNetModulith.Modules.Borrowing\DotNetModulith.Modules.Borrowing.csproj" />
     <ProjectReference Include="..\DotNetModulith.Modules.Reservation\DotNetModulith.Modules.Reservation.csproj" />
     <ProjectReference Include="..\DotNetModulith.Modules.Fines\DotNetModulith.Modules.Fines.csproj" />

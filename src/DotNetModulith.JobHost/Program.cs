@@ -1,6 +1,8 @@
 using DotNetModulith.JobHost;
+using DotNetModulith.Modules.Books;
 using DotNetModulith.Modules.Borrowing;
 using DotNetModulith.Modules.Fines;
+using DotNetModulith.Modules.Members;
 using DotNetModulith.Modules.Notifications;
 using DotNetModulith.Modules.Reservation;
 using DotNetModulith.ModulithCore;
@@ -36,6 +38,8 @@ builder.Services.AddJobHostServices(builder.Configuration);
 
 builder.Services.AddModulithCore(builder.Configuration);
 builder.Services
+    .RegisterModule<BooksModule>(builder.Configuration)
+    .RegisterModule<MembersModule>(builder.Configuration)
     .RegisterModule<BorrowingModule>(builder.Configuration)
     .RegisterModule<ReservationModule>(builder.Configuration)
     .RegisterModule<FinesModule>(builder.Configuration)

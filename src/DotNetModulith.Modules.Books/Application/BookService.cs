@@ -44,6 +44,7 @@ internal sealed class BookService : IBookService
                 x.Category != null ? x.Category.Name : string.Empty,
                 x.TotalCopies,
                 x.AvailableCopies,
+                x.CoverImageUrl,
                 x.Status.ToString(),
                 x.CreatedAt))
             .ToListAsync(ct);

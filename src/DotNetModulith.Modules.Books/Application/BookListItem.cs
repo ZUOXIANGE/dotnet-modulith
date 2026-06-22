@@ -10,5 +10,6 @@ public sealed record BookListItem(
     string CategoryName,
     int TotalCopies,
     int AvailableCopies,
+    string CoverImageUrl,
     string Status,
     DateTimeOffset CreatedAt);

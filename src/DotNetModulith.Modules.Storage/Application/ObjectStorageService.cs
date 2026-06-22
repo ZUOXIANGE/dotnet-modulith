@@ -124,7 +124,7 @@ internal sealed class ObjectStorageService : IObjectStorageService
         return $"uploads/{DateTime.UtcNow:yyyyMMdd}/{Guid.NewGuid():N}-{safeFileName}";
     }
 
-    private string BuildObjectUrl(string objectKey)
+    public string BuildObjectUrl(string objectKey)
     {
         var endpoint = _options.Endpoint.TrimEnd('/');
         return $"{endpoint}/{_options.BucketName}/{objectKey}";

@@ -379,7 +379,7 @@ graph TD
 | 图书管理 | `/books`         | 图书 CRUD + 分类筛选       |
 | 分类管理 | `/categories`    | 多级分类树管理             |
 | 会员管理 | `/members`       | 读者会员 CRUD + 状态管理   |
-| 借阅管理 | `/borrowings`    | 借阅/归还/续借/标记丢失    |
+| 借阅管理 | `/borrowing`     | 借阅/归还/续借/标记丢失    |
 | 预约管理 | `/reservations`  | 预约创建/取消/队列查看     |
 | 罚款管理 | `/fines`         | 罚款创建/缴纳/豁免         |
 | 通知管理 | `/notifications` | 通知列表/标记已读/全部已读 |
@@ -423,9 +423,16 @@ npm run dev
 
 前端开发服务器默认运行在 `http://localhost:5173`。
 
-### 8.4 初始管理员
+### 8.4 默认账号
 
-系统首次启动后需要初始化管理员账号。通过 `MigrationService` 自动执行种子数据创建。
+系统首次启动时通过 `MigrationService` 自动种子以下后台登录账号：
+
+| 角色       | 用户名      | 密码              | 说明                             |
+| ---------- | ----------- | ----------------- | -------------------------------- |
+| 系统管理员 | `admin`     | `Admin@123456`    | 拥有全部权限                     |
+| 图书管理员 | `librarian` | `Library@123456`  | 图书/借阅/会员/罚款等管理权限    |
+
+> 以上账号密码可在首次登录后通过「系统管理 → 用户管理」修改。
 
 ## 9. 统一响应格式
 
@@ -478,3 +485,5 @@ npm run dev
 | `docs/development-standards.md` | 项目开发规范             |
 | `docs/module-communication.md`  | 模块间通信规范           |
 | `docs/scheduled-jobs.md`        | 定时任务开发说明         |
+| `src/README.md`                 | 后端源码结构说明         |
+| `frontend/README.md`            | 前端项目说明             |

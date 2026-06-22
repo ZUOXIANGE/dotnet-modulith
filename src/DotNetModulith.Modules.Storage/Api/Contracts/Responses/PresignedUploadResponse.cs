@@ -1,3 +1,3 @@
 namespace DotNetModulith.Modules.Storage.Api.Contracts.Responses;
 
-public sealed record PresignedUploadResponse(string ObjectKey, string UploadUrl, DateTimeOffset ExpiresAtUtc);
+public sealed record PresignedUploadResponse(string ObjectKey, string UploadUrl, string ObjectUrl, DateTimeOffset ExpiresAtUtc);

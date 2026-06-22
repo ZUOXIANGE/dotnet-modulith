@@ -54,3 +54,34 @@ export const api = {
     return request<T>(url, { method: 'DELETE' })
   }
 }
+
+export interface PresignedUploadResult {
+  objectKey: string
+  uploadUrl: string
+  objectUrl: string
+  expiresAtUtc: string
+}
+
+export async function presignCoverUpload(fileName: string): Promise<PresignedUploadResult> {
+  const res = await api.post<PresignedUploadResult>('/storage/upload/presign', {
+    fileName,
+    objectKey: `covers/${crypto.randomUUID()}-${fileName}`
+  })
+  if (res.code !== 200 || !res.data) {
+    throw new Error(res.msg || '获取上传地址失败')
+  }
+  return res.data
+}
+
+export async function uploadToPresignedUrl(uploadUrl: string, file: File): Promise<void> {
+  const response = await fetch(uploadUrl, {
+    method: 'PUT',
+    body: file,
+    headers: {
+      'Content-Type': file.type || 'application/octet-stream'
+    }
+  })
+  if (!response.ok) {
+    throw new Error(`上传失败: ${response.status}`)
+  }
+}

@@ -45,6 +45,9 @@
         <n-form-item label="描述" path="description">
           <n-input v-model:value="form.description" type="textarea" placeholder="请输入描述" />
         </n-form-item>
+        <n-form-item label="封面">
+          <CoverUpload v-model:coverUrl="form.coverImageUrl" />
+        </n-form-item>
       </n-form>
       <template #footer>
         <n-space justify="end">
@@ -80,6 +83,9 @@
         <n-form-item label="描述" path="description">
           <n-input v-model:value="editForm.description" type="textarea" placeholder="请输入描述" />
         </n-form-item>
+        <n-form-item label="封面">
+          <CoverUpload v-model:coverUrl="editForm.coverImageUrl" />
+        </n-form-item>
       </n-form>
       <template #footer>
         <n-space justify="end">
@@ -96,6 +102,7 @@ import { ref, reactive, onMounted, h } from 'vue'
 import { useMessage, useDialog, type FormInst, type FormRules, type DataTableColumns, NButton, NSpace } from 'naive-ui'
 import { api } from '@/utils/api'
 import { usePermission } from '@/composables/usePermission'
+import CoverUpload from '@/components/CoverUpload.vue'
 
 interface BookItem {
   id: string
@@ -107,6 +114,7 @@ interface BookItem {
   categoryName: string
   totalCopies: number
   availableCopies: number
+  coverImageUrl: string
   status: string
   createdAt: string
 }
@@ -150,6 +158,16 @@ const pagination = reactive({
 })
 
 const columns: DataTableColumns<BookItem> = [
+  {
+    title: '封面',
+    key: 'coverImageUrl',
+    width: 60,
+    render(row) {
+      return row.coverImageUrl
+        ? h('img', { src: row.coverImageUrl, style: { width: '40px', height: '56px', objectFit: 'cover', borderRadius: '3px' } })
+        : h('div', { style: { width: '40px', height: '56px', background: 'var(--n-color-embedded)', borderRadius: '3px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--n-text-color-3)', fontSize: '18px' } }, '📷')
+    }
+  },
   { title: 'ISBN', key: 'isbn', width: 140 },
   { title: '书名', key: 'title', width: 200 },
   { title: '作者', key: 'author', width: 140 },
@@ -180,7 +198,8 @@ const form = reactive({
   publishDate: '',
   categoryId: null as string | null,
   totalCopies: 1,
-  description: ''
+  description: '',
+  coverImageUrl: ''
 })
 
 const editForm = reactive({
@@ -191,7 +210,8 @@ const editForm = reactive({
   publishDate: '',
   categoryId: null as string | null,
   totalCopies: 1,
-  description: ''
+  description: '',
+  coverImageUrl: ''
 })
 
 const rules: FormRules = {
@@ -246,6 +266,7 @@ function resetForm() {
   form.categoryId = null
   form.totalCopies = 1
   form.description = ''
+  form.coverImageUrl = ''
 }
 
 async function handleCreate() {
@@ -265,7 +286,8 @@ async function handleCreate() {
       publishDate: form.publishDate,
       description: form.description,
       categoryId: form.categoryId,
-      totalCopies: form.totalCopies
+      totalCopies: form.totalCopies,
+      coverImageUrl: form.coverImageUrl || null
     })
     if (res.code === 200) {
       message.success('新增图书成功')
@@ -282,7 +304,7 @@ async function handleCreate() {
   }
 }
 
-function startEdit(row: BookItem) {
+async function startEdit(row: BookItem) {
   editingId.value = row.id
   editForm.isbn = row.isbn
   editForm.title = row.title
@@ -292,6 +314,18 @@ function startEdit(row: BookItem) {
   editForm.categoryId = categoryOptions.value.find(c => c.label === row.categoryName)?.value ?? null
   editForm.totalCopies = row.totalCopies
   editForm.description = ''
+  editForm.coverImageUrl = ''
+
+  try {
+    const res = await api.get<any>(`/books/${row.id}`)
+    if (res.code === 200 && res.data) {
+      editForm.description = res.data.description || ''
+      editForm.coverImageUrl = res.data.coverImageUrl || ''
+    }
+  } catch {
+    // ignore detail fetch error
+  }
+
   showEditDialog.value = true
 }
 
@@ -313,7 +347,8 @@ async function handleUpdate() {
       publishDate: editForm.publishDate,
       description: editForm.description,
       categoryId: editForm.categoryId,
-      totalCopies: editForm.totalCopies
+      totalCopies: editForm.totalCopies,
+      coverImageUrl: editForm.coverImageUrl || null
     })
     if (res.code === 200) {
       message.success('更新成功')

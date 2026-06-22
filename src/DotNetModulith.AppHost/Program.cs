@@ -77,7 +77,7 @@ var migrations = builder.AddProject<DotNetModulith_MigrationService>("migrations
     .WaitFor(tickerQDb);
 
 var api = builder.AddProject<DotNetModulith_Api>("api")
-    .WithEndpoint("http", e => e.Port = 5280)
+    .WithEndpoint("http", e => e.Port = 15280)
     .WithReference(modulithDb)
     .WithReference(rabbitmq)
     .WithReference(redis)
@@ -110,6 +110,7 @@ var jobHost = builder.AddProject<DotNetModulith_JobHost>("job")
 var frontend = builder.AddViteApp("frontend", Path.GetFullPath("../../frontend", builder.AppHostDirectory))
     .WithPnpm()
     .WithReference(api)
+    .WithEnvironment("PORT", "5173")
     .WithEnvironment("VITE_API_TARGET", api.GetEndpoint("http"));
 
 await builder.Build().RunAsync();

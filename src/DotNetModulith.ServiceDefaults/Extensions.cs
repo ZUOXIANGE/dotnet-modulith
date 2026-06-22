@@ -18,6 +18,13 @@ namespace Microsoft.Extensions.Hosting;
 /// </summary>
 public static class Extensions
 {
+    private static readonly string[] OtlpExporterHttpClientLogCategories =
+    [
+        "System.Net.Http.HttpClient.OtlpLogExporter",
+        "System.Net.Http.HttpClient.OtlpMetricExporter",
+        "System.Net.Http.HttpClient.OtlpTraceExporter"
+    ];
+
     /// <summary>
     /// 健康检查端点路径（就绪探针）
     /// </summary>
@@ -34,6 +41,8 @@ public static class Extensions
     public static TBuilder AddServiceDefaults<TBuilder>(this TBuilder builder)
         where TBuilder : IHostApplicationBuilder
     {
+        builder.SuppressOtlpExporterHttpClientLogs();
+
         builder.Services
             .AddOptions<OpenObserveOptions>()
             .Bind(builder.Configuration.GetSection(OpenObserveOptions.SectionName))
@@ -70,6 +79,20 @@ public static class Extensions
             http.AddStandardResilienceHandler();
             http.AddServiceDiscovery();
         });
+
+        return builder;
+    }
+
+    /// <summary>
+    /// 忽略 OTLP exporter 自身 HttpClient 产生的常规请求日志，避免观测链路反向污染应用日志
+    /// </summary>
+    private static TBuilder SuppressOtlpExporterHttpClientLogs<TBuilder>(this TBuilder builder)
+        where TBuilder : IHostApplicationBuilder
+    {
+        foreach (var category in OtlpExporterHttpClientLogCategories)
+        {
+            builder.Logging.AddFilter(category, LogLevel.Warning);
+        }
 
         return builder;
     }

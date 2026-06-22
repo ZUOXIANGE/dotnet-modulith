@@ -43,7 +43,8 @@ public sealed class StorageController : ControllerBase
     public async Task<ApiResponse<PresignedUploadResponse>> CreatePresignedUpload([FromBody] CreatePresignedUploadRequest request, CancellationToken ct)
     {
         var result = await _storageService.CreatePresignedUploadAsync(request.FileName, request.ObjectKey, ct);
-        return ApiResponse.Success(new PresignedUploadResponse(result.ObjectKey, result.UploadUrl, result.ExpiresAtUtc));
+        var objectUrl = _storageService.BuildObjectUrl(result.ObjectKey);
+        return ApiResponse.Success(new PresignedUploadResponse(result.ObjectKey, result.UploadUrl, objectUrl, result.ExpiresAtUtc));
     }
 
     /// <summary>

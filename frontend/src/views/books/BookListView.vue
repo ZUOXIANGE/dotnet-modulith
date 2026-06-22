@@ -46,7 +46,11 @@
           <n-input v-model:value="form.description" type="textarea" placeholder="请输入描述" />
         </n-form-item>
         <n-form-item label="封面">
-          <CoverUpload v-model:coverUrl="form.coverImageUrl" />
+          <CoverUpload
+            v-model:coverUrl="form.coverImageUrl"
+            v-model:uploadId="form.coverUploadId"
+            v-model:clearCoverImage="form.clearCoverImage"
+          />
         </n-form-item>
       </n-form>
       <template #footer>
@@ -84,7 +88,11 @@
           <n-input v-model:value="editForm.description" type="textarea" placeholder="请输入描述" />
         </n-form-item>
         <n-form-item label="封面">
-          <CoverUpload v-model:coverUrl="editForm.coverImageUrl" />
+          <CoverUpload
+            v-model:coverUrl="editForm.coverImageUrl"
+            v-model:uploadId="editForm.coverUploadId"
+            v-model:clearCoverImage="editForm.clearCoverImage"
+          />
         </n-form-item>
       </n-form>
       <template #footer>
@@ -199,7 +207,9 @@ const form = reactive({
   categoryId: null as string | null,
   totalCopies: 1,
   description: '',
-  coverImageUrl: ''
+  coverImageUrl: '',
+  coverUploadId: null as string | null,
+  clearCoverImage: false
 })
 
 const editForm = reactive({
@@ -211,7 +221,9 @@ const editForm = reactive({
   categoryId: null as string | null,
   totalCopies: 1,
   description: '',
-  coverImageUrl: ''
+  coverImageUrl: '',
+  coverUploadId: null as string | null,
+  clearCoverImage: false
 })
 
 const rules: FormRules = {
@@ -267,6 +279,8 @@ function resetForm() {
   form.totalCopies = 1
   form.description = ''
   form.coverImageUrl = ''
+  form.coverUploadId = null
+  form.clearCoverImage = false
 }
 
 async function handleCreate() {
@@ -287,7 +301,7 @@ async function handleCreate() {
       description: form.description,
       categoryId: form.categoryId,
       totalCopies: form.totalCopies,
-      coverImageUrl: form.coverImageUrl || null
+      coverUploadId: form.coverUploadId
     })
     if (res.code === 200) {
       message.success('新增图书成功')
@@ -315,6 +329,8 @@ async function startEdit(row: BookItem) {
   editForm.totalCopies = row.totalCopies
   editForm.description = ''
   editForm.coverImageUrl = ''
+  editForm.coverUploadId = null
+  editForm.clearCoverImage = false
 
   try {
     const res = await api.get<any>(`/books/${row.id}`)
@@ -348,7 +364,8 @@ async function handleUpdate() {
       description: editForm.description,
       categoryId: editForm.categoryId,
       totalCopies: editForm.totalCopies,
-      coverImageUrl: editForm.coverImageUrl || null
+      coverUploadId: editForm.coverUploadId,
+      clearCoverImage: editForm.clearCoverImage
     })
     if (res.code === 200) {
       message.success('更新成功')

@@ -3,7 +3,7 @@
     <div class="cover-upload__preview" v-if="previewUrl">
       <img :src="previewUrl" alt="封面预览" />
       <n-button
-        v-if="coverUrl"
+        v-if="previewUrl"
         size="tiny"
         type="error"
         circle
@@ -48,7 +48,7 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import { NButton, NProgress } from 'naive-ui'
-import { presignCoverUpload, uploadToPresignedUrl } from '@/utils/api'
+import { createUploadSession, uploadToPresignedUrl } from '@/utils/api'
 
 const MAX_SIZE = 10 * 1024 * 1024
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp']
@@ -56,10 +56,14 @@ const ALLOWED_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.webp']
 
 const props = defineProps<{
   coverUrl: string
+  uploadId: string | null
+  clearCoverImage?: boolean
 }>()
 
 const emit = defineEmits<{
   'update:coverUrl': [value: string]
+  'update:uploadId': [value: string | null]
+  'update:clearCoverImage': [value: boolean]
 }>()
 
 const fileInputRef = ref<HTMLInputElement | null>(null)
@@ -72,10 +76,8 @@ const localPreview = ref('')
 
 const previewUrl = computed(() => localPreview.value || props.coverUrl)
 
-watch(() => props.coverUrl, (val) => {
-  if (!val) {
-    localPreview.value = ''
-  }
+watch(() => props.coverUrl, () => {
+  localPreview.value = ''
 })
 
 function validateFile(file: File): string | null {
@@ -103,13 +105,15 @@ async function uploadFile(file: File) {
 
   try {
     uploadProgress.value = 20
-    const result = await presignCoverUpload(file.name)
+    const result = await createUploadSession(file.name, file.type || 'application/octet-stream', 'book-cover')
     uploadProgress.value = 50
 
     await uploadToPresignedUrl(result.uploadUrl, file)
     uploadProgress.value = 100
 
-    emit('update:coverUrl', result.objectUrl)
+    emit('update:coverUrl', '')
+    emit('update:uploadId', result.uploadId)
+    emit('update:clearCoverImage', false)
     localPreview.value = URL.createObjectURL(file)
   } catch (e: any) {
     uploadError.value = true
@@ -125,6 +129,8 @@ async function uploadFile(file: File) {
 
 function handleRemove() {
   emit('update:coverUrl', '')
+  emit('update:uploadId', null)
+  emit('update:clearCoverImage', true)
   localPreview.value = ''
   errorMessage.value = ''
   if (fileInputRef.value) {

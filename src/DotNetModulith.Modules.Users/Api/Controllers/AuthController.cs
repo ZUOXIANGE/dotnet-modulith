@@ -74,6 +74,17 @@ public sealed class AuthController : ControllerBase
     }
 
     /// <summary>
+    /// 获取当前登录用户头像的签名访问地址
+    /// </summary>
+    [Authorize]
+    [HttpGet("avatar-access-url")]
+    public async Task<ApiResponse<AvatarAccessUrlResponse>> GetCurrentAvatarAccessUrl(CancellationToken ct)
+    {
+        var details = await _identityService.GetCurrentAvatarAccessUrlAsync(GetCurrentUserId(), ct);
+        return ApiResponse.Success(details.ToResponse());
+    }
+
+    /// <summary>
     /// 修改当前登录用户密码
     /// </summary>
     [Authorize]
@@ -87,6 +98,17 @@ public sealed class AuthController : ControllerBase
             ct);
 
         return ApiResponse.Success();
+    }
+
+    /// <summary>
+    /// 设置当前登录用户头像
+    /// </summary>
+    [Authorize]
+    [HttpPut("avatar")]
+    public async Task<ApiResponse<CurrentUserResponse>> UpdateCurrentAvatar([FromBody] UpdateCurrentAvatarRequest request, CancellationToken ct)
+    {
+        var user = await _identityService.UpdateCurrentAvatarAsync(GetCurrentUserId(), request.UploadId, ct);
+        return ApiResponse.Success(user.ToResponse());
     }
 
     private Guid GetCurrentUserId()

@@ -141,6 +141,42 @@ public sealed class UsersApiTests : IClassFixture<ApiWebApplicationFactory>
         updateBody["data"]!["displayName"]!.GetValue<string>().Should().Be("Updated User");
     }
 
+    [Fact]
+    public async Task UpdateCurrentAvatar_ShouldReturnAvatarUrlInMe()
+    {
+        await _factory.InitializeUsersModuleAsync();
+
+        var admin = await LoginAsAdminAsync();
+        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", admin.AccessToken);
+
+        var upload = await CreateUploadSessionAsync("avatar.png", "image/png", "user-avatar");
+        await UploadBytesAsync(upload.UploadUrl, "image/png", [137, 80, 78, 71]);
+
+        var updateResponse = await _client.PutAsJsonAsync(
+            "/api/auth/avatar",
+            new
+            {
+                UploadId = upload.UploadId
+            },
+            TestContext.Current.CancellationToken);
+
+        updateResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        var updateBody = await updateResponse.Content.ReadFromJsonAsync<JsonObject>(TestContext.Current.CancellationToken);
+        updateBody!["code"]!.GetValue<int>().Should().Be(ApiCodes.Common.Success);
+        updateBody["data"]!["avatarUrl"]!.GetValue<string>().Should().Contain("/users/avatars/");
+
+        var meResponse = await _client.GetAsync("/api/auth/me", TestContext.Current.CancellationToken);
+        meResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        var meBody = await meResponse.Content.ReadFromJsonAsync<JsonObject>(TestContext.Current.CancellationToken);
+        meBody!["data"]!["avatarUrl"]!.GetValue<string>().Should().Contain("/users/avatars/");
+
+        var accessUrlResponse = await _client.GetAsync("/api/auth/avatar-access-url", TestContext.Current.CancellationToken);
+        accessUrlResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        var accessUrlBody = await accessUrlResponse.Content.ReadFromJsonAsync<JsonObject>(TestContext.Current.CancellationToken);
+        accessUrlBody!["code"]!.GetValue<int>().Should().Be(ApiCodes.Common.Success);
+        accessUrlBody["data"]!["avatarAccessUrl"]!.GetValue<string>().Should().Contain("X-Amz-Signature");
+    }
+
     private async Task<(string AccessToken, Guid UserId)> LoginAsAdminAsync()
         => await LoginAsync("admin", "Admin@123456");
 
@@ -199,5 +235,38 @@ public sealed class UsersApiTests : IClassFixture<ApiWebApplicationFactory>
                 CaptchaCode = "test"
             },
             TestContext.Current.CancellationToken);
+    }
+
+    private async Task<(Guid UploadId, string UploadUrl)> CreateUploadSessionAsync(string fileName, string contentType, string purpose)
+    {
+        var response = await _client.PostAsJsonAsync(
+            "/api/storage/upload/presign",
+            new
+            {
+                FileName = fileName,
+                ContentType = contentType,
+                Purpose = purpose
+            },
+            TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var body = await response.Content.ReadFromJsonAsync<JsonObject>(TestContext.Current.CancellationToken);
+        body!["code"]!.GetValue<int>().Should().Be(ApiCodes.Common.Success);
+        return (
+            body["data"]!["uploadId"]!.GetValue<Guid>(),
+            body["data"]!["uploadUrl"]!.GetValue<string>());
+    }
+
+    private static async Task UploadBytesAsync(string uploadUrl, string contentType, byte[] bytes)
+    {
+        using var client = new HttpClient();
+        using var request = new HttpRequestMessage(HttpMethod.Put, uploadUrl)
+        {
+            Content = new ByteArrayContent(bytes)
+        };
+        request.Content.Headers.ContentType = new MediaTypeHeaderValue(contentType);
+
+        var response = await client.SendAsync(request, TestContext.Current.CancellationToken);
+        response.IsSuccessStatusCode.Should().BeTrue();
     }
 }

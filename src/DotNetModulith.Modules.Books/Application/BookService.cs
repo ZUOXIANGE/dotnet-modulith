@@ -2,6 +2,7 @@ using DotNetModulith.Abstractions.Exceptions;
 using DotNetModulith.Abstractions.Results;
 using DotNetModulith.Modules.Books.Domain;
 using DotNetModulith.Modules.Books.Infrastructure;
+using DotNetModulith.Modules.Storage.Api;
 using Microsoft.EntityFrameworkCore;
 
 namespace DotNetModulith.Modules.Books.Application;
@@ -9,10 +10,14 @@ namespace DotNetModulith.Modules.Books.Application;
 internal sealed class BookService : IBookService
 {
     private readonly BooksDbContext _dbContext;
+    private readonly IStorageUploadSessionService _storageUploadSessionService;
 
-    public BookService(BooksDbContext dbContext)
+    public BookService(
+        BooksDbContext dbContext,
+        IStorageUploadSessionService storageUploadSessionService)
     {
         _dbContext = dbContext;
+        _storageUploadSessionService = storageUploadSessionService;
     }
 
     public async Task<IReadOnlyList<BookListItem>> GetBooksAsync(string? keyword, Guid? categoryId, int page, int pageSize, CancellationToken ct)
@@ -100,6 +105,18 @@ internal sealed class BookService : IBookService
         if (!categoryExists)
             throw new BusinessException("category not found", ApiCodes.Common.NotFound, 404);
 
+        var coverImageUrl = string.Empty;
+        if (input.CoverUploadId.HasValue)
+        {
+            var cover = await _storageUploadSessionService.ConsumeUploadSessionAsync(
+                input.OperatorUserId,
+                input.CoverUploadId.Value,
+                UploadPurposes.BookCover,
+                ct);
+
+            coverImageUrl = cover.ObjectUrl;
+        }
+
         var now = DateTimeOffset.UtcNow;
         var entity = BookEntity.Create(
             input.Isbn,
@@ -110,7 +127,7 @@ internal sealed class BookService : IBookService
             input.Description,
             input.CategoryId,
             input.TotalCopies,
-            input.CoverImageUrl,
+            coverImageUrl,
             now);
 
         _dbContext.Books.Add(entity);
@@ -151,6 +168,22 @@ internal sealed class BookService : IBookService
         if (!categoryExists)
             throw new BusinessException("category not found", ApiCodes.Common.NotFound, 404);
 
+        var coverImageUrl = entity.CoverImageUrl;
+        if (input.ClearCoverImage)
+        {
+            coverImageUrl = string.Empty;
+        }
+        else if (input.CoverUploadId.HasValue)
+        {
+            var cover = await _storageUploadSessionService.ConsumeUploadSessionAsync(
+                input.OperatorUserId,
+                input.CoverUploadId.Value,
+                UploadPurposes.BookCover,
+                ct);
+
+            coverImageUrl = cover.ObjectUrl;
+        }
+
         entity.UpdateInfo(
             input.Isbn,
             input.Title,
@@ -160,7 +193,7 @@ internal sealed class BookService : IBookService
             input.Description,
             input.CategoryId,
             input.TotalCopies,
-            input.CoverImageUrl,
+            coverImageUrl,
             DateTimeOffset.UtcNow);
 
         await _dbContext.SaveChangesAsync(ct);

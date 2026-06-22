@@ -5,6 +5,7 @@ using DotNetModulith.Modules.Fines.Infrastructure;
 using DotNetModulith.Modules.Members.Infrastructure;
 using DotNetModulith.Modules.Notifications.Infrastructure;
 using DotNetModulith.Modules.Reservation.Infrastructure;
+using DotNetModulith.Modules.Storage.Infrastructure;
 using DotNetModulith.Modules.Users.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -42,6 +43,9 @@ builder.Services.AddDbContext<FinesDbContext>(options =>
 builder.Services.AddDbContext<NotificationsDbContext>(options =>
     options.UseNpgsql(connectionString,
         npgsql => npgsql.MigrationsAssembly(typeof(NotificationsDbContext).Assembly.FullName)));
+builder.Services.AddDbContext<StorageDbContext>(options =>
+    options.UseNpgsql(connectionString,
+        npgsql => npgsql.MigrationsAssembly(typeof(StorageDbContext).Assembly.FullName)));
 builder.Services.AddDbContext<TickerQSchedulerDbContext>(options =>
     options.UseNpgsql(
         tickerQConnectionString,
@@ -85,6 +89,7 @@ internal sealed class MigrationWorker : BackgroundService
                 ["Reservation"] = scope.ServiceProvider.GetRequiredService<ReservationDbContext>(),
                 ["Fines"] = scope.ServiceProvider.GetRequiredService<FinesDbContext>(),
                 ["Notifications"] = scope.ServiceProvider.GetRequiredService<NotificationsDbContext>(),
+                ["Storage"] = scope.ServiceProvider.GetRequiredService<StorageDbContext>(),
                 ["TickerQ"] = scope.ServiceProvider.GetRequiredService<TickerQSchedulerDbContext>()
             };
 

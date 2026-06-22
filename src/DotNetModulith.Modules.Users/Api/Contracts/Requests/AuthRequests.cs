@@ -29,3 +29,12 @@ public sealed record LoginRequest
     [StringLength(8)]
     public required string CaptchaCode { get; init; }
 }
+
+/// <summary>
+/// 更新当前用户头像请求
+/// </summary>
+public sealed record UpdateCurrentAvatarRequest
+{
+    [Required]
+    public required Guid UploadId { get; init; }
+}

@@ -1,6 +1,7 @@
 namespace DotNetModulith.Modules.Books.Application;
 
 public sealed record CreateBookInput(
+    Guid OperatorUserId,
     string Isbn,
     string Title,
     string Author,
@@ -9,4 +10,4 @@ public sealed record CreateBookInput(
     string Description,
     Guid CategoryId,
     int TotalCopies,
-    string CoverImageUrl);
+    Guid? CoverUploadId);

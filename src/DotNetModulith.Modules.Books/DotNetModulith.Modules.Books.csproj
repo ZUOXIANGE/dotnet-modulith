@@ -8,6 +8,7 @@
   <ItemGroup>
     <ProjectReference Include="..\DotNetModulith.Abstractions\DotNetModulith.Abstractions.csproj" />
     <ProjectReference Include="..\DotNetModulith.ModulithCore\DotNetModulith.ModulithCore.csproj" />
+    <ProjectReference Include="..\DotNetModulith.Modules.Storage\DotNetModulith.Modules.Storage.csproj" />
   </ItemGroup>
 
   <ItemGroup>

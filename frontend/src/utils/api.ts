@@ -55,17 +55,22 @@ export const api = {
   }
 }
 
-export interface PresignedUploadResult {
+export interface UploadSessionResult {
+  uploadId: string
   objectKey: string
   uploadUrl: string
-  objectUrl: string
   expiresAtUtc: string
 }
 
-export async function presignCoverUpload(fileName: string): Promise<PresignedUploadResult> {
-  const res = await api.post<PresignedUploadResult>('/storage/upload/presign', {
+export async function createUploadSession(
+  fileName: string,
+  contentType: string,
+  purpose: 'book-cover' | 'user-avatar'
+): Promise<UploadSessionResult> {
+  const res = await api.post<UploadSessionResult>('/storage/upload/presign', {
     fileName,
-    objectKey: `covers/${crypto.randomUUID()}-${fileName}`
+    contentType,
+    purpose
   })
   if (res.code !== 200 || !res.data) {
     throw new Error(res.msg || '获取上传地址失败')
@@ -84,4 +89,53 @@ export async function uploadToPresignedUrl(uploadUrl: string, file: File): Promi
   if (!response.ok) {
     throw new Error(`上传失败: ${response.status}`)
   }
+}
+
+export async function setCurrentAvatar(uploadId: string) {
+  const res = await api.put<{
+    id: string
+    userName: string
+    displayName: string
+    email: string
+    avatarUrl: string
+    permissions: string[]
+    roles: string[]
+  }>('/auth/avatar', { uploadId })
+
+  if (res.code !== 200 || !res.data) {
+    throw new Error(res.msg || '设置头像失败')
+  }
+
+  return res.data
+}
+
+export async function getCurrentUser() {
+  const res = await api.get<{
+    id: string
+    userName: string
+    displayName: string
+    email: string
+    avatarUrl: string
+    permissions: string[]
+    roles: string[]
+  }>('/auth/me')
+
+  if (res.code !== 200 || !res.data) {
+    throw new Error(res.msg || '获取当前用户失败')
+  }
+
+  return res.data
+}
+
+export async function getCurrentAvatarAccessUrl() {
+  const res = await api.get<{
+    avatarAccessUrl: string
+    expiresAtUtc: string
+  }>('/auth/avatar-access-url')
+
+  if (res.code !== 200 || !res.data) {
+    throw new Error(res.msg || '获取头像访问地址失败')
+  }
+
+  return res.data
 }

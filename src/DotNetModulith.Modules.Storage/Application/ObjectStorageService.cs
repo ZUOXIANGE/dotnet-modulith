@@ -61,6 +61,47 @@ internal sealed class ObjectStorageService : IObjectStorageService
         return new PresignedUploadResult(finalKey, url, expiresAt);
     }
 
+    public async Task<PresignedReadResult> CreatePresignedReadAsync(string objectIdentifier, CancellationToken ct)
+    {
+        await EnsureBucketExistsAsync(ct);
+
+        var objectKey = ResolveObjectKey(objectIdentifier);
+        var expiresAt = DateTimeOffset.UtcNow.AddSeconds(_options.PresignedUrlExpireSeconds);
+        var url = _s3Client.GetPreSignedURL(new GetPreSignedUrlRequest
+        {
+            BucketName = _options.BucketName,
+            Key = objectKey,
+            Verb = HttpVerb.GET,
+            Protocol = _options.UseSsl ? Protocol.HTTPS : Protocol.HTTP,
+            Expires = expiresAt.UtcDateTime
+        });
+
+        return new PresignedReadResult(objectKey, url, expiresAt);
+    }
+
+    public async Task<StorageObjectInfo?> GetObjectInfoAsync(string objectKey, CancellationToken ct)
+    {
+        await EnsureBucketExistsAsync(ct);
+
+        try
+        {
+            var response = await _s3Client.GetObjectMetadataAsync(new GetObjectMetadataRequest
+            {
+                BucketName = _options.BucketName,
+                Key = objectKey
+            }, ct);
+
+            return new StorageObjectInfo(
+                objectKey,
+                string.IsNullOrWhiteSpace(response.Headers.ContentType) ? "application/octet-stream" : response.Headers.ContentType,
+                response.Headers.ContentLength);
+        }
+        catch (AmazonS3Exception ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+        {
+            return null;
+        }
+    }
+
     public async Task<byte[]> GetObjectBytesAsync(string objectKey, CancellationToken ct)
     {
         await EnsureBucketExistsAsync(ct);
@@ -128,5 +169,33 @@ internal sealed class ObjectStorageService : IObjectStorageService
     {
         var endpoint = _options.Endpoint.TrimEnd('/');
         return $"{endpoint}/{_options.BucketName}/{objectKey}";
+    }
+
+    private string ResolveObjectKey(string objectIdentifier)
+    {
+        if (string.IsNullOrWhiteSpace(objectIdentifier))
+        {
+            throw new BusinessException("object key is required", ApiCodes.Common.ValidationFailed, StatusCodes.Status400BadRequest);
+        }
+
+        var trimmed = objectIdentifier.Trim();
+        if (!Uri.TryCreate(trimmed, UriKind.Absolute, out var uri))
+        {
+            return trimmed.TrimStart('/');
+        }
+
+        var path = uri.AbsolutePath.Trim('/');
+        var bucketPrefix = $"{_options.BucketName}/";
+        if (path.StartsWith(bucketPrefix, StringComparison.OrdinalIgnoreCase))
+        {
+            path = path[bucketPrefix.Length..];
+        }
+
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            throw new BusinessException("object key is required", ApiCodes.Common.ValidationFailed, StatusCodes.Status400BadRequest);
+        }
+
+        return path;
     }
 }

@@ -1,5 +1,7 @@
 using DotNetModulith.Abstractions.Exceptions;
 using DotNetModulith.Abstractions.Results;
+using DotNetModulith.Modules.Storage.Api;
+using DotNetModulith.Modules.Storage.Application;
 using DotNetModulith.Modules.Users.Domain;
 using DotNetModulith.Modules.Users.Infrastructure;
 using Microsoft.AspNetCore.Http;
@@ -16,6 +18,8 @@ internal sealed class UserIdentityService : IUserIdentityService
     private readonly IUserAuthCache _userAuthCache;
     private readonly ITokenBlacklistStore _tokenBlacklistStore;
     private readonly ICaptchaService _captchaService;
+    private readonly IStorageUploadSessionService _storageUploadSessionService;
+    private readonly IObjectStorageService _objectStorageService;
 
     public UserIdentityService(
         UsersDbContext dbContext,
@@ -23,7 +27,9 @@ internal sealed class UserIdentityService : IUserIdentityService
         JwtTokenFactory jwtTokenFactory,
         IUserAuthCache userAuthCache,
         ITokenBlacklistStore tokenBlacklistStore,
-        ICaptchaService captchaService)
+        ICaptchaService captchaService,
+        IStorageUploadSessionService storageUploadSessionService,
+        IObjectStorageService objectStorageService)
     {
         _dbContext = dbContext;
         _passwordHasher = passwordHasher;
@@ -31,6 +37,8 @@ internal sealed class UserIdentityService : IUserIdentityService
         _userAuthCache = userAuthCache;
         _tokenBlacklistStore = tokenBlacklistStore;
         _captchaService = captchaService;
+        _storageUploadSessionService = storageUploadSessionService;
+        _objectStorageService = objectStorageService;
     }
 
     public async Task<LoginResult> LoginAsync(LoginInput input, CancellationToken cancellationToken)
@@ -132,6 +140,47 @@ internal sealed class UserIdentityService : IUserIdentityService
         await RefreshUserAuthCacheAsync(user.Id, cancellationToken);
     }
 
+    public async Task<CurrentUserDetails> UpdateCurrentAvatarAsync(Guid userId, Guid uploadId, CancellationToken cancellationToken)
+    {
+        var user = await _dbContext.Users
+            .AsTracking()
+            .SingleOrDefaultAsync(x => x.Id == userId, cancellationToken)
+            ?? throw new BusinessException(
+                "user not found",
+                ApiCodes.Common.NotFound,
+                StatusCodes.Status404NotFound);
+
+        var avatar = await _storageUploadSessionService.ConsumeUploadSessionAsync(
+            userId,
+            uploadId,
+            UploadPurposes.UserAvatar,
+            cancellationToken);
+
+        user.SetAvatar(avatar.ObjectUrl, DateTimeOffset.UtcNow);
+        await _dbContext.SaveChangesAsync(cancellationToken);
+        await RefreshUserAuthCacheAsync(user.Id, cancellationToken);
+        return await GetUserDetailsAsync(userId, cancellationToken);
+    }
+
+    public async Task<AvatarAccessUrlDetails> GetCurrentAvatarAccessUrlAsync(Guid userId, CancellationToken cancellationToken)
+    {
+        var user = await _dbContext.Users
+            .AsNoTracking()
+            .SingleOrDefaultAsync(x => x.Id == userId, cancellationToken)
+            ?? throw new BusinessException(
+                "user not found",
+                ApiCodes.Common.NotFound,
+                StatusCodes.Status404NotFound);
+
+        if (string.IsNullOrWhiteSpace(user.AvatarUrl))
+        {
+            return new AvatarAccessUrlDetails(string.Empty, DateTimeOffset.MinValue);
+        }
+
+        var result = await _objectStorageService.CreatePresignedReadAsync(user.AvatarUrl, cancellationToken);
+        return new AvatarAccessUrlDetails(result.AccessUrl, result.ExpiresAtUtc);
+    }
+
     public async Task<IReadOnlyList<UserListItem>> GetUsersAsync(CancellationToken cancellationToken)
     {
         return await _dbContext.Users
@@ -144,6 +193,7 @@ internal sealed class UserIdentityService : IUserIdentityService
                 x.UserName,
                 x.DisplayName,
                 x.Email,
+                x.AvatarUrl,
                 x.IsActive,
                 x.CreatedAt,
                 x.LastLoginAt,
@@ -479,6 +529,7 @@ internal sealed class UserIdentityService : IUserIdentityService
             user.UserName,
             user.DisplayName,
             user.Email,
+            user.AvatarUrl,
             user.IsActive,
             roles,
             permissions);
@@ -522,6 +573,7 @@ internal sealed class UserIdentityService : IUserIdentityService
                 x.UserName,
                 x.DisplayName,
                 x.Email,
+                x.AvatarUrl,
                 x.IsActive,
                 x.TokenVersion,
                 Roles = x.Roles.Select(role => role.RoleEntity.Name).ToArray(),

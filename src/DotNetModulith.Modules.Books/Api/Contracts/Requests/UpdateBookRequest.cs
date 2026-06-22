@@ -33,6 +33,7 @@ public sealed record UpdateBookRequest
     [Range(1, 9999)]
     public int TotalCopies { get; init; } = 1;
 
-    [StringLength(500)]
-    public string CoverImageUrl { get; init; } = string.Empty;
+    public Guid? CoverUploadId { get; init; }
+
+    public bool ClearCoverImage { get; init; }
 }

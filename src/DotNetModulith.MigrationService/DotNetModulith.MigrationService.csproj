@@ -19,5 +19,6 @@
     <ProjectReference Include="..\DotNetModulith.Modules.Notifications\DotNetModulith.Modules.Notifications.csproj" />
     <ProjectReference Include="..\DotNetModulith.Modules.Reservation\DotNetModulith.Modules.Reservation.csproj" />
     <ProjectReference Include="..\DotNetModulith.Modules.Users\DotNetModulith.Modules.Users.csproj" />
+    <ProjectReference Include="..\DotNetModulith.Modules.Storage\DotNetModulith.Modules.Storage.csproj" />
   </ItemGroup>
 </Project>

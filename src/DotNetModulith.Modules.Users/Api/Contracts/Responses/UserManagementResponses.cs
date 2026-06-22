@@ -8,6 +8,7 @@ public sealed record CurrentUserResponse(
     string UserName,
     string DisplayName,
     string Email,
+    string AvatarUrl,
     bool IsActive,
     IReadOnlyList<string> Roles,
     IReadOnlyList<string> Permissions);
@@ -20,6 +21,7 @@ public sealed record UserListItemResponse(
     string UserName,
     string DisplayName,
     string Email,
+    string AvatarUrl,
     bool IsActive,
     DateTimeOffset CreatedAt,
     DateTimeOffset? LastLoginAt,

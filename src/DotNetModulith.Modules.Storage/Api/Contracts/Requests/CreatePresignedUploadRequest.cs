@@ -8,6 +8,11 @@ public sealed class CreatePresignedUploadRequest
     [StringLength(200, MinimumLength = 1)]
     public string FileName { get; set; } = string.Empty;
 
-    [StringLength(500)]
-    public string? ObjectKey { get; set; }
+    [Required]
+    [StringLength(100, MinimumLength = 1)]
+    public string ContentType { get; set; } = string.Empty;
+
+    [Required]
+    [StringLength(50, MinimumLength = 1)]
+    public string Purpose { get; set; } = string.Empty;
 }

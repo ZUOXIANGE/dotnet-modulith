@@ -10,6 +10,10 @@ public interface IUserIdentityService
 
     Task ChangeCurrentPasswordAsync(Guid userId, string currentPassword, string newPassword, CancellationToken cancellationToken);
 
+    Task<CurrentUserDetails> UpdateCurrentAvatarAsync(Guid userId, Guid uploadId, CancellationToken cancellationToken);
+
+    Task<AvatarAccessUrlDetails> GetCurrentAvatarAccessUrlAsync(Guid userId, CancellationToken cancellationToken);
+
     Task<IReadOnlyList<UserListItem>> GetUsersAsync(CancellationToken cancellationToken);
 
     Task<CurrentUserDetails> GetUserByIdAsync(Guid userId, CancellationToken cancellationToken);

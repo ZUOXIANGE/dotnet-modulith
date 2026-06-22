@@ -29,7 +29,13 @@
           <n-dropdown :options="userDropdownOptions" @select="handleUserDropdown">
             <n-button text>
               <template #icon>
-                <n-icon><person-circle-outline /></n-icon>
+                <n-avatar
+                  round
+                  size="small"
+                  :src="authStore.avatarAccessUrl || undefined"
+                >
+                  <n-icon><person-circle-outline /></n-icon>
+                </n-avatar>
               </template>
               {{ authStore.userName || '管理员' }}
             </n-button>
@@ -40,6 +46,14 @@
         <router-view />
       </n-layout-content>
     </n-layout>
+
+    <input
+      ref="avatarInputRef"
+      type="file"
+      accept="image/jpeg,image/png,image/webp"
+      style="display: none"
+      @change="handleAvatarFileChange"
+    />
 
     <n-modal v-model:show="showChangePassword" title="修改密码" preset="card" style="width: 420px" :mask-closable="false">
       <n-form ref="passwordFormRef" :model="passwordForm" :rules="passwordRules" label-placement="left" label-width="90">
@@ -64,9 +78,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, h, reactive } from 'vue'
+import { ref, computed, h, reactive, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { NIcon, useMessage, type FormInst, type FormRules } from 'naive-ui'
+import { NAvatar, NIcon, useMessage, type FormInst, type FormRules } from 'naive-ui'
 import { PersonCircleOutline } from '@vicons/ionicons5'
 import {
   GridOutline,
@@ -84,7 +98,7 @@ import {
 import { useAuthStore } from '@/stores/auth'
 import { usePermission } from '@/composables/usePermission'
 import type { MenuOption } from 'naive-ui'
-import { api } from '@/utils/api'
+import { api, createUploadSession, getCurrentAvatarAccessUrl, getCurrentUser, setCurrentAvatar, uploadToPresignedUrl } from '@/utils/api'
 
 const router = useRouter()
 const route = useRoute()
@@ -92,6 +106,11 @@ const authStore = useAuthStore()
 const { hasPermission, hasAnyPermission } = usePermission()
 const message = useMessage()
 const collapsed = ref(false)
+const avatarInputRef = ref<HTMLInputElement | null>(null)
+const avatarUploading = ref(false)
+
+const AVATAR_ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp']
+const AVATAR_MAX_SIZE = 10 * 1024 * 1024
 
 const renderIcon = (icon: any) => () => h(NIcon, null, { default: () => h(icon) })
 
@@ -171,10 +190,11 @@ const activeKey = computed(() => {
   return 'dashboard'
 })
 
-const userDropdownOptions = [
+const userDropdownOptions = computed(() => [
+  { label: avatarUploading.value ? '头像上传中...' : '设置头像', key: 'changeAvatar', disabled: avatarUploading.value },
   { label: '修改密码', key: 'changePassword' },
   { label: '退出登录', key: 'logout' }
-]
+])
 
 function handleMenuUpdate(key: string) {
   router.push(`/${key}`)
@@ -184,6 +204,8 @@ function handleUserDropdown(key: string) {
   if (key === 'logout') {
     authStore.logout()
     router.push('/login')
+  } else if (key === 'changeAvatar') {
+    avatarInputRef.value?.click()
   } else if (key === 'changePassword') {
     showChangePassword.value = true
   }
@@ -244,6 +266,80 @@ async function handleChangePassword() {
     passwordSubmitting.value = false
   }
 }
+
+function validateAvatarFile(file: File): string | null {
+  if (!AVATAR_ALLOWED_TYPES.includes(file.type)) {
+    return '仅支持 JPG、PNG、WebP 格式头像'
+  }
+
+  if (file.size > AVATAR_MAX_SIZE) {
+    return '头像大小不能超过 10MB'
+  }
+
+  return null
+}
+
+async function handleAvatarFileChange(event: Event) {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  if (!file) {
+    return
+  }
+
+  const validationError = validateAvatarFile(file)
+  if (validationError) {
+    message.error(validationError)
+    input.value = ''
+    return
+  }
+
+  avatarUploading.value = true
+  try {
+    const session = await createUploadSession(file.name, file.type || 'application/octet-stream', 'user-avatar')
+    await uploadToPresignedUrl(session.uploadUrl, file)
+    const user = await setCurrentAvatar(session.uploadId)
+    authStore.setUser(user)
+    await refreshAvatarAccessUrl()
+    message.success('头像更新成功')
+  } catch (error: any) {
+    message.error(error?.message || '头像更新失败')
+  } finally {
+    avatarUploading.value = false
+    input.value = ''
+  }
+}
+
+async function hydrateCurrentUser() {
+  if (!authStore.token) {
+    return
+  }
+
+  try {
+    if (!authStore.user) {
+      const user = await getCurrentUser()
+      authStore.setUser(user)
+    }
+
+    await refreshAvatarAccessUrl()
+  } catch {
+    authStore.logout()
+    router.push('/login')
+  }
+}
+
+async function refreshAvatarAccessUrl() {
+  if (!authStore.token || !authStore.user?.avatarUrl) {
+    authStore.setAvatarAccessUrl(null)
+    return
+  }
+
+  const result = await getCurrentAvatarAccessUrl()
+  authStore.setAvatarAccessUrl(result.avatarAccessUrl || null)
+}
+
+onMounted(() => {
+  hydrateCurrentUser()
+})
 </script>
 
 <style scoped>

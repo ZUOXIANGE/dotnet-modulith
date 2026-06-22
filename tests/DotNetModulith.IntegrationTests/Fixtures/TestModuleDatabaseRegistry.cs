@@ -1,3 +1,5 @@
+using DotNetModulith.Modules.Books.Infrastructure;
+using DotNetModulith.Modules.Storage.Infrastructure;
 using DotNetModulith.Modules.Users.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -8,6 +10,8 @@ internal static class TestModuleDatabaseRegistry
 {
     public static IReadOnlyList<ModuleDatabaseRegistration> BusinessModules { get; } =
     [
+        ModuleDatabaseRegistration.Create<BooksDbContext>("books"),
+        ModuleDatabaseRegistration.Create<StorageDbContext>("storage"),
         ModuleDatabaseRegistration.Create<UsersDbContext>("users")
     ];
 }

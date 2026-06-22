@@ -5,6 +5,7 @@ public sealed record UserListItem(
     string UserName,
     string DisplayName,
     string Email,
+    string AvatarUrl,
     bool IsActive,
     DateTimeOffset CreatedAt,
     DateTimeOffset? LastLoginAt,

@@ -75,6 +75,7 @@ async function handleLogin() {
         userName: string
         displayName: string
         email: string
+        avatarUrl: string
         permissions: string[]
         roles: string[]
       }

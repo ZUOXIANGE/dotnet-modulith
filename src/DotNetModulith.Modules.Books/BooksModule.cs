@@ -10,7 +10,7 @@ public sealed class BooksModule : IModule
 
     public string BaseNamespace => "DotNetModulith.Modules.Books";
 
-    public IReadOnlyList<string> Dependencies => [];
+    public IReadOnlyList<string> Dependencies => ["Storage"];
 
     public IReadOnlyList<string> PublishedEvents => [];
 

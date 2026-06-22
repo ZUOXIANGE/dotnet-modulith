@@ -34,4 +34,9 @@ public static partial class UserResponseMapper
     /// 将权限详情映射为权限响应
     /// </summary>
     public static partial PermissionResponse ToResponse(this PermissionDetails permission);
+
+    /// <summary>
+    /// 将头像访问地址映射为响应
+    /// </summary>
+    public static partial AvatarAccessUrlResponse ToResponse(this AvatarAccessUrlDetails details);
 }

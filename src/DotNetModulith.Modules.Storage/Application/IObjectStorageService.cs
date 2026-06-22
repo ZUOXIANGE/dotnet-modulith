@@ -8,6 +8,10 @@ public interface IObjectStorageService
 
     Task<PresignedUploadResult> CreatePresignedUploadAsync(string fileName, string? objectKey, CancellationToken ct);
 
+    Task<PresignedReadResult> CreatePresignedReadAsync(string objectIdentifier, CancellationToken ct);
+
+    Task<StorageObjectInfo?> GetObjectInfoAsync(string objectKey, CancellationToken ct);
+
     Task<byte[]> GetObjectBytesAsync(string objectKey, CancellationToken ct);
 
     string BuildObjectUrl(string objectKey);

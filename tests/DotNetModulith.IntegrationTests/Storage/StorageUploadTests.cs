@@ -20,6 +20,7 @@ public sealed class StorageUploadTests : IClassFixture<S3CompatibleStorageFixtur
         var configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
+                ["ConnectionStrings:modulithdb"] = "Host=localhost;Port=5432;Database=modulith_test;Username=postgres;Password=postgres",
                 ["Storage:Endpoint"] = storageFixture.Endpoint,
                 ["Storage:AccessKey"] = S3CompatibleStorageFixture.AccessKey,
                 ["Storage:SecretKey"] = S3CompatibleStorageFixture.SecretKey,

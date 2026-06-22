@@ -1,6 +1,7 @@
 namespace DotNetModulith.Modules.Books.Application;
 
 public sealed record UpdateBookInput(
+    Guid OperatorUserId,
     string Isbn,
     string Title,
     string Author,
@@ -9,4 +10,5 @@ public sealed record UpdateBookInput(
     string Description,
     Guid CategoryId,
     int TotalCopies,
-    string CoverImageUrl);
+    Guid? CoverUploadId,
+    bool ClearCoverImage);

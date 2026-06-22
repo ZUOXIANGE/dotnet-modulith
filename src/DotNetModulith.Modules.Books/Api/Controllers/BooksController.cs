@@ -1,9 +1,12 @@
+using System.Security.Claims;
+using DotNetModulith.Abstractions.Exceptions;
 using DotNetModulith.Abstractions.Results;
 using DotNetModulith.Modules.Books.Api.Contracts.Requests;
 using DotNetModulith.Modules.Books.Api.Contracts.Responses;
 using DotNetModulith.Modules.Books.Api.Mappings;
 using DotNetModulith.Modules.Books.Application;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 namespace DotNetModulith.Modules.Books.Api.Controllers;
@@ -54,6 +57,7 @@ public sealed class BooksController : ControllerBase
     public async Task<ApiResponse<BookDetailsResponse>> CreateBook([FromBody] CreateBookRequest request, CancellationToken ct)
     {
         var input = new CreateBookInput(
+            GetCurrentUserId(),
             request.Isbn,
             request.Title,
             request.Author,
@@ -62,7 +66,7 @@ public sealed class BooksController : ControllerBase
             request.Description,
             request.CategoryId,
             request.TotalCopies,
-            request.CoverImageUrl);
+            request.CoverUploadId);
 
         var book = await _bookService.CreateBookAsync(input, ct);
         return ApiResponse.Success(book.ToResponse());
@@ -73,6 +77,7 @@ public sealed class BooksController : ControllerBase
     public async Task<ApiResponse<BookDetailsResponse>> UpdateBook(Guid bookId, [FromBody] UpdateBookRequest request, CancellationToken ct)
     {
         var input = new UpdateBookInput(
+            GetCurrentUserId(),
             request.Isbn,
             request.Title,
             request.Author,
@@ -81,7 +86,8 @@ public sealed class BooksController : ControllerBase
             request.Description,
             request.CategoryId,
             request.TotalCopies,
-            request.CoverImageUrl);
+            request.CoverUploadId,
+            request.ClearCoverImage);
 
         var book = await _bookService.UpdateBookAsync(bookId, input, ct);
         return ApiResponse.Success(book.ToResponse());
@@ -93,5 +99,13 @@ public sealed class BooksController : ControllerBase
     {
         await _bookService.DeleteBookAsync(bookId, ct);
         return ApiResponse.Success();
+    }
+
+    private Guid GetCurrentUserId()
+    {
+        var value = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        return Guid.TryParse(value, out var userId)
+            ? userId
+            : throw new BusinessException("invalid token", ApiCodes.Auth.InvalidToken, StatusCodes.Status401Unauthorized);
     }
 }

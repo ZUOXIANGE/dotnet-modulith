@@ -5,6 +5,7 @@ using DotNetModulith.Modules.Fines;
 using DotNetModulith.Modules.Members;
 using DotNetModulith.Modules.Notifications;
 using DotNetModulith.Modules.Reservation;
+using DotNetModulith.Modules.Storage;
 using DotNetModulith.ModulithCore;
 using Serilog;
 using Serilog.Events;
@@ -46,7 +47,8 @@ builder.Services
     .RegisterModule<BorrowingModule>(builder.Configuration)
     .RegisterModule<ReservationModule>(builder.Configuration)
     .RegisterModule<FinesModule>(builder.Configuration)
-    .RegisterModule<NotificationsModule>(builder.Configuration);
+    .RegisterModule<NotificationsModule>(builder.Configuration)
+    .RegisterModule<StorageModule>(builder.Configuration);
 
 var app = builder.Build();
 

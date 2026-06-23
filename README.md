@@ -225,14 +225,6 @@ npm run dev
 - `Logs` 页面选择 stream：`dotnet_modulith`
 - `Traces` 页面选择 stream：`dotnet_modulith`
 
-### 链路验证
-
-```bash
-pwsh ./scripts/test-trace-demo.ps1
-```
-
-验证 API → DB → Cache → Queue → Subscriber 完整链路。
-
 ## 运行测试
 
 ```bash

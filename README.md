@@ -1,16 +1,31 @@
-# DotNetModulith — 图书馆管理系统
+# DotNetModulith
 
 [![.NET](https://img.shields.io/badge/.NET-10.0-512BD4?logo=dotnet)](https://dotnet.microsoft.com/)
 [![OpenTelemetry](https://img.shields.io/badge/OpenTelemetry-Enabled-6A1B9A?logo=opentelemetry)](https://opentelemetry.io/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
 
-基于 ASP.NET Core 10 的模块化单体（Modulith）图书馆管理系统，借鉴 [Spring Modulith](https://spring.io/projects/spring-modulith) 设计理念，结合 DDD、事件驱动、CQRS 与 OpenTelemetry 可观测性，演示一个可演进到微服务的工程实践。
+基于 ASP.NET Core 10 的**模块化单体（Modulith）架构参考实现**，借鉴 [Spring Modulith](https://spring.io/projects/spring-modulith) 设计理念，结合 DDD、事件驱动、CQRS 与 OpenTelemetry 可观测性，演示一个可演进到微服务的工程实践。
 
-## 业务场景
+项目以**图书馆管理系统**作为业务演示场景，承载并验证模块化单体的设计理念与工程能力——重点在于架构本身，而非具体业务。
 
-系统覆盖图书馆日常运营的完整流程：图书编目、读者管理、借阅归还、预约排队、逾期罚款、通知推送、统计报表。
+## 设计目标
 
-## 核心能力
+DotNetModulith 聚焦于回答一个核心问题：**如何在单体应用中保持微服务级别的架构纪律？**
+
+- 清晰的模块边界：每个模块拥有独立的领域层，通过公开 API 与事件契约对外协作
+- 可验证的依赖方向：架构测试强制约束模块间依赖，防止边界腐化
+- 渐进式拆分：模块内高内聚、模块间低耦合，可在需要时平滑拆分为独立服务
+- 工程范式沉淀：DDD 聚合、CQRS、事件驱动 Outbox、多级缓存等模式的落地参考
+
+## 业务演示场景
+
+系统以图书馆日常运营为演示业务，覆盖完整流程：图书编目、读者管理、借阅归还、预约排队、逾期罚款、通知推送、统计报表。
+
+> 该业务场景仅用于承载架构演示，重点不在业务逻辑本身，而在于如何通过模块化组织一个真实可运行的单体应用。
+
+## 架构能力
+
+以下能力均为模块化单体架构的工程支撑，而非特定业务所需：
 
 - 模块化单体：模块边界清晰，支持运行时与架构测试校验
 - DDD + CQRS：聚合根、领域事件与命令/查询分离
@@ -72,7 +87,9 @@ tests/
   DotNetModulith.IntegrationTests/          # 集成测试
 ```
 
-## 业务模块
+## 演示业务模块
+
+图书馆演示场景拆分为以下模块，每个模块即一个独立的架构单元：
 
 | 模块          | 功能描述                               | 关键实体        |
 | ------------- | -------------------------------------- | --------------- |

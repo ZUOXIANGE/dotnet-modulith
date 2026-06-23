@@ -1,6 +1,5 @@
 using DotNetCore.CAP;
 using DotNetModulith.JobHost.Infrastructure;
-using DotNetModulith.Modules.Inventory;
 using DotNetModulith.ServiceDefaults;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -26,8 +25,6 @@ public static class JobHostServiceCollectionExtensions
             .Bind(configuration.GetSection(RabbitMqOptions.SectionName))
             .ValidateDataAnnotations()
             .ValidateOnStart();
-
-        services.AddInventoryJobServices(configuration);
 
         services.AddTickerQ(options =>
         {

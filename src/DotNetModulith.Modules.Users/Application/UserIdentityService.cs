@@ -1,5 +1,7 @@
 using DotNetModulith.Abstractions.Exceptions;
 using DotNetModulith.Abstractions.Results;
+using DotNetModulith.Modules.Storage.Api;
+using DotNetModulith.Modules.Storage.Application;
 using DotNetModulith.Modules.Users.Domain;
 using DotNetModulith.Modules.Users.Infrastructure;
 using Microsoft.AspNetCore.Http;
@@ -15,23 +17,40 @@ internal sealed class UserIdentityService : IUserIdentityService
     private readonly JwtTokenFactory _jwtTokenFactory;
     private readonly IUserAuthCache _userAuthCache;
     private readonly ITokenBlacklistStore _tokenBlacklistStore;
+    private readonly ICaptchaService _captchaService;
+    private readonly IStorageUploadSessionService _storageUploadSessionService;
+    private readonly IObjectStorageService _objectStorageService;
 
     public UserIdentityService(
         UsersDbContext dbContext,
         IPasswordHasher<UserEntity> passwordHasher,
         JwtTokenFactory jwtTokenFactory,
         IUserAuthCache userAuthCache,
-        ITokenBlacklistStore tokenBlacklistStore)
+        ITokenBlacklistStore tokenBlacklistStore,
+        ICaptchaService captchaService,
+        IStorageUploadSessionService storageUploadSessionService,
+        IObjectStorageService objectStorageService)
     {
         _dbContext = dbContext;
         _passwordHasher = passwordHasher;
         _jwtTokenFactory = jwtTokenFactory;
         _userAuthCache = userAuthCache;
         _tokenBlacklistStore = tokenBlacklistStore;
+        _captchaService = captchaService;
+        _storageUploadSessionService = storageUploadSessionService;
+        _objectStorageService = objectStorageService;
     }
 
     public async Task<LoginResult> LoginAsync(LoginInput input, CancellationToken cancellationToken)
     {
+        if (!_captchaService.Validate(input.CaptchaId, input.CaptchaCode))
+        {
+            throw new BusinessException(
+                "invalid captcha",
+                ApiCodes.Auth.CaptchaInvalid,
+                StatusCodes.Status400BadRequest);
+        }
+
         var normalizedUserName = NormalizeUserName(input.UserName);
         var user = await _dbContext.Users
             .AsTracking()
@@ -121,6 +140,47 @@ internal sealed class UserIdentityService : IUserIdentityService
         await RefreshUserAuthCacheAsync(user.Id, cancellationToken);
     }
 
+    public async Task<CurrentUserDetails> UpdateCurrentAvatarAsync(Guid userId, Guid uploadId, CancellationToken cancellationToken)
+    {
+        var user = await _dbContext.Users
+            .AsTracking()
+            .SingleOrDefaultAsync(x => x.Id == userId, cancellationToken)
+            ?? throw new BusinessException(
+                "user not found",
+                ApiCodes.Common.NotFound,
+                StatusCodes.Status404NotFound);
+
+        var avatar = await _storageUploadSessionService.ConsumeUploadSessionAsync(
+            userId,
+            uploadId,
+            UploadPurposes.UserAvatar,
+            cancellationToken);
+
+        user.SetAvatar(avatar.ObjectUrl, DateTimeOffset.UtcNow);
+        await _dbContext.SaveChangesAsync(cancellationToken);
+        await RefreshUserAuthCacheAsync(user.Id, cancellationToken);
+        return await GetUserDetailsAsync(userId, cancellationToken);
+    }
+
+    public async Task<AvatarAccessUrlDetails> GetCurrentAvatarAccessUrlAsync(Guid userId, CancellationToken cancellationToken)
+    {
+        var user = await _dbContext.Users
+            .AsNoTracking()
+            .SingleOrDefaultAsync(x => x.Id == userId, cancellationToken)
+            ?? throw new BusinessException(
+                "user not found",
+                ApiCodes.Common.NotFound,
+                StatusCodes.Status404NotFound);
+
+        if (string.IsNullOrWhiteSpace(user.AvatarUrl))
+        {
+            return new AvatarAccessUrlDetails(string.Empty, DateTimeOffset.MinValue);
+        }
+
+        var result = await _objectStorageService.CreatePresignedReadAsync(user.AvatarUrl, cancellationToken);
+        return new AvatarAccessUrlDetails(result.AccessUrl, result.ExpiresAtUtc);
+    }
+
     public async Task<IReadOnlyList<UserListItem>> GetUsersAsync(CancellationToken cancellationToken)
     {
         return await _dbContext.Users
@@ -133,6 +193,7 @@ internal sealed class UserIdentityService : IUserIdentityService
                 x.UserName,
                 x.DisplayName,
                 x.Email,
+                x.AvatarUrl,
                 x.IsActive,
                 x.CreatedAt,
                 x.LastLoginAt,
@@ -327,6 +388,59 @@ internal sealed class UserIdentityService : IUserIdentityService
             role.Permissions.Select(x => x.Permission).OrderBy(x => x).ToArray());
     }
 
+    public async Task<RoleDetails> UpdateRoleAsync(
+        Guid roleId,
+        UpdateRoleInput input,
+        CancellationToken cancellationToken)
+    {
+        var role = await _dbContext.Roles
+            .AsTracking()
+            .Include(x => x.Permissions)
+            .SingleOrDefaultAsync(x => x.Id == roleId, cancellationToken)
+            ?? throw new BusinessException(
+                "role not found",
+                ApiCodes.Common.NotFound,
+                StatusCodes.Status404NotFound);
+
+        var roleName = input.Name.Trim();
+        if (roleName != role.Name && await _dbContext.Roles.AnyAsync(x => x.Name == roleName, cancellationToken))
+        {
+            throw new BusinessException(
+                "role name already exists",
+                ApiCodes.User.RoleNameAlreadyExists,
+                StatusCodes.Status409Conflict);
+        }
+
+        var permissions = NormalizePermissions(input.Permissions);
+        EnsurePermissionsExist(permissions);
+
+        role.UpdateProfile(
+            roleName,
+            string.IsNullOrWhiteSpace(input.Description) ? null : input.Description.Trim(),
+            DateTimeOffset.UtcNow);
+
+        role.ReplacePermissions(permissions, DateTimeOffset.UtcNow);
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        var userIds = await _dbContext.Users
+            .AsNoTracking()
+            .Where(x => x.Roles.Any(userRole => userRole.RoleId == roleId))
+            .Select(x => x.Id)
+            .ToArrayAsync(cancellationToken);
+
+        foreach (var userId in userIds)
+        {
+            await RefreshUserAuthCacheAsync(userId, cancellationToken);
+        }
+
+        return new RoleDetails(
+            role.Id,
+            role.Name,
+            role.Description,
+            role.IsSystem,
+            role.Permissions.Select(x => x.Permission).OrderBy(x => x).ToArray());
+    }
+
     public async Task UpdateRolePermissionsAsync(
         Guid roleId,
         IReadOnlyCollection<string> permissions,
@@ -361,7 +475,7 @@ internal sealed class UserIdentityService : IUserIdentityService
     public Task<IReadOnlyList<PermissionDetails>> GetPermissionsAsync(CancellationToken cancellationToken)
     {
         IReadOnlyList<PermissionDetails> permissions = UserPermissions.Definitions
-            .Select(x => new PermissionDetails(x.Code, x.Name, x.Description))
+            .Select(x => new PermissionDetails(x.Code, x.Name, x.Group, x.Description))
             .ToArray();
 
         return Task.FromResult(permissions);
@@ -415,6 +529,7 @@ internal sealed class UserIdentityService : IUserIdentityService
             user.UserName,
             user.DisplayName,
             user.Email,
+            user.AvatarUrl,
             user.IsActive,
             roles,
             permissions);
@@ -458,6 +573,7 @@ internal sealed class UserIdentityService : IUserIdentityService
                 x.UserName,
                 x.DisplayName,
                 x.Email,
+                x.AvatarUrl,
                 x.IsActive,
                 x.TokenVersion,
                 Roles = x.Roles.Select(role => role.RoleEntity.Name).ToArray(),

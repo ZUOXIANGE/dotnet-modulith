@@ -15,4 +15,26 @@ public sealed record LoginRequest
     [NotWhiteSpace]
     [StringLength(100, MinimumLength = 8)]
     public required string Password { get; init; }
+
+    /// <summary>
+    /// 验证码ID
+    /// </summary>
+    [NotWhiteSpace]
+    public required string CaptchaId { get; init; }
+
+    /// <summary>
+    /// 验证码
+    /// </summary>
+    [NotWhiteSpace]
+    [StringLength(8)]
+    public required string CaptchaCode { get; init; }
+}
+
+/// <summary>
+/// 更新当前用户头像请求
+/// </summary>
+public sealed record UpdateCurrentAvatarRequest
+{
+    [Required]
+    public required Guid UploadId { get; init; }
 }

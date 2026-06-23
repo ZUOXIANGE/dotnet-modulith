@@ -11,10 +11,14 @@
 
   <ItemGroup>
     <ProjectReference Include="..\DotNetModulith.ServiceDefaults\DotNetModulith.ServiceDefaults.csproj" />
-    <ProjectReference Include="..\DotNetModulith.Modules.Orders\DotNetModulith.Modules.Orders.csproj" />
-    <ProjectReference Include="..\DotNetModulith.Modules.Inventory\DotNetModulith.Modules.Inventory.csproj" />
-    <ProjectReference Include="..\DotNetModulith.Modules.Payments\DotNetModulith.Modules.Payments.csproj" />
     <ProjectReference Include="..\DotNetModulith.JobHost\DotNetModulith.JobHost.csproj" />
+    <ProjectReference Include="..\DotNetModulith.Modules.Books\DotNetModulith.Modules.Books.csproj" />
+    <ProjectReference Include="..\DotNetModulith.Modules.Borrowing\DotNetModulith.Modules.Borrowing.csproj" />
+    <ProjectReference Include="..\DotNetModulith.Modules.Fines\DotNetModulith.Modules.Fines.csproj" />
+    <ProjectReference Include="..\DotNetModulith.Modules.Members\DotNetModulith.Modules.Members.csproj" />
+    <ProjectReference Include="..\DotNetModulith.Modules.Notifications\DotNetModulith.Modules.Notifications.csproj" />
+    <ProjectReference Include="..\DotNetModulith.Modules.Reservation\DotNetModulith.Modules.Reservation.csproj" />
     <ProjectReference Include="..\DotNetModulith.Modules.Users\DotNetModulith.Modules.Users.csproj" />
+    <ProjectReference Include="..\DotNetModulith.Modules.Storage\DotNetModulith.Modules.Storage.csproj" />
   </ItemGroup>
 </Project>

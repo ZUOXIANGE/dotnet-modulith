@@ -1,13 +1,16 @@
 [CmdletBinding()]
 param(
-    [string]$BaseUrl = "http://localhost:4602"
+    [string]$BaseUrl = "http://localhost:5280",
+    [string]$OutputPath = ""
 )
 
 $ErrorActionPreference = "Stop"
 $baseUrl = $BaseUrl.TrimEnd("/")
 $runId = Get-Date -Format "yyyyMMddHHmmss"
-$productId = "DEMO-$runId"
-$customerId = "CUST-$runId"
+
+if ([string]::IsNullOrWhiteSpace($OutputPath)) {
+    $OutputPath = Join-Path $PSScriptRoot "captcha-$runId.svg"
+}
 
 function Write-Section {
     param([string]$Title)
@@ -56,81 +59,40 @@ function Assert-Success {
 }
 
 Write-Host "============================================" -ForegroundColor Cyan
-Write-Host "  DotNetModulith API Smoke Test" -ForegroundColor Cyan
+Write-Host "  DotNetModulith Captcha API Test" -ForegroundColor Cyan
 Write-Host "============================================" -ForegroundColor Cyan
-Write-Host "BaseUrl: $baseUrl" -ForegroundColor Gray
-Write-Host "RunId  : $runId" -ForegroundColor Gray
+Write-Host "BaseUrl   : $baseUrl" -ForegroundColor Gray
+Write-Host "RunId     : $runId" -ForegroundColor Gray
+Write-Host "OutputSvg : $OutputPath" -ForegroundColor Gray
 
 try {
-    Write-Section "Health"
-    $alive = Invoke-Api -Method "GET" -Path "/alive" -Desc "Liveness probe"
-    $startup = Invoke-Api -Method "GET" -Path "/startup" -Desc "Startup probe"
-    $ready = Invoke-Api -Method "GET" -Path "/ready" -Desc "Readiness probe"
-    $health = Invoke-Api -Method "GET" -Path "/health" -Desc "Health alias"
+    Write-Section "Captcha"
+    $captcha = Invoke-Api -Method "GET" -Path "/api/auth/captcha" -Desc "Get captcha"
+    Assert-Success -Response $captcha -Operation "Get captcha"
 
-    Assert-Success -Response $alive -Operation "Alive probe"
-    Assert-Success -Response $startup -Operation "Startup probe"
-    Assert-Success -Response $ready -Operation "Ready probe"
-    Assert-Success -Response $health -Operation "Health probe"
+    $captchaId = $captcha.data.captchaId
+    $svgContent = $captcha.data.svgContent
 
-    Write-Section "Modules"
-    $modules = Invoke-Api -Method "GET" -Path "/api/modules" -Desc "List modules"
-    $graph = Invoke-Api -Method "GET" -Path "/api/modules/graph" -Desc "Module dependency graph"
-    $verify = Invoke-Api -Method "GET" -Path "/api/modules/verify" -Desc "Module boundary verification"
-
-    Assert-Success -Response $modules -Operation "Get modules"
-    Assert-Success -Response $graph -Operation "Get module graph"
-    Assert-Success -Response $verify -Operation "Verify modules"
-
-    Write-Section "Inventory"
-    $stockBody = @{
-        productId = $productId
-        productName = "Demo Product $runId"
-        initialQuantity = 10
+    if ([string]::IsNullOrWhiteSpace($captchaId)) {
+        throw "Get captcha succeeded but captchaId is missing."
     }
 
-    $createStock = Invoke-Api -Method "POST" -Path "/api/inventory/stocks" -Desc "Create stock" -Body $stockBody
-    $getStock = Invoke-Api -Method "GET" -Path "/api/inventory/stocks/$productId" -Desc "Query stock"
-    $replenish = Invoke-Api -Method "POST" -Path "/api/inventory/stocks/$productId/replenish" -Desc "Replenish stock" -Body @{ quantity = 5 }
-
-    Assert-Success -Response $createStock -Operation "Create stock"
-    Assert-Success -Response $getStock -Operation "Get stock"
-    Assert-Success -Response $replenish -Operation "Replenish stock"
-
-    Write-Section "Orders"
-    $orderBody = @{
-        customerId = $customerId
-        lines = @(
-            @{
-                productId = $productId
-                productName = "Demo Product $runId"
-                quantity = 2
-                unitPrice = 99.00
-            }
-        )
+    if ([string]::IsNullOrWhiteSpace($svgContent)) {
+        throw "Get captcha succeeded but svgContent is missing."
     }
 
-    $createOrder = Invoke-Api -Method "POST" -Path "/api/orders" -Desc "Create order" -Body $orderBody
-    Assert-Success -Response $createOrder -Operation "Create order"
-
-    $orderId = $createOrder.data.orderId
-    if ([string]::IsNullOrWhiteSpace($orderId)) {
-        throw "Create order succeeded but orderId is missing."
-    }
-
-    $getOrder = Invoke-Api -Method "GET" -Path "/api/orders/$orderId" -Desc "Query order"
-    Assert-Success -Response $getOrder -Operation "Get order"
+    $svgContent | Set-Content -Path $OutputPath -Encoding utf8
 
     Write-Host "============================================" -ForegroundColor Cyan
-    Write-Host "  Smoke test completed successfully." -ForegroundColor Green
+    Write-Host "  Captcha API test completed successfully." -ForegroundColor Green
     Write-Host "============================================" -ForegroundColor Cyan
-    Write-Host "Scalar UI    : $baseUrl/scalar/v1" -ForegroundColor White
-    Write-Host "OpenAPI JSON : $baseUrl/openapi/v1.json" -ForegroundColor White
-    Write-Host "CAP Dashboard: $baseUrl/cap-dashboard" -ForegroundColor White
+    Write-Host "CaptchaId : $captchaId" -ForegroundColor White
+    Write-Host "SVG File  : $OutputPath" -ForegroundColor White
+    Write-Host "CaptchaApi: $baseUrl/api/auth/captcha" -ForegroundColor White
 }
 catch {
     Write-Host ""
-    Write-Host "Smoke test failed." -ForegroundColor Red
+    Write-Host "Captcha API test failed." -ForegroundColor Red
     Write-Host $_.Exception.Message -ForegroundColor Red
     exit 1
 }

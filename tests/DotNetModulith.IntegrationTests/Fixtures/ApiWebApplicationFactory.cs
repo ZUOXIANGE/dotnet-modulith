@@ -1,5 +1,6 @@
 using DotNetCore.CAP;
 using DotNetModulith.Modules.Users;
+using DotNetModulith.Modules.Users.Application;
 using DotNetModulith.Modules.Users.Domain;
 using DotNetModulith.Modules.Users.Infrastructure;
 using Microsoft.AspNetCore.Hosting;
@@ -19,6 +20,20 @@ namespace DotNetModulith.IntegrationTests.Fixtures;
 /// </summary>
 public sealed class ApiWebApplicationFactory : TestWebApplicationFactoryBase
 {
+    private readonly S3CompatibleStorageFixture _storageFixture = new();
+
+    public override async ValueTask InitializeAsync()
+    {
+        await base.InitializeAsync();
+        await _storageFixture.InitializeAsync();
+    }
+
+    public override async ValueTask DisposeAsync()
+    {
+        await _storageFixture.DisposeAsync();
+        await base.DisposeAsync();
+    }
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment("Testing");
@@ -28,7 +43,14 @@ public sealed class ApiWebApplicationFactory : TestWebApplicationFactoryBase
             config.AddInMemoryCollection(new Dictionary<string, string?>
             {
                 ["ConnectionStrings:modulithdb"] = ConnectionString,
-                ["ConnectionStrings:redis"] = string.Empty
+                ["ConnectionStrings:redis"] = string.Empty,
+                ["Storage:Endpoint"] = _storageFixture.Endpoint,
+                ["Storage:AccessKey"] = S3CompatibleStorageFixture.AccessKey,
+                ["Storage:SecretKey"] = S3CompatibleStorageFixture.SecretKey,
+                ["Storage:BucketName"] = S3CompatibleStorageFixture.BucketName,
+                ["Storage:ForcePathStyle"] = "true",
+                ["Storage:UseSsl"] = "false",
+                ["Storage:PresignedUrlExpireSeconds"] = "600"
             });
         });
 
@@ -37,6 +59,8 @@ public sealed class ApiWebApplicationFactory : TestWebApplicationFactoryBase
             DbFixture.ReplaceRegisteredDbContexts(services);
             services.RemoveAll<IDistributedCache>();
             services.AddDistributedMemoryCache();
+            services.RemoveAll<ICaptchaService>();
+            services.AddSingleton<ICaptchaService, NullCaptchaService>();
             services.AddSingleton<ICapPublisher, NullCapPublisher>();
         });
     }

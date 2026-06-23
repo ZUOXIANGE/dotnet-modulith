@@ -14,10 +14,13 @@
     <Project Path="src/DotNetModulith.ServiceDefaults/DotNetModulith.ServiceDefaults.csproj" />
   </Folder>
   <Folder Name="/src/Modules/">
-    <Project Path="src/DotNetModulith.Modules.Orders/DotNetModulith.Modules.Orders.csproj" />
-    <Project Path="src/DotNetModulith.Modules.Inventory/DotNetModulith.Modules.Inventory.csproj" />
-    <Project Path="src/DotNetModulith.Modules.Payments/DotNetModulith.Modules.Payments.csproj" />
+    <Project Path="src/DotNetModulith.Modules.Books/DotNetModulith.Modules.Books.csproj" />
+    <Project Path="src/DotNetModulith.Modules.Borrowing/DotNetModulith.Modules.Borrowing.csproj" />
+    <Project Path="src/DotNetModulith.Modules.Fines/DotNetModulith.Modules.Fines.csproj" />
+    <Project Path="src/DotNetModulith.Modules.Members/DotNetModulith.Modules.Members.csproj" />
     <Project Path="src/DotNetModulith.Modules.Notifications/DotNetModulith.Modules.Notifications.csproj" />
+    <Project Path="src/DotNetModulith.Modules.Reports/DotNetModulith.Modules.Reports.csproj" />
+    <Project Path="src/DotNetModulith.Modules.Reservation/DotNetModulith.Modules.Reservation.csproj" />
     <Project Path="src/DotNetModulith.Modules.Users/DotNetModulith.Modules.Users.csproj" />
   </Folder>
   <Folder Name="/src/Host/">
@@ -28,7 +31,6 @@
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/DotNetModulith.ArchitectureTests/DotNetModulith.ArchitectureTests.csproj" />
-    <Project Path="tests/DotNetModulith.Modules.Orders.Tests/DotNetModulith.Modules.Orders.Tests.csproj" />
     <Project Path="tests/DotNetModulith.IntegrationTests/DotNetModulith.IntegrationTests.csproj" />
   </Folder>
   <Folder Name="/docs/">

@@ -18,6 +18,13 @@ namespace Microsoft.Extensions.Hosting;
 /// </summary>
 public static class Extensions
 {
+    private static readonly string[] OtlpExporterHttpClientLogCategories =
+    [
+        "System.Net.Http.HttpClient.OtlpLogExporter",
+        "System.Net.Http.HttpClient.OtlpMetricExporter",
+        "System.Net.Http.HttpClient.OtlpTraceExporter"
+    ];
+
     /// <summary>
     /// 健康检查端点路径（就绪探针）
     /// </summary>
@@ -34,13 +41,22 @@ public static class Extensions
     public static TBuilder AddServiceDefaults<TBuilder>(this TBuilder builder)
         where TBuilder : IHostApplicationBuilder
     {
+        builder.SuppressOtlpExporterHttpClientLogs();
+
         builder.Services
             .AddOptions<OpenObserveOptions>()
             .Bind(builder.Configuration.GetSection(OpenObserveOptions.SectionName))
             .ValidateDataAnnotations()
-            .Validate(
-                options => !options.Enabled || Uri.TryCreate(options.Endpoint, UriKind.Absolute, out _),
-                "OpenObserve:Endpoint must be a valid absolute URI when OpenObserve is enabled.")
+            .Validate(options =>
+                {
+                    if (!options.Enabled)
+                        return true;
+                    if (string.IsNullOrWhiteSpace(options.UserEmail))
+                        return false;
+                    if (string.IsNullOrWhiteSpace(options.UserPassword))
+                        return false;
+                    return Uri.TryCreate(options.Endpoint, UriKind.Absolute, out _);
+                }, "When OpenObserve is enabled, UserEmail, UserPassword, and a valid Endpoint URI are required.")
             .ValidateOnStart();
 
         builder.ConfigureOpenTelemetry();
@@ -63,6 +79,20 @@ public static class Extensions
             http.AddStandardResilienceHandler();
             http.AddServiceDiscovery();
         });
+
+        return builder;
+    }
+
+    /// <summary>
+    /// 忽略 OTLP exporter 自身 HttpClient 产生的常规请求日志，避免观测链路反向污染应用日志
+    /// </summary>
+    private static TBuilder SuppressOtlpExporterHttpClientLogs<TBuilder>(this TBuilder builder)
+        where TBuilder : IHostApplicationBuilder
+    {
+        foreach (var category in OtlpExporterHttpClientLogCategories)
+        {
+            builder.Logging.AddFilter(category, LogLevel.Warning);
+        }
 
         return builder;
     }
@@ -152,9 +182,6 @@ public static class Extensions
                     .AddEntityFrameworkCoreInstrumentation(options =>
                         options.SetDbStatementForText = true)
                     .AddSource("TickerQ")
-                    .AddSource("DotNetModulith.Modules.Orders")
-                    .AddSource("DotNetModulith.Modules.Inventory")
-                    .AddSource("DotNetModulith.Modules.Payments")
                     .AddSource("DotNetModulith.Modules.Notifications");
 
                 if (openObserveEnabled)

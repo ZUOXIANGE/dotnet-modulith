@@ -17,10 +17,17 @@
     <PackageReference Include="TickerQ.Dashboard" />
     <PackageReference Include="TickerQ.EntityFrameworkCore" />
     <PackageReference Include="TickerQ.Instrumentation.OpenTelemetry" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" />
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\DotNetModulith.Abstractions\DotNetModulith.Abstractions.csproj" />
     <ProjectReference Include="..\DotNetModulith.ServiceDefaults\DotNetModulith.ServiceDefaults.csproj" />
-    <ProjectReference Include="..\DotNetModulith.Modules.Inventory\DotNetModulith.Modules.Inventory.csproj" />
+    <ProjectReference Include="..\DotNetModulith.Modules.Books\DotNetModulith.Modules.Books.csproj" />
+    <ProjectReference Include="..\DotNetModulith.Modules.Members\DotNetModulith.Modules.Members.csproj" />
+    <ProjectReference Include="..\DotNetModulith.Modules.Borrowing\DotNetModulith.Modules.Borrowing.csproj" />
+    <ProjectReference Include="..\DotNetModulith.Modules.Reservation\DotNetModulith.Modules.Reservation.csproj" />
+    <ProjectReference Include="..\DotNetModulith.Modules.Fines\DotNetModulith.Modules.Fines.csproj" />
+    <ProjectReference Include="..\DotNetModulith.Modules.Notifications\DotNetModulith.Modules.Notifications.csproj" />
   </ItemGroup>
 </Project>

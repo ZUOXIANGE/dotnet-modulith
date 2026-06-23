@@ -9,6 +9,7 @@ public sealed class UserEntity
     public string UserName { get; private set; } = string.Empty;
     public string DisplayName { get; private set; } = string.Empty;
     public string Email { get; private set; } = string.Empty;
+    public string AvatarUrl { get; private set; } = string.Empty;
     public string PasswordHash { get; private set; } = string.Empty;
     public bool IsActive { get; private set; }
     public int TokenVersion { get; private set; }
@@ -50,6 +51,12 @@ public sealed class UserEntity
     {
         DisplayName = displayName;
         Email = email;
+        UpdatedAt = now;
+    }
+
+    public void SetAvatar(string avatarUrl, DateTimeOffset now)
+    {
+        AvatarUrl = avatarUrl;
         UpdatedAt = now;
     }
 

@@ -9,6 +9,42 @@ internal sealed class UsersModuleSeeder : IUsersModuleSeeder
 {
     public const string DefaultAdminUserName = "admin";
     public const string DefaultAdminPassword = "Admin@123456";
+    public const string DefaultLibrarianUserName = "librarian";
+    public const string DefaultLibrarianPassword = "Library@123456";
+
+    private static readonly string[] LibrarianPermissions =
+    [
+        UserPermissions.UsersView,
+        UserPermissions.RolesView,
+        UserPermissions.BooksView,
+        UserPermissions.BooksCreate,
+        UserPermissions.BooksEdit,
+        UserPermissions.BooksBarcode,
+        UserPermissions.BooksImport,
+        UserPermissions.CategoriesView,
+        UserPermissions.CategoriesCreate,
+        UserPermissions.CategoriesEdit,
+        UserPermissions.MembersView,
+        UserPermissions.MembersCreate,
+        UserPermissions.MembersEdit,
+        UserPermissions.MemberGroupsView,
+        UserPermissions.BorrowingView,
+        UserPermissions.BorrowingBorrow,
+        UserPermissions.BorrowingReturn,
+        UserPermissions.BorrowingRenew,
+        UserPermissions.ReservationView,
+        UserPermissions.ReservationCreate,
+        UserPermissions.ReservationCancel,
+        UserPermissions.FinesView,
+        UserPermissions.FinesCreate,
+        UserPermissions.FinesPay,
+        UserPermissions.FinesWaive,
+        UserPermissions.ReportsView,
+        UserPermissions.ReportsExport,
+        UserPermissions.NotificationsView,
+        UserPermissions.StorageView,
+        UserPermissions.StorageUpload
+    ];
 
     private readonly UsersDbContext _dbContext;
     private readonly IPasswordHasher<UserEntity> _passwordHasher;
@@ -39,6 +75,22 @@ internal sealed class UsersModuleSeeder : IUsersModuleSeeder
             adminRole.ReplacePermissions(UserPermissions.All, now);
         }
 
+        var librarianRole = await _dbContext.Roles
+            .AsTracking()
+            .Include(x => x.Permissions)
+            .SingleOrDefaultAsync(x => x.Name == "Librarian", cancellationToken);
+
+        if (librarianRole is null)
+        {
+            librarianRole = RoleEntity.Create("Librarian", "图书管理员", true, now);
+            librarianRole.ReplacePermissions(LibrarianPermissions, now);
+            _dbContext.Roles.Add(librarianRole);
+        }
+        else
+        {
+            librarianRole.ReplacePermissions(LibrarianPermissions, now);
+        }
+
         var adminUser = await _dbContext.Users
             .AsTracking()
             .Include(x => x.Roles)
@@ -59,6 +111,28 @@ internal sealed class UsersModuleSeeder : IUsersModuleSeeder
             }
 
             adminUser.AssignRoles([adminRole.Id], now);
+        }
+
+        var librarianUser = await _dbContext.Users
+            .AsTracking()
+            .Include(x => x.Roles)
+            .SingleOrDefaultAsync(x => x.UserName == DefaultLibrarianUserName, cancellationToken);
+
+        if (librarianUser is null)
+        {
+            librarianUser = UserEntity.Create(DefaultLibrarianUserName, "图书管理员", "librarian@modulith.local", string.Empty, now);
+            librarianUser.SetPassword(_passwordHasher.HashPassword(librarianUser, DefaultLibrarianPassword), now);
+            librarianUser.AssignRoles([librarianRole.Id], now);
+            _dbContext.Users.Add(librarianUser);
+        }
+        else
+        {
+            if (!librarianUser.IsActive)
+            {
+                librarianUser.SetActive(true, now);
+            }
+
+            librarianUser.AssignRoles([librarianRole.Id], now);
         }
 
         await _dbContext.SaveChangesAsync(cancellationToken);

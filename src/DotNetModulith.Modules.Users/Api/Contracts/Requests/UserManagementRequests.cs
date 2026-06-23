@@ -114,3 +114,18 @@ public sealed record UpdateRolePermissionsRequest
 {
     public IReadOnlyCollection<string> Permissions { get; init; } = [];
 }
+
+/// <summary>
+/// 更新角色请求
+/// </summary>
+public sealed record UpdateRoleRequest
+{
+    [NotWhiteSpace]
+    [StringLength(100)]
+    public required string Name { get; init; }
+
+    [StringLength(500)]
+    public string? Description { get; init; }
+
+    public IReadOnlyCollection<string> Permissions { get; init; } = [];
+}

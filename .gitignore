@@ -32,3 +32,5 @@ Thumbs.db
 .husky/_
 src/DotNetModulith.Api/logs
 .tmp/
+frontend/node_modules/
+frontend/dist/

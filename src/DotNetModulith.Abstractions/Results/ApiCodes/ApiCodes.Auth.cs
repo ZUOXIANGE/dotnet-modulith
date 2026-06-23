@@ -21,5 +21,10 @@ public static partial class ApiCodes
         /// 用户已被禁用
         /// </summary>
         public const int UserDisabled = 40003;
+
+        /// <summary>
+        /// 验证码无效或已过期
+        /// </summary>
+        public const int CaptchaInvalid = 40004;
     }
 }

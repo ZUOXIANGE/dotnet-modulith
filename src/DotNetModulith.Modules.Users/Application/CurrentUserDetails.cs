@@ -5,6 +5,7 @@ public sealed record CurrentUserDetails(
     string UserName,
     string DisplayName,
     string Email,
+    string AvatarUrl,
     bool IsActive,
     IReadOnlyList<string> Roles,
     IReadOnlyList<string> Permissions);

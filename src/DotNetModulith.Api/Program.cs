@@ -1,12 +1,20 @@
 using DotNetModulith.Abstractions.Exceptions;
 using DotNetModulith.Abstractions.Results;
 using DotNetModulith.Api.HealthChecks;
-using DotNetModulith.Modules.Inventory;
-using DotNetModulith.Modules.Inventory.Api.Controllers;
+using DotNetModulith.Modules.Books;
+using DotNetModulith.Modules.Books.Api.Controllers;
+using DotNetModulith.Modules.Borrowing;
+using DotNetModulith.Modules.Borrowing.Api.Controllers;
+using DotNetModulith.Modules.Fines;
+using DotNetModulith.Modules.Fines.Api.Controllers;
+using DotNetModulith.Modules.Members;
+using DotNetModulith.Modules.Members.Api.Controllers;
 using DotNetModulith.Modules.Notifications;
-using DotNetModulith.Modules.Orders;
-using DotNetModulith.Modules.Orders.Api.Controllers;
-using DotNetModulith.Modules.Payments;
+using DotNetModulith.Modules.Notifications.Api.Controllers;
+using DotNetModulith.Modules.Reports;
+using DotNetModulith.Modules.Reports.Api.Controllers;
+using DotNetModulith.Modules.Reservation;
+using DotNetModulith.Modules.Reservation.Api.Controllers;
 using DotNetModulith.Modules.Storage;
 using DotNetModulith.Modules.Storage.Api.Controllers;
 using DotNetModulith.Modules.Users;
@@ -28,6 +36,9 @@ builder.Host.UseSerilog((context, _, loggerConfiguration) =>
         .MinimumLevel.Information()
         .MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
         .MinimumLevel.Override("Microsoft.AspNetCore", LogEventLevel.Warning)
+        .MinimumLevel.Override("System.Net.Http.HttpClient.OtlpLogExporter", LogEventLevel.Warning)
+        .MinimumLevel.Override("System.Net.Http.HttpClient.OtlpMetricExporter", LogEventLevel.Warning)
+        .MinimumLevel.Override("System.Net.Http.HttpClient.OtlpTraceExporter", LogEventLevel.Warning)
         .MinimumLevel.Override("DotNetCore.CAP", LogEventLevel.Information)
         .MinimumLevel.Override("DotNetModulith", LogEventLevel.Debug)
         .Enrich.FromLogContext()
@@ -43,6 +54,8 @@ builder.Host.UseSerilog((context, _, loggerConfiguration) =>
 writeToProviders: true);
 
 builder.AddServiceDefaults();
+
+builder.Services.AddScoped<DotNetModulith.Api.Data.ILibraryDataSeeder, DotNetModulith.Api.Data.LibraryDataSeeder>();
 
 builder.Services.AddModulithCore(builder.Configuration);
 builder.Services.AddUsersAuthentication(builder.Configuration);
@@ -65,10 +78,15 @@ builder.Services.AddOpenApi(options =>
 builder.Services.AddProblemDetails();
 builder.Services
     .AddControllers()
-    .AddApplicationPart(typeof(OrdersController).Assembly)
-    .AddApplicationPart(typeof(InventoryController).Assembly)
     .AddApplicationPart(typeof(AuthController).Assembly)
     .AddApplicationPart(typeof(StorageController).Assembly)
+    .AddApplicationPart(typeof(BooksController).Assembly)
+    .AddApplicationPart(typeof(MembersController).Assembly)
+    .AddApplicationPart(typeof(BorrowingsController).Assembly)
+    .AddApplicationPart(typeof(ReservationsController).Assembly)
+    .AddApplicationPart(typeof(FinesController).Assembly)
+    .AddApplicationPart(typeof(NotificationsController).Assembly)
+    .AddApplicationPart(typeof(ReportsController).Assembly)
     .ConfigureApiBehaviorOptions(options =>
     {
         options.InvalidModelStateResponseFactory = context =>
@@ -117,11 +135,14 @@ if (isTesting && string.IsNullOrWhiteSpace(builder.Configuration.GetConnectionSt
     });
 }
 
-builder.Services.RegisterModule<InventoryModule>(builder.Configuration);
-builder.Services.RegisterModule<OrdersModule>(builder.Configuration);
-builder.Services.RegisterModule<PaymentsModule>(builder.Configuration);
 builder.Services.RegisterModule<NotificationsModule>(builder.Configuration);
 builder.Services.RegisterModule<UsersModule>(builder.Configuration);
+builder.Services.RegisterModule<BooksModule>(builder.Configuration);
+builder.Services.RegisterModule<MembersModule>(builder.Configuration);
+builder.Services.RegisterModule<BorrowingModule>(builder.Configuration);
+builder.Services.RegisterModule<ReservationModule>(builder.Configuration);
+builder.Services.RegisterModule<FinesModule>(builder.Configuration);
+builder.Services.RegisterModule<ReportsModule>(builder.Configuration);
 builder.Services.RegisterModule<StorageModule>(builder.Configuration);
 
 if (!isTesting)
@@ -261,6 +282,10 @@ if (app.Environment.IsDevelopment())
 if (!isTesting)
 {
     await app.Services.SeedUsersModuleAsync();
+
+    using var scope = app.Services.CreateScope();
+    var librarySeeder = scope.ServiceProvider.GetRequiredService<DotNetModulith.Api.Data.ILibraryDataSeeder>();
+    await librarySeeder.SeedAsync(CancellationToken.None);
 }
 
 app.Run();

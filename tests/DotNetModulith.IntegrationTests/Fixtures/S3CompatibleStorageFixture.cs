@@ -10,11 +10,14 @@ namespace DotNetModulith.IntegrationTests.Fixtures;
 public sealed class S3CompatibleStorageFixture : IAsyncLifetime
 {
     private const ushort S3Port = 9000;
-    private readonly IContainer _container = new ContainerBuilder("minio/minio:latest")
+    private readonly IContainer _container = new ContainerBuilder("rustfs/rustfs:latest")
         .WithPortBinding(S3Port, true)
+        .WithEnvironment("AWS_ACCESS_KEY_ID", AccessKey)
+        .WithEnvironment("AWS_SECRET_ACCESS_KEY", SecretKey)
         .WithEnvironment("MINIO_ROOT_USER", AccessKey)
         .WithEnvironment("MINIO_ROOT_PASSWORD", SecretKey)
-        .WithCommand("server", "/data", "--console-address", ":9001")
+        .WithEnvironment("RUSTFS_ACCESS_KEY_ID", AccessKey)
+        .WithEnvironment("RUSTFS_SECRET_ACCESS_KEY", SecretKey)
         .WithWaitStrategy(Wait.ForUnixContainer().UntilInternalTcpPortIsAvailable(S3Port))
         .WithCleanUp(true)
         .Build();

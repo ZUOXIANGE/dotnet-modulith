@@ -20,9 +20,7 @@ public sealed class OpenObserveOptions
     [Required]
     public string StreamName { get; set; } = "dotnet-modulith";
 
-    [Required]
     public string UserEmail { get; set; } = string.Empty;
 
-    [Required]
     public string UserPassword { get; set; } = string.Empty;
 }

@@ -13,7 +13,7 @@ public sealed class UsersModule : IModule
 
     public string BaseNamespace => "DotNetModulith.Modules.Users";
 
-    public IReadOnlyList<string> Dependencies => [];
+    public IReadOnlyList<string> Dependencies => ["Storage"];
 
     public IReadOnlyList<string> PublishedEvents => [];
 

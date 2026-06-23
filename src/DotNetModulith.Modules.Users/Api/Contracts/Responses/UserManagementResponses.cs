@@ -8,6 +8,7 @@ public sealed record CurrentUserResponse(
     string UserName,
     string DisplayName,
     string Email,
+    string AvatarUrl,
     bool IsActive,
     IReadOnlyList<string> Roles,
     IReadOnlyList<string> Permissions);
@@ -20,6 +21,7 @@ public sealed record UserListItemResponse(
     string UserName,
     string DisplayName,
     string Email,
+    string AvatarUrl,
     bool IsActive,
     DateTimeOffset CreatedAt,
     DateTimeOffset? LastLoginAt,
@@ -33,4 +35,4 @@ public sealed record RoleResponse(Guid Id, string Name, string? Description, boo
 /// <summary>
 /// 权限响应
 /// </summary>
-public sealed record PermissionResponse(string Code, string Name, string Description);
+public sealed record PermissionResponse(string Code, string Name, string Group, string Description);

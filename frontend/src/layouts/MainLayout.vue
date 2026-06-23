@@ -1,0 +1,381 @@
+<template>
+  <n-layout has-sider class="main-layout">
+    <n-layout-sider
+      bordered
+      collapse-mode="width"
+      :collapsed-width="64"
+      :width="240"
+      :collapsed="collapsed"
+      show-trigger
+      @collapse="collapsed = true"
+      @expand="collapsed = false"
+    >
+      <div class="logo-container">
+        <span class="logo-text" v-if="!collapsed">图书馆管理系统</span>
+        <span class="logo-text-short" v-else>图书</span>
+      </div>
+      <n-menu
+        :collapsed="collapsed"
+        :collapsed-width="64"
+        :collapsed-icon-size="22"
+        :options="menuOptions"
+        :value="activeKey"
+        @update:value="handleMenuUpdate"
+      />
+    </n-layout-sider>
+    <n-layout>
+      <n-layout-header bordered class="main-header">
+        <div class="header-right">
+          <n-dropdown :options="userDropdownOptions" @select="handleUserDropdown">
+            <n-button text>
+              <template #icon>
+                <n-avatar
+                  round
+                  size="small"
+                  :src="authStore.avatarAccessUrl || undefined"
+                >
+                  <n-icon><person-circle-outline /></n-icon>
+                </n-avatar>
+              </template>
+              {{ authStore.userName || '管理员' }}
+            </n-button>
+          </n-dropdown>
+        </div>
+      </n-layout-header>
+      <n-layout-content class="main-content">
+        <router-view />
+      </n-layout-content>
+    </n-layout>
+
+    <input
+      ref="avatarInputRef"
+      type="file"
+      accept="image/jpeg,image/png,image/webp"
+      style="display: none"
+      @change="handleAvatarFileChange"
+    />
+
+    <n-modal v-model:show="showChangePassword" title="修改密码" preset="card" style="width: 420px" :mask-closable="false">
+      <n-form ref="passwordFormRef" :model="passwordForm" :rules="passwordRules" label-placement="left" label-width="90">
+        <n-form-item label="当前密码" path="currentPassword">
+          <n-input v-model:value="passwordForm.currentPassword" type="password" placeholder="请输入当前密码" />
+        </n-form-item>
+        <n-form-item label="新密码" path="newPassword">
+          <n-input v-model:value="passwordForm.newPassword" type="password" placeholder="请输入新密码（至少8位）" />
+        </n-form-item>
+        <n-form-item label="确认密码" path="confirmPassword">
+          <n-input v-model:value="passwordForm.confirmPassword" type="password" placeholder="请再次输入新密码" />
+        </n-form-item>
+      </n-form>
+      <template #footer>
+        <n-space justify="end">
+          <n-button @click="showChangePassword = false">取消</n-button>
+          <n-button type="primary" :loading="passwordSubmitting" @click="handleChangePassword">确认修改</n-button>
+        </n-space>
+      </template>
+    </n-modal>
+  </n-layout>
+</template>
+
+<script setup lang="ts">
+import { ref, computed, h, reactive, onMounted } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
+import { NAvatar, NIcon, useMessage, type FormInst, type FormRules } from 'naive-ui'
+import { PersonCircleOutline } from '@vicons/ionicons5'
+import {
+  GridOutline,
+  BookOutline,
+  PeopleOutline,
+  SwapHorizontalOutline,
+  CalendarOutline,
+  CashOutline,
+  BarChartOutline,
+  PersonOutline,
+  ShieldCheckmarkOutline,
+  PricetagsOutline,
+  NotificationsOutline
+} from '@vicons/ionicons5'
+import { useAuthStore } from '@/stores/auth'
+import { usePermission } from '@/composables/usePermission'
+import type { MenuOption } from 'naive-ui'
+import { api, createUploadSession, getCurrentAvatarAccessUrl, getCurrentUser, setCurrentAvatar, uploadToPresignedUrl } from '@/utils/api'
+
+const router = useRouter()
+const route = useRoute()
+const authStore = useAuthStore()
+const { hasPermission, hasAnyPermission } = usePermission()
+const message = useMessage()
+const collapsed = ref(false)
+const avatarInputRef = ref<HTMLInputElement | null>(null)
+const avatarUploading = ref(false)
+
+const AVATAR_ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp']
+const AVATAR_MAX_SIZE = 10 * 1024 * 1024
+
+const renderIcon = (icon: any) => () => h(NIcon, null, { default: () => h(icon) })
+
+const allMenuOptions: MenuOption[] = [
+  { label: '工作台', key: 'dashboard', icon: renderIcon(GridOutline) },
+  {
+    label: '图书管理',
+    key: 'books-group',
+    icon: renderIcon(BookOutline),
+    permission: 'books.view',
+    children: [
+      { label: '图书列表', key: 'books', permission: 'books.view' },
+      { label: '分类管理', key: 'categories', permission: 'categories.view' }
+    ]
+  },
+  { label: '读者管理', key: 'members', icon: renderIcon(PeopleOutline), permission: 'members.view' },
+  {
+    label: '借还管理',
+    key: 'borrowing-group',
+    icon: renderIcon(SwapHorizontalOutline),
+    permission: 'borrowing.view',
+    children: [
+      { label: '借还操作', key: 'borrowing', permission: 'borrowing.view' },
+      { label: '预约管理', key: 'reservations', permission: 'reservation.view' }
+    ]
+  },
+  { label: '罚款管理', key: 'fines', icon: renderIcon(CashOutline), permission: 'fines.view' },
+  { label: '消息通知', key: 'notifications', icon: renderIcon(NotificationsOutline), permission: 'notifications.view' },
+  { label: '统计报表', key: 'reports', icon: renderIcon(BarChartOutline), permission: 'reports.view' },
+  {
+    label: '系统管理',
+    key: 'system-group',
+    icon: renderIcon(ShieldCheckmarkOutline),
+    permission: 'users.view',
+    children: [
+      { label: '用户管理', key: 'users', permission: 'users.view' },
+      { label: '角色管理', key: 'roles', permission: 'roles.view' }
+    ]
+  }
+]
+
+function filterMenuByPermission(options: MenuOption[]): MenuOption[] {
+  return options
+    .map(option => {
+      const opt = { ...option } as MenuOption & { permission?: string }
+      const perm = (option as any).permission as string | undefined
+
+      if (opt.children) {
+        const filteredChildren = filterMenuByPermission(opt.children)
+        if (filteredChildren.length === 0) return null
+        opt.children = filteredChildren
+      }
+
+      if (perm && !hasPermission(perm)) {
+        if (!opt.children || opt.children.length === 0) return null
+      }
+
+      return opt
+    })
+    .filter(Boolean) as MenuOption[]
+}
+
+const menuOptions = computed(() => filterMenuByPermission(allMenuOptions))
+
+const activeKey = computed(() => {
+  const path = route.path
+  if (path.startsWith('/books')) return 'books'
+  if (path.startsWith('/categories')) return 'categories'
+  if (path.startsWith('/members')) return 'members'
+  if (path.startsWith('/borrowing')) return 'borrowing'
+  if (path.startsWith('/reservations')) return 'reservations'
+  if (path.startsWith('/fines')) return 'fines'
+  if (path.startsWith('/notifications')) return 'notifications'
+  if (path.startsWith('/reports')) return 'reports'
+  if (path.startsWith('/users')) return 'users'
+  if (path.startsWith('/roles')) return 'roles'
+  return 'dashboard'
+})
+
+const userDropdownOptions = computed(() => [
+  { label: avatarUploading.value ? '头像上传中...' : '设置头像', key: 'changeAvatar', disabled: avatarUploading.value },
+  { label: '修改密码', key: 'changePassword' },
+  { label: '退出登录', key: 'logout' }
+])
+
+function handleMenuUpdate(key: string) {
+  router.push(`/${key}`)
+}
+
+function handleUserDropdown(key: string) {
+  if (key === 'logout') {
+    authStore.logout()
+    router.push('/login')
+  } else if (key === 'changeAvatar') {
+    avatarInputRef.value?.click()
+  } else if (key === 'changePassword') {
+    showChangePassword.value = true
+  }
+}
+
+const showChangePassword = ref(false)
+const passwordSubmitting = ref(false)
+const passwordFormRef = ref<FormInst | null>(null)
+
+const passwordForm = reactive({
+  currentPassword: '',
+  newPassword: '',
+  confirmPassword: ''
+})
+
+function validateConfirmPassword(_rule: any, value: string) {
+  if (!value) return new Error('请再次输入新密码')
+  if (value !== passwordForm.newPassword) return new Error('两次输入的密码不一致')
+  return true
+}
+
+const passwordRules: FormRules = {
+  currentPassword: [{ required: true, message: '请输入当前密码', trigger: 'blur' }],
+  newPassword: [
+    { required: true, message: '请输入新密码', trigger: 'blur' },
+    { min: 8, message: '密码至少8位', trigger: 'blur' }
+  ],
+  confirmPassword: [{ validator: validateConfirmPassword, trigger: 'blur' }]
+}
+
+async function handleChangePassword() {
+  try {
+    await passwordFormRef.value?.validate()
+  } catch {
+    return
+  }
+
+  passwordSubmitting.value = true
+  try {
+    const res = await api.post('/auth/change-password', {
+      currentPassword: passwordForm.currentPassword,
+      newPassword: passwordForm.newPassword
+    })
+    if (res.code === 200) {
+      message.success('密码修改成功，请重新登录')
+      showChangePassword.value = false
+      passwordForm.currentPassword = ''
+      passwordForm.newPassword = ''
+      passwordForm.confirmPassword = ''
+      authStore.logout()
+      router.push('/login')
+    } else {
+      message.error(res.msg || '修改失败')
+    }
+  } catch {
+    message.error('网络错误')
+  } finally {
+    passwordSubmitting.value = false
+  }
+}
+
+function validateAvatarFile(file: File): string | null {
+  if (!AVATAR_ALLOWED_TYPES.includes(file.type)) {
+    return '仅支持 JPG、PNG、WebP 格式头像'
+  }
+
+  if (file.size > AVATAR_MAX_SIZE) {
+    return '头像大小不能超过 10MB'
+  }
+
+  return null
+}
+
+async function handleAvatarFileChange(event: Event) {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  if (!file) {
+    return
+  }
+
+  const validationError = validateAvatarFile(file)
+  if (validationError) {
+    message.error(validationError)
+    input.value = ''
+    return
+  }
+
+  avatarUploading.value = true
+  try {
+    const session = await createUploadSession(file.name, file.type || 'application/octet-stream', 'user-avatar')
+    await uploadToPresignedUrl(session.uploadUrl, file)
+    const user = await setCurrentAvatar(session.uploadId)
+    authStore.setUser(user)
+    await refreshAvatarAccessUrl()
+    message.success('头像更新成功')
+  } catch (error: any) {
+    message.error(error?.message || '头像更新失败')
+  } finally {
+    avatarUploading.value = false
+    input.value = ''
+  }
+}
+
+async function hydrateCurrentUser() {
+  if (!authStore.token) {
+    return
+  }
+
+  try {
+    if (!authStore.user) {
+      const user = await getCurrentUser()
+      authStore.setUser(user)
+    }
+
+    await refreshAvatarAccessUrl()
+  } catch {
+    authStore.logout()
+    router.push('/login')
+  }
+}
+
+async function refreshAvatarAccessUrl() {
+  if (!authStore.token || !authStore.user?.avatarUrl) {
+    authStore.setAvatarAccessUrl(null)
+    return
+  }
+
+  const result = await getCurrentAvatarAccessUrl()
+  authStore.setAvatarAccessUrl(result.avatarAccessUrl || null)
+}
+
+onMounted(() => {
+  hydrateCurrentUser()
+})
+</script>
+
+<style scoped>
+.main-layout {
+  height: 100vh;
+}
+
+.logo-container {
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-bottom: 1px solid var(--n-border-color);
+}
+
+.logo-text {
+  font-size: 16px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.logo-text-short {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.main-header {
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 0 24px;
+}
+
+.main-content {
+  background: #f5f7fa;
+  min-height: calc(100vh - 56px);
+}
+</style>

@@ -35,6 +35,7 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="DotNetModulith.ArchitectureTests" />
+    <InternalsVisibleTo Include="DotNetModulith.UnitTests" />
     <InternalsVisibleTo Include="DotNetModulith.IntegrationTests" />
     <InternalsVisibleTo Include="DotNetModulith.MigrationService" />
   </ItemGroup>

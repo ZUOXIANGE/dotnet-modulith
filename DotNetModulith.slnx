@@ -31,6 +31,7 @@
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/DotNetModulith.ArchitectureTests/DotNetModulith.ArchitectureTests.csproj" />
+    <Project Path="tests/DotNetModulith.UnitTests/DotNetModulith.UnitTests.csproj" />
     <Project Path="tests/DotNetModulith.IntegrationTests/DotNetModulith.IntegrationTests.csproj" />
   </Folder>
   <Folder Name="/docs/">

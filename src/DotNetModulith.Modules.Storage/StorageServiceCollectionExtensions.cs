@@ -45,6 +45,7 @@ internal static class StorageServiceCollectionExtensions
         });
 
         services.AddSingleton<IObjectStorageService, ObjectStorageService>();
+        services.AddSingleton<IStorageReadService, StorageReadService>();
         services.AddScoped<IStorageUploadSessionService, StorageUploadSessionService>();
         return services;
     }

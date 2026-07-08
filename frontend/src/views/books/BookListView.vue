@@ -102,6 +102,8 @@
         </n-space>
       </template>
     </n-modal>
+
+    <DetailDrawer v-model:show="showDetailDrawer" title="图书详情" :loading="detailLoading" :fields="detailFields" />
   </div>
 </template>
 
@@ -111,6 +113,7 @@ import { useMessage, useDialog, type FormInst, type FormRules, type DataTableCol
 import { api } from '@/utils/api'
 import { usePermission } from '@/composables/usePermission'
 import CoverUpload from '@/components/CoverUpload.vue'
+import DetailDrawer, { type DetailField } from '@/components/DetailDrawer.vue'
 
 interface BookItem {
   id: string
@@ -139,6 +142,9 @@ const loading = ref(false)
 const submitting = ref(false)
 const showCreateDialog = ref(false)
 const showEditDialog = ref(false)
+const showDetailDrawer = ref(false)
+const detailLoading = ref(false)
+const detailFields = ref<DetailField[]>([])
 const formRef = ref<FormInst | null>(null)
 const editFormRef = ref<FormInst | null>(null)
 const editingId = ref<string | null>(null)
@@ -185,15 +191,18 @@ const columns: DataTableColumns<BookItem> = [
   {
     title: '操作',
     key: 'actions',
-    width: 160,
+    width: 220,
     render(row) {
-      if (!hasPermission('books.create')) return null
-      return h(NSpace, {}, {
-        default: () => [
+      const buttons = [
+        h(NButton, { size: 'small', onClick: () => showDetail(row) }, { default: () => '详情' })
+      ]
+      if (hasPermission('books.create')) {
+        buttons.push(
           h(NButton, { size: 'small', onClick: () => startEdit(row) }, { default: () => '编辑' }),
           h(NButton, { size: 'small', type: 'error', onClick: () => handleDelete(row) }, { default: () => '删除' })
-        ]
-      })
+        )
+      }
+      return h(NSpace, {}, { default: () => buttons })
     }
   }
 ]
@@ -267,6 +276,37 @@ async function fetchBooks() {
 function search() {
   pagination.page = 1
   fetchBooks()
+}
+
+async function showDetail(row: BookItem) {
+  showDetailDrawer.value = true
+  detailLoading.value = true
+  detailFields.value = []
+  try {
+    const res = await api.get<any>(`/books/${row.id}`)
+    if (res.code === 200 && res.data) {
+      const d = res.data
+      detailFields.value = [
+        { label: '封面', render: d.coverImageUrl ? h('img', { src: d.coverImageUrl, style: { width: '60px', height: '84px', objectFit: 'cover', borderRadius: '4px' } }) : undefined },
+        { label: 'ISBN', value: d.isbn },
+        { label: '书名', value: d.title },
+        { label: '作者', value: d.author },
+        { label: '出版社', value: d.publisher },
+        { label: '出版日期', value: d.publishDate },
+        { label: '分类', value: d.categoryName },
+        { label: '总册数', value: d.totalCopies },
+        { label: '可借册数', value: d.availableCopies },
+        { label: '状态', value: d.status },
+        { label: '描述', value: d.description },
+        { label: '创建时间', value: d.createdAt },
+        { label: '更新时间', value: d.updatedAt }
+      ].filter(f => f.render || f.value !== undefined)
+    }
+  } catch {
+    message.error('获取详情失败')
+  } finally {
+    detailLoading.value = false
+  }
 }
 
 function resetForm() {

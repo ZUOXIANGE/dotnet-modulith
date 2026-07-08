@@ -57,7 +57,7 @@ public sealed class FinesController : ControllerBase
     }
 
     [Authorize(Policy = FinePermissions.FinesCreate)]
-    [HttpPost("create")]
+    [HttpPost]
     public async Task<ApiResponse<FineDetailsResponse>> CreateFine([FromBody] CreateFineRequest request, CancellationToken ct)
     {
         var input = new CreateFineInput(request.MemberId, request.BorrowingRecordId, request.Amount, request.Reason);

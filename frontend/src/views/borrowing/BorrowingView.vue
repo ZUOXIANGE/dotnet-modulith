@@ -56,6 +56,8 @@
         </n-space>
       </template>
     </n-modal>
+
+    <DetailDrawer v-model:show="showDetailDrawer" title="借阅详情" :loading="detailLoading" :fields="detailFields" />
   </div>
 </template>
 
@@ -65,6 +67,7 @@ import { useMessage, useDialog, type FormInst, type FormRules, type DataTableCol
 import { api } from '@/utils/api'
 import { usePermission } from '@/composables/usePermission'
 import SelectorPopup from '@/components/SelectorPopup.vue'
+import DetailDrawer, { type DetailField } from '@/components/DetailDrawer.vue'
 
 interface BorrowingItem {
   id: string
@@ -86,6 +89,9 @@ const { hasPermission } = usePermission()
 const loading = ref(false)
 const submitting = ref(false)
 const showBorrowDialog = ref(false)
+const showDetailDrawer = ref(false)
+const detailLoading = ref(false)
+const detailFields = ref<DetailField[]>([])
 const borrowFormRef = ref<FormInst | null>(null)
 
 const statusFilter = ref<string | null>(null)
@@ -140,19 +146,19 @@ const columns: DataTableColumns<BorrowingItem> = [
   {
     title: '操作',
     key: 'actions',
-    width: 180,
+    width: 240,
     render(row) {
-      if (!hasPermission('borrowing.borrow')) return null
-      if (row.status === 'Borrowed' || row.status === 'Overdue') {
-        return h(NSpace, {}, {
-          default: () => [
-            h(NButton, { size: 'small', type: 'success', onClick: () => handleReturn(row) }, { default: () => '归还' }),
-            h(NButton, { size: 'small', type: 'warning', onClick: () => handleRenew(row) }, { default: () => '续借' }),
-            h(NButton, { size: 'small', type: 'error', onClick: () => handleMarkLost(row) }, { default: () => '丢失' })
-          ]
-        })
+      const buttons = [
+        h(NButton, { size: 'small', onClick: () => showDetail(row) }, { default: () => '详情' })
+      ]
+      if (hasPermission('borrowing.borrow') && (row.status === 'Borrowed' || row.status === 'Overdue')) {
+        buttons.push(
+          h(NButton, { size: 'small', type: 'success', onClick: () => handleReturn(row) }, { default: () => '归还' }),
+          h(NButton, { size: 'small', type: 'warning', onClick: () => handleRenew(row) }, { default: () => '续借' }),
+          h(NButton, { size: 'small', type: 'error', onClick: () => handleMarkLost(row) }, { default: () => '丢失' })
+        )
       }
-      return null
+      return h(NSpace, {}, { default: () => buttons })
     }
   }
 ]
@@ -217,6 +223,34 @@ async function fetchBorrowings() {
 function search() {
   pagination.page = 1
   fetchBorrowings()
+}
+
+async function showDetail(row: BorrowingItem) {
+  showDetailDrawer.value = true
+  detailLoading.value = true
+  detailFields.value = []
+  try {
+    const res = await api.get<any>(`/borrowings/${row.id}`)
+    if (res.code === 200 && res.data) {
+      const d = res.data
+      detailFields.value = [
+        { label: '图书', value: d.bookTitle },
+        { label: '读者', value: d.memberName },
+        { label: '借阅日期', value: d.borrowDate },
+        { label: '应还日期', value: d.dueDate },
+        { label: '归还日期', value: d.returnDate },
+        { label: '状态', value: statusTagMap[d.status]?.label ?? d.status },
+        { label: '续借次数', value: d.renewalCount },
+        { label: '备注', value: d.notes },
+        { label: '创建时间', value: d.createdAt },
+        { label: '更新时间', value: d.updatedAt }
+      ]
+    }
+  } catch {
+    message.error('获取详情失败')
+  } finally {
+    detailLoading.value = false
+  }
 }
 
 async function handleBorrow() {

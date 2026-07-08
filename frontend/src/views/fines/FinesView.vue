@@ -46,6 +46,8 @@
         </n-space>
       </template>
     </n-modal>
+
+    <DetailDrawer v-model:show="showDetailDrawer" title="罚款详情" :loading="detailLoading" :fields="detailFields" />
   </div>
 </template>
 
@@ -55,6 +57,7 @@ import { useMessage, useDialog, type FormInst, type FormRules, type DataTableCol
 import { api } from '@/utils/api'
 import { usePermission } from '@/composables/usePermission'
 import SelectorPopup from '@/components/SelectorPopup.vue'
+import DetailDrawer, { type DetailField } from '@/components/DetailDrawer.vue'
 
 interface FineItem {
   id: string
@@ -74,6 +77,9 @@ const { hasPermission } = usePermission()
 const loading = ref(false)
 const submitting = ref(false)
 const showCreateDialog = ref(false)
+const showDetailDrawer = ref(false)
+const detailLoading = ref(false)
+const detailFields = ref<DetailField[]>([])
 const createFormRef = ref<FormInst | null>(null)
 
 const statusFilter = ref<string | null>(null)
@@ -139,18 +145,18 @@ const columns: DataTableColumns<FineItem> = [
   {
     title: '操作',
     key: 'actions',
-    width: 150,
+    width: 220,
     render(row) {
-      if (!hasPermission('fines.create')) return null
-      if (row.status === 'Unpaid') {
-        return h(NSpace, {}, {
-          default: () => [
-            h(NButton, { size: 'small', type: 'success', onClick: () => handlePay(row) }, { default: () => '支付' }),
-            h(NButton, { size: 'small', type: 'warning', onClick: () => handleWaive(row) }, { default: () => '豁免' })
-          ]
-        })
+      const buttons = [
+        h(NButton, { size: 'small', onClick: () => showDetail(row) }, { default: () => '详情' })
+      ]
+      if (hasPermission('fines.create') && row.status === 'Unpaid') {
+        buttons.push(
+          h(NButton, { size: 'small', type: 'success', onClick: () => handlePay(row) }, { default: () => '支付' }),
+          h(NButton, { size: 'small', type: 'warning', onClick: () => handleWaive(row) }, { default: () => '豁免' })
+        )
       }
-      return null
+      return h(NSpace, {}, { default: () => buttons })
     }
   }
 ]
@@ -204,6 +210,32 @@ async function fetchFines() {
 function search() {
   pagination.page = 1
   fetchFines()
+}
+
+async function showDetail(row: FineItem) {
+  showDetailDrawer.value = true
+  detailLoading.value = true
+  detailFields.value = []
+  try {
+    const res = await api.get<any>(`/fines/${row.id}`)
+    if (res.code === 200 && res.data) {
+      const d = res.data
+      detailFields.value = [
+        { label: '读者', value: d.memberName },
+        { label: '金额', value: `¥${Number(d.amount).toFixed(2)}` },
+        { label: '类型', value: reasonTagMap[d.reason]?.label ?? d.reason },
+        { label: '状态', value: statusTagMap[d.status]?.label ?? d.status },
+        { label: '借阅记录', value: d.borrowingRecordId ?? '无' },
+        { label: '创建时间', value: d.createdAt },
+        { label: '支付时间', value: d.paidAt },
+        { label: '更新时间', value: d.updatedAt }
+      ]
+    }
+  } catch {
+    message.error('获取详情失败')
+  } finally {
+    detailLoading.value = false
+  }
 }
 
 async function handleCreate() {

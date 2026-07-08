@@ -97,13 +97,15 @@ import {
 } from '@vicons/ionicons5'
 import { useAuthStore } from '@/stores/auth'
 import { usePermission } from '@/composables/usePermission'
+import { useAvatarUrl } from '@/composables/useAvatarUrl'
 import type { MenuOption } from 'naive-ui'
-import { api, createUploadSession, getCurrentAvatarAccessUrl, getCurrentUser, setCurrentAvatar, uploadToPresignedUrl } from '@/utils/api'
+import { api, getCurrentUser, setCurrentAvatar, uploadWithRetry } from '@/utils/api'
 
 const router = useRouter()
 const route = useRoute()
 const authStore = useAuthStore()
 const { hasPermission, hasAnyPermission } = usePermission()
+useAvatarUrl()
 const message = useMessage()
 const collapsed = ref(false)
 const avatarInputRef = ref<HTMLInputElement | null>(null)
@@ -295,11 +297,9 @@ async function handleAvatarFileChange(event: Event) {
 
   avatarUploading.value = true
   try {
-    const session = await createUploadSession(file.name, file.type || 'application/octet-stream', 'user-avatar')
-    await uploadToPresignedUrl(session.uploadUrl, file)
+    const session = await uploadWithRetry(file, 'user-avatar')
     const user = await setCurrentAvatar(session.uploadId)
     authStore.setUser(user)
-    await refreshAvatarAccessUrl()
     message.success('头像更新成功')
   } catch (error: any) {
     message.error(error?.message || '头像更新失败')
@@ -319,22 +319,10 @@ async function hydrateCurrentUser() {
       const user = await getCurrentUser()
       authStore.setUser(user)
     }
-
-    await refreshAvatarAccessUrl()
   } catch {
     authStore.logout()
     router.push('/login')
   }
-}
-
-async function refreshAvatarAccessUrl() {
-  if (!authStore.token || !authStore.user?.avatarUrl) {
-    authStore.setAvatarAccessUrl(null)
-    return
-  }
-
-  const result = await getCurrentAvatarAccessUrl()
-  authStore.setAvatarAccessUrl(result.avatarAccessUrl || null)
 }
 
 onMounted(() => {

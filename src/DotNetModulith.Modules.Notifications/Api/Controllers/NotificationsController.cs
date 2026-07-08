@@ -40,7 +40,7 @@ public sealed class NotificationsController : ControllerBase
 
     [Authorize(Policy = NotificationPermissions.NotificationsView)]
     [HttpGet("unread-count")]
-    public async Task<ApiResponse<UnreadCountResponse>> GetUnreadCount([FromQuery] string recipientId, CancellationToken ct)
+    public async Task<ApiResponse<UnreadCountResponse>> GetUnreadCount([FromQuery] string? recipientId, CancellationToken ct)
     {
         var count = await _notificationService.GetUnreadCountAsync(recipientId, ct);
         return ApiResponse.Success(new UnreadCountResponse(count));
@@ -76,7 +76,7 @@ public sealed class NotificationsController : ControllerBase
 
     [Authorize(Policy = NotificationPermissions.NotificationsView)]
     [HttpPost("read-all")]
-    public async Task<ApiResponse<object?>> MarkAllAsRead([FromQuery] string recipientId, CancellationToken ct)
+    public async Task<ApiResponse<object?>> MarkAllAsRead([FromQuery] string? recipientId, CancellationToken ct)
     {
         await _notificationService.MarkAllAsReadAsync(recipientId, ct);
         return ApiResponse.Success();

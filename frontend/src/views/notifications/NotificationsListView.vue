@@ -22,6 +22,8 @@
         <n-data-table :columns="columns" :data="notifications" :loading="loading" :pagination="pagination" remote />
       </n-card>
     </n-space>
+
+    <DetailDrawer v-model:show="showDetailDrawer" title="通知详情" :loading="detailLoading" :fields="detailFields" />
   </div>
 </template>
 
@@ -29,6 +31,7 @@
 import { ref, reactive, onMounted, h } from 'vue'
 import { useMessage, type DataTableColumns, NButton, NTag } from 'naive-ui'
 import { api } from '@/utils/api'
+import DetailDrawer, { type DetailField } from '@/components/DetailDrawer.vue'
 
 interface NotificationItem {
   id: string
@@ -44,6 +47,9 @@ interface NotificationItem {
 const message = useMessage()
 const loading = ref(false)
 const unreadCount = ref(0)
+const showDetailDrawer = ref(false)
+const detailLoading = ref(false)
+const detailFields = ref<DetailField[]>([])
 
 const isReadFilter = ref<boolean | null>(null)
 const readOptions = [
@@ -102,16 +108,17 @@ const columns: DataTableColumns<NotificationItem> = [
   {
     title: '操作',
     key: 'actions',
-    width: 80,
+    width: 160,
     render(row) {
+      const buttons = [
+        h(NButton, { size: 'small', onClick: () => showDetail(row) }, { default: () => '详情' })
+      ]
       if (!row.isRead) {
-        return h(
-          NButton,
-          { size: 'small', type: 'primary', onClick: () => handleMarkRead(row) },
-          { default: () => '标记已读' }
+        buttons.push(
+          h(NButton, { size: 'small', type: 'primary', onClick: () => handleMarkRead(row) }, { default: () => '标记已读' })
         )
       }
-      return null
+      return buttons
     }
   }
 ]
@@ -150,6 +157,31 @@ async function fetchUnreadCount() {
 function search() {
   pagination.page = 1
   fetchNotifications()
+}
+
+async function showDetail(row: NotificationItem) {
+  showDetailDrawer.value = true
+  detailLoading.value = true
+  detailFields.value = []
+  try {
+    const res = await api.get<any>(`/notifications/${row.id}`)
+    if (res.code === 200 && res.data) {
+      const d = res.data
+      detailFields.value = [
+        { label: '标题', value: d.title },
+        { label: '内容', value: d.content },
+        { label: '类型', value: typeTagMap[d.type]?.label ?? d.type },
+        { label: '接收人', value: d.recipientId },
+        { label: '是否已读', value: d.isRead },
+        { label: '创建时间', value: d.createdAt },
+        { label: '阅读时间', value: d.readAt }
+      ]
+    }
+  } catch {
+    message.error('获取详情失败')
+  } finally {
+    detailLoading.value = false
+  }
 }
 
 async function handleMarkRead(row: NotificationItem) {

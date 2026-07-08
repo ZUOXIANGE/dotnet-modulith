@@ -52,6 +52,8 @@
         </n-space>
       </template>
     </n-modal>
+
+    <DetailDrawer v-model:show="showDetailDrawer" title="预约详情" :loading="detailLoading" :fields="detailFields" />
   </div>
 </template>
 
@@ -61,6 +63,7 @@ import { useMessage, useDialog, type FormInst, type FormRules, type DataTableCol
 import { api } from '@/utils/api'
 import { usePermission } from '@/composables/usePermission'
 import SelectorPopup from '@/components/SelectorPopup.vue'
+import DetailDrawer, { type DetailField } from '@/components/DetailDrawer.vue'
 
 interface ReservationItem {
   id: string
@@ -81,6 +84,9 @@ const { hasPermission } = usePermission()
 const loading = ref(false)
 const submitting = ref(false)
 const showCreateDialog = ref(false)
+const showDetailDrawer = ref(false)
+const detailLoading = ref(false)
+const detailFields = ref<DetailField[]>([])
 const createFormRef = ref<FormInst | null>(null)
 
 const statusFilter = ref<string | null>(null)
@@ -136,18 +142,18 @@ const columns: DataTableColumns<ReservationItem> = [
   {
     title: '操作',
     key: 'actions',
-    width: 160,
+    width: 220,
     render(row) {
-      if (!hasPermission('reservation.create')) return null
-      if (row.status === 'Pending') {
-        return h(NSpace, { size: 4 }, {
-          default: () => [
-            h(NButton, { size: 'small', type: 'primary', onClick: () => handleFulfill(row) }, { default: () => '履约' }),
-            h(NButton, { size: 'small', type: 'error', onClick: () => handleCancel(row) }, { default: () => '取消' })
-          ]
-        })
+      const buttons = [
+        h(NButton, { size: 'small', onClick: () => showDetail(row) }, { default: () => '详情' })
+      ]
+      if (hasPermission('reservation.create') && row.status === 'Pending') {
+        buttons.push(
+          h(NButton, { size: 'small', type: 'primary', onClick: () => handleFulfill(row) }, { default: () => '履约' }),
+          h(NButton, { size: 'small', type: 'error', onClick: () => handleCancel(row) }, { default: () => '取消' })
+        )
       }
-      return null
+      return h(NSpace, { size: 4 }, { default: () => buttons })
     }
   }
 ]
@@ -195,6 +201,32 @@ async function fetchReservations() {
 function search() {
   pagination.page = 1
   fetchReservations()
+}
+
+async function showDetail(row: ReservationItem) {
+  showDetailDrawer.value = true
+  detailLoading.value = true
+  detailFields.value = []
+  try {
+    const res = await api.get<any>(`/reservations/${row.id}`)
+    if (res.code === 200 && res.data) {
+      const d = res.data
+      detailFields.value = [
+        { label: '图书', value: d.bookTitle },
+        { label: '读者', value: d.memberName },
+        { label: '预约日期', value: d.reserveDate },
+        { label: '截止日期', value: d.expiryDate },
+        { label: '状态', value: statusTagMap[d.status]?.label ?? d.status },
+        { label: '排队位置', value: d.queuePosition },
+        { label: '创建时间', value: d.createdAt },
+        { label: '更新时间', value: d.updatedAt }
+      ]
+    }
+  } catch {
+    message.error('获取详情失败')
+  } finally {
+    detailLoading.value = false
+  }
 }
 
 async function handleCreate() {

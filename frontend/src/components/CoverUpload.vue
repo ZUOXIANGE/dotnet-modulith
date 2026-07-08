@@ -48,7 +48,7 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import { NButton, NProgress } from 'naive-ui'
-import { createUploadSession, uploadToPresignedUrl } from '@/utils/api'
+import { uploadWithRetry } from '@/utils/api'
 
 const MAX_SIZE = 10 * 1024 * 1024
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp']
@@ -105,10 +105,7 @@ async function uploadFile(file: File) {
 
   try {
     uploadProgress.value = 20
-    const result = await createUploadSession(file.name, file.type || 'application/octet-stream', 'book-cover')
-    uploadProgress.value = 50
-
-    await uploadToPresignedUrl(result.uploadUrl, file)
+    const result = await uploadWithRetry(file, 'book-cover')
     uploadProgress.value = 100
 
     emit('update:coverUrl', '')

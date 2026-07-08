@@ -81,6 +81,8 @@
         </n-space>
       </template>
     </n-modal>
+
+    <DetailDrawer v-model:show="showDetailDrawer" title="用户详情" :loading="detailLoading" :fields="detailFields" />
   </div>
 </template>
 
@@ -89,6 +91,7 @@ import { ref, reactive, onMounted, h } from 'vue'
 import { useMessage, useDialog, type FormInst, type FormRules, type DataTableColumns, NButton, NSpace, NTag } from 'naive-ui'
 import { api } from '@/utils/api'
 import { usePermission } from '@/composables/usePermission'
+import DetailDrawer, { type DetailField } from '@/components/DetailDrawer.vue'
 
 interface UserItem {
   id: string
@@ -118,6 +121,9 @@ const showCreateDialog = ref(false)
 const showEditDialog = ref(false)
 const showRolesDialog = ref(false)
 const showResetDialog = ref(false)
+const showDetailDrawer = ref(false)
+const detailLoading = ref(false)
+const detailFields = ref<DetailField[]>([])
 const createFormRef = ref<FormInst | null>(null)
 const editFormRef = ref<FormInst | null>(null)
 const resetFormRef = ref<FormInst | null>(null)
@@ -156,26 +162,30 @@ const columns: DataTableColumns<UserItem> = [
   {
     title: '操作',
     key: 'actions',
-    width: 280,
+    width: 340,
     render(row) {
-      if (!hasPermission('users.create')) return null
       const buttons = [
-        h(NButton, { size: 'small', onClick: () => startEdit(row) }, { default: () => '编辑' }),
-        h(NButton, { size: 'small', onClick: () => startAssignRoles(row) }, { default: () => '角色' })
+        h(NButton, { size: 'small', onClick: () => showDetail(row) }, { default: () => '详情' })
       ]
-      if (row.isActive) {
+      if (hasPermission('users.create')) {
         buttons.push(
-          h(NButton, { size: 'small', type: 'warning', onClick: () => handleDisable(row) }, { default: () => '禁用' })
+          h(NButton, { size: 'small', onClick: () => startEdit(row) }, { default: () => '编辑' }),
+          h(NButton, { size: 'small', onClick: () => startAssignRoles(row) }, { default: () => '角色' })
         )
-      } else {
+        if (row.isActive) {
+          buttons.push(
+            h(NButton, { size: 'small', type: 'warning', onClick: () => handleDisable(row) }, { default: () => '禁用' })
+          )
+        } else {
+          buttons.push(
+            h(NButton, { size: 'small', type: 'success', onClick: () => handleEnable(row) }, { default: () => '启用' })
+          )
+        }
         buttons.push(
-          h(NButton, { size: 'small', type: 'success', onClick: () => handleEnable(row) }, { default: () => '启用' })
+          h(NButton, { size: 'small', onClick: () => startResetPassword(row) }, { default: () => '重置密码' }),
+          h(NButton, { size: 'small', type: 'error', onClick: () => handleForceLogout(row) }, { default: () => '强制登出' })
         )
       }
-      buttons.push(
-        h(NButton, { size: 'small', onClick: () => startResetPassword(row) }, { default: () => '重置密码' }),
-        h(NButton, { size: 'small', type: 'error', onClick: () => handleForceLogout(row) }, { default: () => '强制登出' })
-      )
       return h(NSpace, { size: 4 }, { default: () => buttons })
     }
   }
@@ -248,6 +258,31 @@ async function fetchRoles() {
     }
   } catch {
     // ignore
+  }
+}
+
+async function showDetail(row: UserItem) {
+  showDetailDrawer.value = true
+  detailLoading.value = true
+  detailFields.value = []
+  try {
+    const res = await api.get<any>(`/users/${row.id}`)
+    if (res.code === 200 && res.data) {
+      const d = res.data
+      detailFields.value = [
+        { label: '用户名', value: d.userName },
+        { label: '显示名称', value: d.displayName },
+        { label: '邮箱', value: d.email },
+        { label: '状态', value: d.isActive ? '正常' : '已禁用' },
+        { label: '角色', value: (d.roles || []).join(', ') || '无' },
+        { label: '创建时间', value: d.createdAt },
+        { label: '最后登录', value: d.lastLoginAt }
+      ]
+    }
+  } catch {
+    message.error('获取详情失败')
+  } finally {
+    detailLoading.value = false
   }
 }
 

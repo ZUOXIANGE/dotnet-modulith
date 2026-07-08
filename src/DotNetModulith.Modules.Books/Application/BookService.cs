@@ -11,16 +11,25 @@ internal sealed class BookService : IBookService
 {
     private readonly BooksDbContext _dbContext;
     private readonly IStorageUploadSessionService _storageUploadSessionService;
+    private readonly IStorageReadService _storageReadService;
 
     public BookService(
         BooksDbContext dbContext,
-        IStorageUploadSessionService storageUploadSessionService)
+        IStorageUploadSessionService storageUploadSessionService,
+        IStorageReadService storageReadService)
     {
         _dbContext = dbContext;
         _storageUploadSessionService = storageUploadSessionService;
+        _storageReadService = storageReadService;
     }
 
     public async Task<IReadOnlyList<BookListItem>> GetBooksAsync(string? keyword, Guid? categoryId, int page, int pageSize, CancellationToken ct)
+    {
+        var items = await QueryBooksAsync(keyword, categoryId, page, pageSize, ct);
+        return await PresignCoverUrlsAsync(items, ct);
+    }
+
+    private async Task<IReadOnlyList<BookListItem>> QueryBooksAsync(string? keyword, Guid? categoryId, int page, int pageSize, CancellationToken ct)
     {
         var query = _dbContext.Books
             .Include(x => x.Category)
@@ -73,7 +82,7 @@ internal sealed class BookService : IBookService
 
     public async Task<BookDetails?> GetBookByIdAsync(Guid id, CancellationToken ct)
     {
-        return await _dbContext.Books
+        var details = await _dbContext.Books
             .Include(x => x.Category)
             .Where(x => x.Id == id)
             .Select(x => new BookDetails(
@@ -93,6 +102,33 @@ internal sealed class BookService : IBookService
                 x.CreatedAt,
                 x.UpdatedAt))
             .FirstOrDefaultAsync(ct);
+
+        if (details is null)
+            return null;
+
+        var presigned = await _storageReadService.GetPresignedReadUrlAsync(details.CoverImageUrl, ct);
+        return details with { CoverImageUrl = presigned };
+    }
+
+    private async Task<List<BookListItem>> PresignCoverUrlsAsync(IReadOnlyList<BookListItem> items, CancellationToken ct)
+    {
+        if (items.Count == 0)
+            return items.ToList();
+
+        var result = new List<BookListItem>(items.Count);
+        foreach (var item in items)
+        {
+            if (string.IsNullOrWhiteSpace(item.CoverImageUrl))
+            {
+                result.Add(item);
+                continue;
+            }
+
+            var presigned = await _storageReadService.GetPresignedReadUrlAsync(item.CoverImageUrl, ct);
+            result.Add(item with { CoverImageUrl = presigned });
+        }
+
+        return result;
     }
 
     public async Task<BookDetails> CreateBookAsync(CreateBookInput input, CancellationToken ct)

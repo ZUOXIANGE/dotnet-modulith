@@ -91,6 +91,30 @@ export async function uploadToPresignedUrl(uploadUrl: string, file: File): Promi
   }
 }
 
+/**
+ * 带重试与重新签名的上传降级
+ * presigned PUT 失败时，重新申请签名并重试，覆盖 URL 过期/临时网络错误
+ */
+export async function uploadWithRetry(
+  file: File,
+  purpose: 'book-cover' | 'user-avatar',
+  maxAttempts = 2
+): Promise<UploadSessionResult> {
+  let lastError: Error | null = null
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    try {
+      const session = await createUploadSession(file.name, file.type || 'application/octet-stream', purpose)
+      await uploadToPresignedUrl(session.uploadUrl, file)
+      return session
+    } catch (e) {
+      lastError = e instanceof Error ? e : new Error(String(e))
+      if (attempt === maxAttempts - 1) break
+      await new Promise(r => setTimeout(r, 500))
+    }
+  }
+  throw lastError ?? new Error('上传失败')
+}
+
 export async function setCurrentAvatar(uploadId: string) {
   const res = await api.put<{
     id: string

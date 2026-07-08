@@ -79,6 +79,8 @@
         </n-space>
       </template>
     </n-modal>
+
+    <DetailDrawer v-model:show="showDetailDrawer" title="读者详情" :loading="detailLoading" :fields="detailFields" />
   </div>
 </template>
 
@@ -87,6 +89,7 @@ import { ref, reactive, onMounted, h } from 'vue'
 import { useMessage, useDialog, type FormInst, type FormRules, type DataTableColumns, NButton, NSpace, NTag } from 'naive-ui'
 import { api } from '@/utils/api'
 import { usePermission } from '@/composables/usePermission'
+import DetailDrawer, { type DetailField } from '@/components/DetailDrawer.vue'
 
 interface MemberItem {
   id: string
@@ -109,6 +112,9 @@ const loading = ref(false)
 const submitting = ref(false)
 const showCreateDialog = ref(false)
 const showEditDialog = ref(false)
+const showDetailDrawer = ref(false)
+const detailLoading = ref(false)
+const detailFields = ref<DetailField[]>([])
 const formRef = ref<FormInst | null>(null)
 const editFormRef = ref<FormInst | null>(null)
 const editingId = ref<string | null>(null)
@@ -185,26 +191,30 @@ const columns: DataTableColumns<MemberItem> = [
   {
     title: '操作',
     key: 'actions',
-    width: 200,
+    width: 260,
     render(row) {
-      if (!hasPermission('members.create')) return null
       const buttons = [
-        h(NButton, { size: 'small', onClick: () => startEdit(row) }, { default: () => '编辑' })
+        h(NButton, { size: 'small', onClick: () => showDetail(row) }, { default: () => '详情' })
       ]
-      if (row.status === 'Active') {
+      if (hasPermission('members.create')) {
         buttons.push(
-          h(NButton, { size: 'small', type: 'warning', onClick: () => handleSuspend(row) }, { default: () => '停用' })
+          h(NButton, { size: 'small', onClick: () => startEdit(row) }, { default: () => '编辑' })
         )
-      }
-      if (row.status === 'Suspended') {
-        buttons.push(
-          h(NButton, { size: 'small', type: 'success', onClick: () => handleActivate(row) }, { default: () => '启用' })
-        )
-      }
-      if (row.status !== 'Cancelled') {
-        buttons.push(
-          h(NButton, { size: 'small', type: 'error', onClick: () => handleDelete(row) }, { default: () => '注销' })
-        )
+        if (row.status === 'Active') {
+          buttons.push(
+            h(NButton, { size: 'small', type: 'warning', onClick: () => handleSuspend(row) }, { default: () => '停用' })
+          )
+        }
+        if (row.status === 'Suspended') {
+          buttons.push(
+            h(NButton, { size: 'small', type: 'success', onClick: () => handleActivate(row) }, { default: () => '启用' })
+          )
+        }
+        if (row.status !== 'Cancelled') {
+          buttons.push(
+            h(NButton, { size: 'small', type: 'error', onClick: () => handleDelete(row) }, { default: () => '注销' })
+          )
+        }
       }
       return h(NSpace, {}, { default: () => buttons })
     }
@@ -266,6 +276,36 @@ function search() {
   fetchMembers()
 }
 
+async function showDetail(row: MemberItem) {
+  showDetailDrawer.value = true
+  detailLoading.value = true
+  detailFields.value = []
+  try {
+    const res = await api.get<any>(`/members/${row.id}`)
+    if (res.code === 200 && res.data) {
+      const d = res.data
+      detailFields.value = [
+        { label: '姓名', value: d.name },
+        { label: '手机号', value: d.phone },
+        { label: '邮箱', value: d.email },
+        { label: '地址', value: d.address },
+        { label: '会员类型', value: membershipTypeTagMap[d.membershipType] ?? d.membershipType },
+        { label: '状态', value: statusTagMap[d.status]?.label ?? d.status },
+        { label: '借阅上限', value: d.maxBorrowCount },
+        { label: '当前借阅', value: d.currentBorrowCount },
+        { label: '入会日期', value: d.joinDate },
+        { label: '有效期至', value: d.expiryDate },
+        { label: '创建时间', value: d.createdAt },
+        { label: '更新时间', value: d.updatedAt }
+      ]
+    }
+  } catch {
+    message.error('获取详情失败')
+  } finally {
+    detailLoading.value = false
+  }
+}
+
 function resetForm() {
   form.name = ''
   form.phone = ''
@@ -309,15 +349,24 @@ async function handleCreate() {
   }
 }
 
-function startEdit(row: MemberItem) {
+async function startEdit(row: MemberItem) {
   editingId.value = row.id
   editForm.name = row.name
   editForm.phone = row.phone
   editForm.email = row.email
-  editForm.address = ''
   editForm.membershipType = row.membershipType
   editForm.expiryDate = row.expiryDate
+  editForm.address = ''
   showEditDialog.value = true
+
+  try {
+    const res = await api.get<{ address: string }>(`/members/${row.id}`)
+    if (res.code === 200 && res.data) {
+      editForm.address = res.data.address || ''
+    }
+  } catch {
+    // 忽略，地址字段留空
+  }
 }
 
 async function handleUpdate() {

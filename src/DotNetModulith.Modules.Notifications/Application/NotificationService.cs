@@ -54,10 +54,14 @@ internal sealed class NotificationService : INotificationService
         return await query.CountAsync(ct);
     }
 
-    public async Task<int> GetUnreadCountAsync(string recipientId, CancellationToken ct)
+    public async Task<int> GetUnreadCountAsync(string? recipientId, CancellationToken ct)
     {
-        return await _dbContext.Notifications
-            .CountAsync(x => x.RecipientId == recipientId && !x.IsRead, ct);
+        var query = _dbContext.Notifications.AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(recipientId))
+            query = query.Where(x => x.RecipientId == recipientId);
+
+        return await query.CountAsync(x => !x.IsRead, ct);
     }
 
     public async Task<NotificationDetails?> GetNotificationByIdAsync(Guid id, CancellationToken ct)
@@ -108,12 +112,16 @@ internal sealed class NotificationService : INotificationService
         await _dbContext.SaveChangesAsync(ct);
     }
 
-    public async Task MarkAllAsReadAsync(string recipientId, CancellationToken ct)
+    public async Task MarkAllAsReadAsync(string? recipientId, CancellationToken ct)
     {
-        var unread = await _dbContext.Notifications
+        var query = _dbContext.Notifications
             .AsTracking()
-            .Where(x => x.RecipientId == recipientId && !x.IsRead)
-            .ToListAsync(ct);
+            .Where(x => !x.IsRead);
+
+        if (!string.IsNullOrWhiteSpace(recipientId))
+            query = query.Where(x => x.RecipientId == recipientId);
+
+        var unread = await query.ToListAsync(ct);
 
         var now = DateTimeOffset.UtcNow;
         foreach (var item in unread)

@@ -33,8 +33,8 @@
     <PackageVersion Include="TickerQ.Dashboard" Version="10.4.0" />
     <PackageVersion Include="TickerQ.EntityFrameworkCore" Version="10.4.0" />
     <PackageVersion Include="TickerQ.Instrumentation.OpenTelemetry" Version="10.4.0" />
-    <PackageVersion Include="ZiggyCreatures.FusionCache" Version="2.7.1" />
-    <PackageVersion Include="ZiggyCreatures.FusionCache.OpenTelemetry" Version="2.7.0" />
+    <PackageVersion Include="ZiggyCreatures.FusionCache" Version="2.7.2" />
+    <PackageVersion Include="ZiggyCreatures.FusionCache.OpenTelemetry" Version="2.7.2" />
     <PackageVersion Include="ZiggyCreatures.FusionCache.Serialization.SystemTextJson" Version="2.6.0" />
   </ItemGroup>
   <!-- 认证与授权相关包版本 -->

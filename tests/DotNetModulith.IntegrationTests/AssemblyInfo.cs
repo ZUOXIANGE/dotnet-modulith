@@ -1,3 +1,3 @@
 using Xunit;
 
-[assembly: ParallelizeAssembly(false)]
+[assembly: Parallelization(ParallelizationOption.None)]
